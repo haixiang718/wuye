@@ -20,6 +20,35 @@ TOOLS = ROOT / '.tools'
 SERVICES = {'eureka': 8761, 'order': 8001, 'user': 8002, 'acct': 8003,
             'common': 8005, 'store': 8006, 'report': 8007, 'api': 8008,
             'community': 8009, 'fee': 8010, 'front': 8012, 'job': 8013, 'goods': 8014}
+PROFILES = ('property', 'full')
+
+
+def selected_services(names=None, profile='property'):
+    if profile not in PROFILES:
+        raise ValueError('Unknown runtime profile: ' + profile)
+    if not names or 'all' in names:
+        selected = [name for name in SERVICES if profile == 'full' or name != 'goods'] + ['web']
+    else:
+        selected = list(dict.fromkeys(names))
+    # Existing scheduled group-buy jobs call goods; do not leave a missing dependency.
+    if 'job' in selected and os.environ.get('WUYE_ENABLE_SCHEDULED_TASKS') == '1':
+        if 'goods' in selected:
+            selected.remove('goods')
+        selected.insert(selected.index('job'), 'goods')
+    return selected
+
+
+def trim(profile='property'):
+    excluded = [name for name in SERVICES if name not in selected_services(['all'], profile)]
+    job = processes().get('job', {})
+    if ('goods' in excluded and
+            '-Djava110.local.disableScheduledTasks=false' in job.get('command', []) and
+            listening(SERVICES['job'])):
+        excluded.remove('goods')
+        print('Keeping goods: running job has scheduled tasks enabled; use restart all to apply current settings.', flush=True)
+    if excluded:
+        stop(excluded)
+    print('Runtime profile: ' + profile + '; excluded services: ' + (', '.join(excluded) or 'none'), flush=True)
 
 
 def save(path, value):
@@ -89,7 +118,10 @@ def properties(path, values):
     path.write_text('\n'.join(f'{key}={str(value).replace(chr(92), "/")}' for key, value in values.items()) + '\n', encoding='utf-8')
 
 
-def configure():
+def configure(profile='property'):
+    if profile not in PROFILES:
+        raise ValueError('Unknown runtime profile: ' + profile)
+    compact = profile == 'property'
     cfg = settings()
     (RUN / 'config').mkdir(parents=True, exist_ok=True)
     # The bundled XML sets child API/Druid loggers to DEBUG, overriding parent
@@ -114,7 +146,7 @@ def configure():
             'spring.redis.host': '127.0.0.1', 'spring.redis.port': 16379,
             'spring.redis.password': '', 'jedis.pool.host': '127.0.0.1',
             'jedis.pool.port': 16379, 'jedis.pool.password': '',
-            'jedis.pool.config.maxTotal': 20, 'jedis.pool.config.maxIdle': 5,
+            'jedis.pool.config.maxTotal': 20, 'jedis.pool.config.maxIdle': 2 if compact else 5,
             'kafka.consumer.servers': '127.0.0.1:19092',
             'kafka.producer.servers': '127.0.0.1:19092', 'kafka.consumer.concurrency': 1,
             'kafka.consumer.zookeeper.connect': '127.0.0.1:12181',
@@ -127,7 +159,10 @@ def configure():
             'logging.level.org.springframework.web.client': 'INFO',
             'spring.datasource.url': jdbc('TT'), 'spring.datasource.username': 'wuye_local',
             'spring.datasource.password': cfg['db_password'],
+            'java110.runtime.api-docs-enabled': 'false' if compact else 'true',
         }
+        if compact:
+            values['spring.jmx.enabled'] = 'false'
         yaml = BACK / f'service-{name}/src/main/resources/dataSource.yml'
         if yaml.exists():
             text = yaml.read_text(encoding='utf-8')
@@ -135,7 +170,10 @@ def configure():
             text = re.sub(r'jdbc:mysql://[^\s]+/(hc_community|TT)\?[^\s]+', lambda m: jdbc(m[1]), text)
             text = re.sub(r'(?m)^(\s*)username:.*$', r'\1username: wuye_local', text)
             text = re.sub(r'(?m)^(\s*)password:.*$', lambda m: m[1] + 'password: ' + cfg['db_password'], text)
-            text = re.sub(r'(?m)^(\s*)(minIdle|initialSize):.*$', r'\1\2: 1', text)
+            idle = 0 if compact else 1
+            text = re.sub(r'(?m)^(\s*)(minIdle|initialSize):.*$', lambda m: m[1] + m[2] + ': ' + str(idle), text)
+            if compact:
+                text = re.sub(r'(?m)^(\s*)poolPreparedStatements:.*$', r'\1poolPreparedStatements: false', text)
             output = RUN / f'config/{name}-datasource.yml'
             output.write_text(text, encoding='utf-8')
             values['java110.datasource.config'] = output.as_uri()
@@ -151,6 +189,12 @@ def configure():
         'transaction.state.log.min.isr': 1, 'num.partitions': 1,
         'num.network.threads': 2, 'num.io.threads': 2, 'log.retention.hours': 24,
         'group.initial.rebalance.delay.ms': 0})
+    if os.name == 'nt':
+        # Kafka 2.8's cleaner renames mapped index files, which Windows rejects.
+        # Preserve offsets/data and keep the local broker running; Linux deployments
+        # should retain compaction. Monitor local log size when running long term.
+        with (RUN / 'config/kafka.properties').open('a', encoding='utf-8') as output:
+            output.write('log.cleaner.enable=false\n')
     print('Local configuration generated (.runtime/config)', flush=True)
 
 
@@ -158,8 +202,8 @@ def jdbc(database):
     return f'jdbc:mysql://127.0.0.1:13306/{database}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true'
 
 
-def infra():
-    configure()
+def infra(profile='property'):
+    configure(profile)
     mysql = Path(settings()['mysql_bin']) / 'mysqld.exe'
     data = RUN / 'mysql/data'
     if not (data / 'mysql').exists():
@@ -251,8 +295,8 @@ def build():
     subprocess.run([str(TOOLS / 'apache-maven-3.9.9/bin/mvn.cmd'), '-B', '-ntp', '-DskipTests', '-Dmaven.javadoc.skip=true', 'package'], cwd=BACK, env=env, check=True)
 
 
-def start(names):
-    configure()
+def start(names, profile='property'):
+    configure(profile)
     for name in names:
         if name == 'web':
             env = os.environ.copy()
@@ -295,16 +339,27 @@ def stop(names=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['configure', 'infra', 'import-db', 'migrate', 'build', 'start', 'stop', 'status'])
+    parser.add_argument('action', choices=['configure', 'infra', 'import-db', 'migrate', 'build', 'start', 'restart', 'stop', 'status', 'trim'])
     parser.add_argument('services', nargs='*', choices=[*SERVICES, 'web', 'all'])
+    parser.add_argument('--profile', choices=PROFILES, default='property',
+                        help='property omits unused goods and disables API docs; full restores the previous runtime settings')
     args = parser.parse_args()
     if args.action == 'start':
-        start(list(SERVICES) + ['web'] if not args.services or 'all' in args.services else args.services)
+        if not args.services or 'all' in args.services:
+            trim(args.profile)
+        start(selected_services(args.services, args.profile), profile=args.profile)
+    elif args.action == 'restart':
+        selected = selected_services(args.services, args.profile)
+        # Preserve Redis notification receipts/sessions and all middleware/data.
+        stop(list(SERVICES) + ['web'] if not args.services or 'all' in args.services else selected)
+        start(selected, profile=args.profile)
     elif args.action == 'stop':
         stop(None if not args.services or 'all' in args.services else args.services)
     elif args.action == 'status':
         for name, value in processes().items():
             print(f'{name:12} {value["port"]:5} {"LISTENING" if listening(value["port"]) else "STOPPED"}')
+    elif args.action in ('configure', 'infra', 'trim'):
+        globals()[args.action](args.profile)
     else:
         globals()[args.action.replace('-', '_')]()
 

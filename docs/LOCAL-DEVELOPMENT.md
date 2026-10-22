@@ -58,6 +58,39 @@ python scripts/local.py start all
 python scripts/local.py status
 ```
 
+### 运行资源精简（2026-10-22）
+
+默认 `property` 模式启动12个 Java 服务和 Web，商品/拼团 `goods` 不再默认常驻。房屋业主、收费账单、公众号、账户财务、报表、任务配置、合同、权限及停车依赖仍保留。`job` 仍运行，但自动任务继续默认暂停。显式设置 `WUYE_ENABLE_SCHEDULED_TASKS=1` 后，启动包含 job 的组合会自动补回 goods，避免历史拼团任务缺少依赖。若已运行的 job 开启了任务，即使当前终端已清除变量，`trim` 也保留 goods；使用 `restart all` 才会将当前任务开关应用到 JVM。
+
+property 关闭 API Swagger 文档扫描和 Spring JMX，Redis 最大空闲连接由5降到2，Druid 初始/最小空闲连接由1降到0并关闭预编译语句缓存；连接仍可按需创建，最大连接数和 JVM 堆上限保持原值。不合并微服务，不删库表和业务代码。
+
+```powershell
+# 启动时默认采用精简配置；all 指所选配置中的服务集合
+python scripts/local.py start all
+
+# 已经运行时切换配置，需要重启 Java 服务和 Web
+# 此命令保留中间件、Redis 通知记录/会话及业主 H5 入口
+python scripts/local.py restart all --profile property
+
+# 恢复此前全部13个 Java 服务、API 文档和连接池配置
+python scripts/local.py restart all --profile full
+
+# 仅停掉精简配置排除的已记录服务，不重启其他服务
+python scripts/local.py trim
+
+# 单独恢复商品服务
+python scripts/local.py start goods
+
+# Windows 本机进程内存读数，不打印命令行或密钥
+python scripts/runtime_memory.py --label current --output .runtime/memory-current.json
+```
+
+`start` 不会重启已监听端口的服务；只改配置文件不会改变已有 JVM，应用资源配置请使用 `restart`。`stop` 不带服务名会停止包括 Redis 在内的全部已记录进程，不适合只切换运行配置。完整模式只恢复运行服务和参数，不恢复已裁剪的业务入口，也不会自动启用任务。
+
+本机 Kafka 2.8 曾因 Windows 不允许重命名映射中的索引文件而退出。本地 Windows 配置关闭 log cleaner 避免再次触发，不删除消息或消费位点；长期运行需监控本机 Kafka 磁盘。该兼容项不用于 Linux 正式部署，Linux 应保留日志压缩。
+
+2026-10-22 本机在两种配置下执行相同8项后台查询后的快照：Java 工作集从6195.9 MiB降至5776.8 MiB，减少419.1 MiB（约6.8%）；全部已记录进程工作集从6727.1降至6313.7 MiB。采样包含冷启动、JIT及缓存差异，工作集求和可能重复计算共享页，不作为 Linux 生产容量保证。详细验证见[项目现状说明](PROJECT-STATUS.md#55-运行资源精简验证2026-10-22)。
+
 浏览器进入 `http://127.0.0.1:3000`。也可按需启动，如 `python scripts/local.py start user front web`；调用业务还需要对应依赖服务。
 
 附带的物业管理员账号：`wuxw`，密码：`admin`，验证码按登录页填写。该账号已通过实际浏览器登录验证。默认进入丰仪家园；附带 SQL 没有房屋、业主、费用或缴费明细，相关列表为空，需要录入自己的基础资料。
