@@ -24,7 +24,10 @@ def main():
                  repository / 'org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar']
     if not all(path.exists() for path in test_jars):
         raise RuntimeError('Resolve JUnit 4.13.1 and hamcrest-core 1.3 with Maven first')
-    cp = os.pathsep.join(map(str, [output, project / 'service-api/target/classes'] + list(libs.glob('*.jar')) + test_jars))
+    # Prefer the application's Logback binding; the legacy Log4j SLF4J binding
+    # conflicts with log4j-to-slf4j when a test exercises the real HTTP client.
+    runtime_jars = [path for path in libs.glob('*.jar') if not path.name.startswith('log4j-slf4j-impl-')]
+    cp = os.pathsep.join(map(str, [output, project / 'service-api/target/classes'] + runtime_jars + test_jars))
     java = Path(local.java())
     sources = [project / ('service-api/src/' + name) for name in [
         'main/java/com/java110/api/bmo/fee/impl/BillNotificationService.java',

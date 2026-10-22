@@ -8,8 +8,13 @@ import com.java110.dto.smallWeChat.SmallWeChatDto;
 import com.java110.dto.smallWechatAttr.SmallWechatAttrDto;
 import java.lang.reflect.*;
 import java.util.*;
+import java.io.*;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import org.junit.*;
 import org.springframework.http.*;
+import org.springframework.http.client.*;
+import org.springframework.web.client.RestTemplate;
 import static org.junit.Assert.*;
 
 public class BillNotificationServiceTest {
@@ -70,6 +75,39 @@ public class BillNotificationServiceTest {
         }));
     }
     private JSONObject run(){return service.send("community","owe",request,"store","staff");}
+    @Test public void chineseNotificationReachesHttpTransportAsUtf8() throws Exception {
+        final ByteArrayOutputStream body = new ByteArrayOutputStream();
+        final HttpHeaders headers = new HttpHeaders();
+        RestTemplate client = new RestTemplate(new ClientHttpRequestFactory() {
+            public ClientHttpRequest createRequest(final URI uri, final HttpMethod method) {
+                return new ClientHttpRequest() {
+                    public URI getURI() { return uri; }
+                    public HttpMethod getMethod() { return method; }
+                    public String getMethodValue() { return method.name(); }
+                    public HttpHeaders getHeaders() { return headers; }
+                    public OutputStream getBody() { return body; }
+                    public ClientHttpResponse execute() {
+                        return new ClientHttpResponse() {
+                            public HttpStatus getStatusCode() { return HttpStatus.OK; }
+                            public int getRawStatusCode() { return 200; }
+                            public String getStatusText() { return "OK"; }
+                            public void close() { }
+                            public HttpHeaders getHeaders() { HttpHeaders h=new HttpHeaders();h.setContentType(MediaType.APPLICATION_JSON_UTF8);return h; }
+                            public InputStream getBody() { return new ByteArrayInputStream("{\"errcode\":0,\"msgid\":123}".getBytes(StandardCharsets.UTF_8)); }
+                        };
+                    }
+                };
+            }
+        });
+        final RestTemplate transport = client;
+        BillNotificationService sender = new BillNotificationService() {
+            @Override protected RestTemplate notificationClient() { return transport; }
+        };
+        String payload = "{\"data\":{\"first\":{\"value\":\"物业费提醒\"},\"keyword1\":{\"value\":\"业主乙 BIND202\"}}}";
+        sender.deliver("synthetic-token", payload);
+        assertEquals(payload, new String(body.toByteArray(), StandardCharsets.UTF_8));
+        assertEquals(MediaType.APPLICATION_JSON_UTF8, headers.getContentType());
+    }
     @Test public void sendsExactOwnerAndMarksOnlyAfterAccepted(){assertEquals(0,run().getIntValue("code"));assertEquals(1,sends);assertEquals(1,updates);}
     @Test public void deniesUnrelatedProperty(){authorized=false;assertNotEquals(0,run().getIntValue("code"));assertEquals(0,sends);}
     @Test public void deniesAnonymous(){assertNotEquals(0,service.send("community","owe",request,"","").getIntValue("code"));assertEquals(0,sends);}

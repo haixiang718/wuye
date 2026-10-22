@@ -18,6 +18,9 @@ import com.java110.utils.util.StringUtil;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -178,9 +181,14 @@ public class BillNotificationService {
     }
     protected String feePage() { return MappingCache.getValue("WECHAT","OWE_FEE_PAGE"); }
     protected String accessToken(SmallWeChatDto account) { return WechatFactory.getAccessToken(account.getAppId(),account.getAppSecret()); }
-    protected ResponseEntity<String> deliver(String token,String payload) {
+    protected RestTemplate notificationClient() {
         SimpleClientHttpRequestFactory factory=new SimpleClientHttpRequestFactory(); factory.setConnectTimeout(10000); factory.setReadTimeout(20000);
-        return new RestTemplate(factory).postForEntity("https://api.weixin.qq.com/cgi-bin/message/template/send?access_token="+token,payload,String.class);
+        return new RestTemplate(factory);
+    }
+    protected ResponseEntity<String> deliver(String token,String payload) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+        return notificationClient().postForEntity("https://api.weixin.qq.com/cgi-bin/message/template/send?access_token="+token,new HttpEntity<String>(payload,headers),String.class);
     }
     private Jedis redis() { return ApplicationContextFactory.getBean("jedisPool",JedisPool.class).getResource(); }
     protected String cached(String key) { try (Jedis redis=redis()) { return redis.get(key); } }
