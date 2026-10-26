@@ -1,0 +1,229 @@
+{
+  "date": "2026-10-26",
+  "scope": "Existing billing validation only; no production billing code or schedule changed",
+  "artifacts": {
+    "business": {
+      "mode": "existing-business-code-with-memory-boundaries",
+      "checks": [
+        {
+          "id": "monthly_fixed_fee",
+          "status": "PASS",
+          "evidence": "headers=1, details=1, amount=100.0"
+        },
+        {
+          "id": "owner_and_room",
+          "status": "PASS",
+          "evidence": "detail targets synthetic room-1 and its owner"
+        },
+        {
+          "id": "deadline_matches_cycle",
+          "status": "PASS",
+          "evidence": "deadline=2026-11-01 00:00:00"
+        },
+        {
+          "id": "new_bill_unnotified",
+          "status": "PASS",
+          "evidence": "state=1000"
+        },
+        {
+          "id": "header_matches_details",
+          "status": "PASS",
+          "evidence": "header=100.0"
+        },
+        {
+          "id": "sequential_monthly_rerun",
+          "status": "PASS",
+          "evidence": "second call blocked=true, headers=1, details=1"
+        },
+        {
+          "id": "area_formula",
+          "status": "PASS",
+          "evidence": "90 square metres * 1.5 + 5 = 140.0"
+        },
+        {
+          "id": "multiple_rooms",
+          "status": "PASS",
+          "evidence": "two rooms/two owners, header=200.0"
+        },
+        {
+          "id": "arrears_accumulate",
+          "status": "PASS",
+          "evidence": "total outstanding=200.0, cycle amount=100.0"
+        },
+        {
+          "id": "prepaid_fee_skipped",
+          "status": "PASS",
+          "evidence": "prepaid through next cycle; details=0"
+        },
+        {
+          "id": "finished_fee_skipped",
+          "status": "PASS",
+          "evidence": "finished fee; details=0"
+        },
+        {
+          "id": "postpaid_current_cycle_skipped",
+          "status": "PASS",
+          "evidence": "postpaid current cycle; details=0"
+        },
+        {
+          "id": "zero_fee_skipped",
+          "status": "PASS",
+          "evidence": "zero price; details=0"
+        },
+        {
+          "id": "later_cycle_rolls_current_bill",
+          "status": "PASS",
+          "evidence": "old current flag=F, new=T"
+        },
+        {
+          "id": "header_failure_leaves_no_orphans",
+          "status": "ISSUE",
+          "evidence": "failure propagated=true, headers=0, persisted details=1"
+        },
+        {
+          "id": "retry_after_header_failure_no_duplicates",
+          "status": "ISSUE",
+          "evidence": "after retry headers=1, details=2"
+        },
+        {
+          "id": "failed_fee_can_recover_same_cycle",
+          "status": "ISSUE",
+          "evidence": "partial details=1, retry blocked=true, final details=1"
+        },
+        {
+          "id": "missing_owner_has_no_invalid_detail",
+          "status": "ISSUE",
+          "evidence": "details=1, owner=null, oweId=1"
+        },
+        {
+          "id": "one_time_fee_not_generated_twice",
+          "status": "ISSUE",
+          "evidence": "headers=2, details=2"
+        },
+        {
+          "id": "concurrent_monthly_execution_no_duplicates",
+          "status": "ISSUE",
+          "evidence": "concurrent headers=2, details=2"
+        }
+      ],
+      "issues": 6
+    },
+    "localNormal": {
+      "mode": "actual-local-business-services",
+      "headers": 1,
+      "details": 1,
+      "amount": "0.01",
+      "state": "1000",
+      "repeatBlocked": true,
+      "matchingOwner": true,
+      "deadline": "2026-11-01 00:00:00",
+      "messageRequests": 0,
+      "persistedDetails": 1,
+      "orphanDetails": 0,
+      "status": "PASS",
+      "cleanupVerified": true
+    },
+    "localHeaderInterruption": {
+      "mode": "actual-local-services-with-injected-header-interruption",
+      "firstFailurePropagated": true,
+      "headersAfterFailure": 0,
+      "headersAfterRetry": 1,
+      "messageRequests": 0,
+      "persistedDetails": 2,
+      "orphanDetails": 1,
+      "status": "ISSUE",
+      "cleanupVerified": true
+    },
+    "sql": {
+      "mode": "isolated-mysql-temporary-tables",
+      "checks": [
+        {
+          "id": "current_bill_community_isolation",
+          "status": "ISSUE",
+          "observed": "F",
+          "expected": "T"
+        },
+        {
+          "id": "notify_preserves_paid_state",
+          "status": "PASS",
+          "observed": "1",
+          "expected": "1"
+        },
+        {
+          "id": "notify_targets_selected_unpaid_detail",
+          "status": "PASS",
+          "observed": "1",
+          "expected": "1"
+        },
+        {
+          "id": "notify_preserves_other_detail",
+          "status": "PASS",
+          "observed": "1",
+          "expected": "1"
+        }
+      ],
+      "uniqueKeys": {
+        "header": 0,
+        "detail": 0
+      },
+      "productionRowsChanged": 0
+    },
+    "backendQueries": [
+      {
+        "name": "rooms",
+        "http": 200,
+        "rows": 3,
+        "passed": true
+      },
+      {
+        "name": "owners",
+        "http": 200,
+        "rows": 3,
+        "passed": true
+      },
+      {
+        "name": "feeConfig",
+        "http": 200,
+        "rows": 2,
+        "passed": true
+      },
+      {
+        "name": "bills",
+        "http": 200,
+        "code": 0,
+        "rows": 2,
+        "passed": true
+      },
+      {
+        "name": "wechatConfig",
+        "http": 200,
+        "rows": 1,
+        "passed": true
+      },
+      {
+        "name": "parking",
+        "http": 200,
+        "rows": 0,
+        "passed": true
+      },
+      {
+        "name": "payments",
+        "http": 200,
+        "rows": 0,
+        "passed": true
+      },
+      {
+        "name": "feeReport",
+        "http": 200,
+        "code": 0,
+        "rows": 0,
+        "passed": true
+      }
+    ]
+  },
+  "existingManualPushJUnit": {
+    "tests": 23,
+    "passed": 23,
+    "realMessagesSent": 0
+  }
+}
