@@ -31,6 +31,7 @@ Web、员工端和业主端停用智慧服务（投诉、公告、广告、活�
 | order / user / acct | 8001 / 8002 / 8003 |
 | common / store / report / api | 8005 / 8006 / 8007 / 8008 |
 | community / fee / front / job / goods | 8009 / 8010 / 8012 / 8013 / 8014 |
+| business（显式 merged 模式） | 8015 |
 | MySQL / Redis / ZooKeeper / Kafka | 13306 / 16379 / 12181 / 19092 |
 
 Java 和中间件绑定 `127.0.0.1`。Web 默认代理 `http://127.0.0.1:8012`，可通过 `BACKEND_URL` 环境变量覆盖。
@@ -88,6 +89,20 @@ python scripts/runtime_memory.py --label current --output .runtime/memory-curren
 `start` 不会重启已监听端口的服务；只改配置文件不会改变已有 JVM，应用资源配置请使用 `restart`。`stop` 不带服务名会停止包括 Redis 在内的全部已记录进程，不适合只切换运行配置。完整模式只恢复运行服务和参数，不恢复已裁剪的业务入口，也不会自动启用任务。
 
 本机 Kafka 2.8 曾因 Windows 不允许重命名映射中的索引文件而退出。本地 Windows 配置关闭 log cleaner 避免再次触发，不删除消息或消费位点；长期运行需监控本机 Kafka 磁盘。该兼容项不用于 Linux 正式部署，Linux 应保留日志压缩。
+
+### 业务服务合并（2026-10-28）
+
+显式 `merged` 模式将 user、community、fee、acct、store、common、report 七个业务模块合并到 `business`，Java 应用进程由 12 个减少到 6 个，保留 eureka、order、api、front、job 独立运行。原 `property/full` 配置、业务源码及数据均保留；CLI 默认仍为 `property`，要运行合并版本须明确指定配置。
+
+```powershell
+# 运行合并版本；切换会刷新所有调用方的内部路由
+python scripts/local.py restart all --profile merged
+
+# 回退到原独立业务服务
+python scripts/local.py restart all --profile property
+```
+
+切换不重建数据库，不清理 Redis 会话和通知记录，不重置 Kafka 消费位点，也不启用自动任务。业务端口只监听本机。启动/回退、真实验证、原数据库的账户缺表和合同外层路由缺口、内存测量口径详见 [业务服务合并说明](SERVICE-CONSOLIDATION.md)。
 
 2026-10-22 本机在两种配置下执行相同8项后台查询后的快照：Java 工作集从6195.9 MiB降至5776.8 MiB，减少419.1 MiB（约6.8%）；全部已记录进程工作集从6727.1降至6313.7 MiB。采样包含冷启动、JIT及缓存差异，工作集求和可能重复计算共享页，不作为 Linux 生产容量保证。详细验证见[项目现状说明](PROJECT-STATUS.md#55-运行资源精简验证2026-10-22)。
 

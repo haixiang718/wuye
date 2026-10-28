@@ -29,6 +29,7 @@
         <module>service-goods</module>
         <module>java110-generator</module>
         <module>service-acct</module>
+        <module>service-business</module>
 
     </modules>
 

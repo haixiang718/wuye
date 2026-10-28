@@ -8,7 +8,7 @@
 
 候选合并对象为 user、community、fee、acct、store、common、report，新增统一的 business 启动模块。保留 front、api、order、job、eureka 独立启动。MySQL、Redis、Kafka、ZooKeeper、管理后台 Web、业主 H5 及公众号联调入口继续按原职责运行。
 
-本文件记录设计和只读调查结果，尚未实现、编译或启动合并服务。
+2026-10-26 按用户要求暂停实施，优先处理正式服务号联调，运行环境恢复原 property 模式。2026-10-28 用户要求继续服务精简，沿用已批准方案和 `codex/service-consolidation` 分支，继续实际业务、回退和内存验收。进度与限制见 `docs/SERVICE-CONSOLIDATION.md`。
 
 ## 已核对的代码事实
 

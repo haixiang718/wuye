@@ -32,7 +32,7 @@ public class FeeServiceKafka extends BaseController {
     @Autowired
     private IFeeServiceSMO feeServiceSMOImpl;
 
-    @KafkaListener(topics = {"feeServiceTopic"})
+    @KafkaListener(topics = {"feeServiceTopic"}, groupId = "${java110.kafka.fee.group-id:${kafka.consumer.group.id}}")
     public void listen(ConsumerRecord<?, ?> record) {
         logger.info("kafka的key: " + record.key());
         logger.info("kafka的value: " + record.value().toString());

@@ -31,7 +31,7 @@ public class UserServiceKafka extends BaseController {
     @Autowired
     private IUserServiceSMO userServiceSMOImpl;
 
-    @KafkaListener(topics = {"userServiceTopic"})
+    @KafkaListener(topics = {"userServiceTopic"}, groupId = "${java110.kafka.user.group-id:${kafka.consumer.group.id}}")
     public void listen(ConsumerRecord<?, ?> record) {
         logger.info("kafka的key: " + record.key());
         logger.info("kafka的value: " + record.value().toString());

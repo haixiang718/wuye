@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class CommunityServiceBean {
-    @Bean
+    @Bean("communityBusinessKafkaListener")
     public CommunityServiceKafka listener() {
         return new CommunityServiceKafka();
     }

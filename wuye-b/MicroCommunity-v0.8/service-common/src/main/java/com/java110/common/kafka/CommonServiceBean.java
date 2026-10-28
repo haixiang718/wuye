@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class CommonServiceBean {
-    @Bean
+    @Bean("commonBusinessKafkaListener")
     public CommonServiceKafka listener() {
         return new CommonServiceKafka();
     }

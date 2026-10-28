@@ -1,0 +1,968 @@
+{
+  "date": "2026-10-28",
+  "scope": "Seven business domains merged; existing business rules unchanged; no real notifications, menus, payments or scheduled jobs activated",
+  "build": {
+    "reactorModules": 22,
+    "status": "BUILD SUCCESS",
+    "testsSkippedByMaven": true
+  },
+  "unitAndBoundaryChecks": {
+    "python": {
+      "run": 32,
+      "passed": 29,
+      "skipped": 3
+    },
+    "businessContainerJUnit": 8,
+    "billNotificationJUnit": 23,
+    "oauthAndPaymentUnavailableJUnit": 10,
+    "javaFeatureBoundaryChecks": 61,
+    "nodeTests": 37
+  },
+  "runtime": {
+    "propertyBaseline": {
+      "profile": "property",
+      "checks": [
+        {
+          "name": "rooms",
+          "http": 200,
+          "code": null,
+          "rows": 3,
+          "passed": true
+        },
+        {
+          "name": "owners",
+          "http": 200,
+          "code": null,
+          "rows": 3,
+          "passed": true
+        },
+        {
+          "name": "feeConfig",
+          "http": 200,
+          "code": null,
+          "rows": 2,
+          "passed": true
+        },
+        {
+          "name": "bills",
+          "code": 0,
+          "rows": 2,
+          "passed": true
+        },
+        {
+          "name": "wechatConfig",
+          "code": null,
+          "rows": 1,
+          "passed": true
+        },
+        {
+          "name": "parking",
+          "http": 200,
+          "code": null,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "payments",
+          "http": 200,
+          "code": null,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "feeReport",
+          "code": 0,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "contractsGateway",
+          "code": 404,
+          "rows": null,
+          "passed": false
+        },
+        {
+          "name": "tasks",
+          "code": 0,
+          "rows": 10,
+          "passed": true
+        },
+        {
+          "name": "floors",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true
+        },
+        {
+          "name": "contractsService",
+          "http": 200,
+          "code": 0,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "accounts",
+          "http": 500,
+          "code": null,
+          "rows": null,
+          "passed": false
+        },
+        {
+          "name": "area",
+          "http": 200,
+          "code": null,
+          "rows": 31,
+          "passed": true
+        },
+        {
+          "name": "communityShards",
+          "rows": 123,
+          "expectedDatabaseEquality": true,
+          "evenCommunity": true,
+          "oddCommunity": true,
+          "passed": true
+        },
+        {
+          "name": "ownerPasswordLogin",
+          "http": 200,
+          "fixtureOwner": true,
+          "passed": true
+        },
+        {
+          "name": "ownerHouses",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true,
+          "fixturePresent": true
+        },
+        {
+          "name": "ownerHousesAnonymousDenied",
+          "http": 401,
+          "passed": true
+        },
+        {
+          "name": "ownerFees",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true,
+          "fixturePresent": true
+        },
+        {
+          "name": "ownerFeesAnonymousDenied",
+          "http": 401,
+          "passed": true
+        },
+        {
+          "name": "knownBaselineGapProof",
+          "verifiedIssues": 2,
+          "passed": true
+        },
+        {
+          "name": "syntheticRoomWriteRestore",
+          "guardedFixture": true,
+          "rejectedUpdateUnchanged": true,
+          "writeRead": true,
+          "restored": true,
+          "passed": true
+        }
+      ],
+      "roomRestored": true,
+      "fixtureWritePhases": [
+        {
+          "name": "originalRead",
+          "guardedRoomId": true
+        },
+        {
+          "name": "snapshotSaved",
+          "fields": [
+            "roomId",
+            "unitId",
+            "roomNum",
+            "layer",
+            "section",
+            "apartment",
+            "builtUpArea",
+            "feeCoefficient",
+            "state",
+            "remark",
+            "floorId",
+            "roomType"
+          ]
+        },
+        {
+          "name": "invalidUpdateResponse",
+          "http": 500,
+          "code": null
+        },
+        {
+          "name": "invalidUpdateUnchanged",
+          "passed": true,
+          "mismatchedFields": []
+        },
+        {
+          "name": "validUpdateResponse",
+          "http": 200,
+          "code": 0
+        },
+        {
+          "name": "validUpdateRead",
+          "passed": true
+        },
+        {
+          "name": "restoreResponse",
+          "http": 200,
+          "code": 0
+        },
+        {
+          "name": "restoreRead",
+          "passed": true,
+          "mismatchedFields": []
+        }
+      ],
+      "knownBaselineIssues": [
+        {
+          "name": "accounts",
+          "http": 500,
+          "proof": "TT.account is absent",
+          "acceptedForFixtureWrite": true
+        },
+        {
+          "name": "contractsGateway",
+          "code": 404,
+          "proof": "Direct contractsService query passed; existing application gateway route is unavailable",
+          "acceptedForFixtureWrite": true
+        }
+      ],
+      "passed": false
+    },
+    "mergedFirst": {
+      "profile": "merged",
+      "checks": [
+        {
+          "name": "rooms",
+          "http": 200,
+          "code": null,
+          "rows": 3,
+          "passed": true
+        },
+        {
+          "name": "owners",
+          "http": 200,
+          "code": null,
+          "rows": 3,
+          "passed": true
+        },
+        {
+          "name": "feeConfig",
+          "http": 200,
+          "code": null,
+          "rows": 2,
+          "passed": true
+        },
+        {
+          "name": "bills",
+          "code": 0,
+          "rows": 2,
+          "passed": true
+        },
+        {
+          "name": "wechatConfig",
+          "code": null,
+          "rows": 1,
+          "passed": true
+        },
+        {
+          "name": "parking",
+          "http": 200,
+          "code": null,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "payments",
+          "http": 200,
+          "code": null,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "feeReport",
+          "code": 0,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "contractsGateway",
+          "code": 404,
+          "rows": null,
+          "passed": false
+        },
+        {
+          "name": "tasks",
+          "code": 0,
+          "rows": 10,
+          "passed": true
+        },
+        {
+          "name": "floors",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true
+        },
+        {
+          "name": "contractsService",
+          "http": 200,
+          "code": 0,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "accounts",
+          "http": 500,
+          "code": null,
+          "rows": null,
+          "passed": false
+        },
+        {
+          "name": "area",
+          "http": 200,
+          "code": null,
+          "rows": 31,
+          "passed": true
+        },
+        {
+          "name": "communityShards",
+          "rows": 123,
+          "expectedDatabaseEquality": true,
+          "evenCommunity": true,
+          "oddCommunity": true,
+          "passed": true
+        },
+        {
+          "name": "ownerPasswordLogin",
+          "http": 200,
+          "fixtureOwner": true,
+          "passed": true
+        },
+        {
+          "name": "ownerHouses",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true,
+          "fixturePresent": true
+        },
+        {
+          "name": "ownerHousesAnonymousDenied",
+          "http": 401,
+          "passed": true
+        },
+        {
+          "name": "ownerFees",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true,
+          "fixturePresent": true
+        },
+        {
+          "name": "ownerFeesAnonymousDenied",
+          "http": 401,
+          "passed": true
+        },
+        {
+          "name": "knownBaselineGapProof",
+          "verifiedIssues": 2,
+          "passed": true
+        },
+        {
+          "name": "syntheticRoomWriteRestore",
+          "guardedFixture": true,
+          "rejectedUpdateUnchanged": true,
+          "writeRead": true,
+          "restored": true,
+          "passed": true
+        }
+      ],
+      "roomRestored": true,
+      "fixtureWritePhases": [
+        {
+          "name": "originalRead",
+          "guardedRoomId": true
+        },
+        {
+          "name": "snapshotSaved",
+          "fields": [
+            "roomId",
+            "unitId",
+            "roomNum",
+            "layer",
+            "section",
+            "apartment",
+            "builtUpArea",
+            "feeCoefficient",
+            "state",
+            "remark",
+            "floorId",
+            "roomType"
+          ]
+        },
+        {
+          "name": "invalidUpdateResponse",
+          "http": 500,
+          "code": null
+        },
+        {
+          "name": "invalidUpdateUnchanged",
+          "passed": true,
+          "mismatchedFields": []
+        },
+        {
+          "name": "validUpdateResponse",
+          "http": 200,
+          "code": 0
+        },
+        {
+          "name": "validUpdateRead",
+          "passed": true
+        },
+        {
+          "name": "restoreResponse",
+          "http": 200,
+          "code": 0
+        },
+        {
+          "name": "restoreRead",
+          "passed": true,
+          "mismatchedFields": []
+        }
+      ],
+      "knownBaselineIssues": [
+        {
+          "name": "accounts",
+          "http": 500,
+          "proof": "TT.account is absent",
+          "acceptedForFixtureWrite": true
+        },
+        {
+          "name": "contractsGateway",
+          "code": 404,
+          "proof": "Direct contractsService query passed; existing application gateway route is unavailable",
+          "acceptedForFixtureWrite": true
+        }
+      ],
+      "passed": false
+    },
+    "propertyRollback": {
+      "profile": "property",
+      "checks": [
+        {
+          "name": "rooms",
+          "http": 200,
+          "code": null,
+          "rows": 3,
+          "passed": true
+        },
+        {
+          "name": "owners",
+          "http": 200,
+          "code": null,
+          "rows": 3,
+          "passed": true
+        },
+        {
+          "name": "feeConfig",
+          "http": 200,
+          "code": null,
+          "rows": 2,
+          "passed": true
+        },
+        {
+          "name": "bills",
+          "code": 0,
+          "rows": 2,
+          "passed": true
+        },
+        {
+          "name": "wechatConfig",
+          "code": null,
+          "rows": 1,
+          "passed": true
+        },
+        {
+          "name": "parking",
+          "http": 200,
+          "code": null,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "payments",
+          "http": 200,
+          "code": null,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "feeReport",
+          "code": 0,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "contractsGateway",
+          "code": 404,
+          "rows": null,
+          "passed": false
+        },
+        {
+          "name": "tasks",
+          "code": 0,
+          "rows": 10,
+          "passed": true
+        },
+        {
+          "name": "floors",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true
+        },
+        {
+          "name": "contractsService",
+          "http": 200,
+          "code": 0,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "accounts",
+          "http": 500,
+          "code": null,
+          "rows": null,
+          "passed": false
+        },
+        {
+          "name": "area",
+          "http": 200,
+          "code": null,
+          "rows": 31,
+          "passed": true
+        },
+        {
+          "name": "communityShards",
+          "rows": 123,
+          "expectedDatabaseEquality": true,
+          "evenCommunity": true,
+          "oddCommunity": true,
+          "passed": true
+        },
+        {
+          "name": "ownerPasswordLogin",
+          "http": 200,
+          "fixtureOwner": true,
+          "passed": true
+        },
+        {
+          "name": "ownerHouses",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true,
+          "fixturePresent": true
+        },
+        {
+          "name": "ownerHousesAnonymousDenied",
+          "http": 401,
+          "passed": true
+        },
+        {
+          "name": "ownerFees",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true,
+          "fixturePresent": true
+        },
+        {
+          "name": "ownerFeesAnonymousDenied",
+          "http": 401,
+          "passed": true
+        },
+        {
+          "name": "knownBaselineGapProof",
+          "verifiedIssues": 2,
+          "passed": true
+        },
+        {
+          "name": "syntheticRoomWriteRestore",
+          "guardedFixture": true,
+          "rejectedUpdateUnchanged": true,
+          "writeRead": true,
+          "restored": true,
+          "passed": true
+        }
+      ],
+      "roomRestored": true,
+      "fixtureWritePhases": [
+        {
+          "name": "originalRead",
+          "guardedRoomId": true
+        },
+        {
+          "name": "snapshotSaved",
+          "fields": [
+            "roomId",
+            "unitId",
+            "roomNum",
+            "layer",
+            "section",
+            "apartment",
+            "builtUpArea",
+            "feeCoefficient",
+            "state",
+            "remark",
+            "floorId",
+            "roomType"
+          ]
+        },
+        {
+          "name": "invalidUpdateResponse",
+          "http": 500,
+          "code": null
+        },
+        {
+          "name": "invalidUpdateUnchanged",
+          "passed": true,
+          "mismatchedFields": []
+        },
+        {
+          "name": "validUpdateResponse",
+          "http": 200,
+          "code": 0
+        },
+        {
+          "name": "validUpdateRead",
+          "passed": true
+        },
+        {
+          "name": "restoreResponse",
+          "http": 200,
+          "code": 0
+        },
+        {
+          "name": "restoreRead",
+          "passed": true,
+          "mismatchedFields": []
+        }
+      ],
+      "knownBaselineIssues": [
+        {
+          "name": "accounts",
+          "http": 500,
+          "proof": "TT.account is absent",
+          "acceptedForFixtureWrite": true
+        },
+        {
+          "name": "contractsGateway",
+          "code": 404,
+          "proof": "Direct contractsService query passed; existing application gateway route is unavailable",
+          "acceptedForFixtureWrite": true
+        }
+      ],
+      "passed": false
+    },
+    "mergedFinal": {
+      "profile": "merged",
+      "checks": [
+        {
+          "name": "rooms",
+          "http": 200,
+          "code": null,
+          "rows": 3,
+          "passed": true
+        },
+        {
+          "name": "owners",
+          "http": 200,
+          "code": null,
+          "rows": 3,
+          "passed": true
+        },
+        {
+          "name": "feeConfig",
+          "http": 200,
+          "code": null,
+          "rows": 2,
+          "passed": true
+        },
+        {
+          "name": "bills",
+          "code": 0,
+          "rows": 2,
+          "passed": true
+        },
+        {
+          "name": "wechatConfig",
+          "code": null,
+          "rows": 1,
+          "passed": true
+        },
+        {
+          "name": "parking",
+          "http": 200,
+          "code": null,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "payments",
+          "http": 200,
+          "code": null,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "feeReport",
+          "code": 0,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "contractsGateway",
+          "code": 404,
+          "rows": null,
+          "passed": false
+        },
+        {
+          "name": "tasks",
+          "code": 0,
+          "rows": 10,
+          "passed": true
+        },
+        {
+          "name": "floors",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true
+        },
+        {
+          "name": "contractsService",
+          "http": 200,
+          "code": 0,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "accounts",
+          "http": 500,
+          "code": null,
+          "rows": null,
+          "passed": false
+        },
+        {
+          "name": "area",
+          "http": 200,
+          "code": null,
+          "rows": 31,
+          "passed": true
+        },
+        {
+          "name": "communityShards",
+          "rows": 123,
+          "expectedDatabaseEquality": true,
+          "evenCommunity": true,
+          "oddCommunity": true,
+          "passed": true
+        },
+        {
+          "name": "ownerPasswordLogin",
+          "http": 200,
+          "fixtureOwner": true,
+          "passed": true
+        },
+        {
+          "name": "ownerHouses",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true,
+          "fixturePresent": true
+        },
+        {
+          "name": "ownerHousesAnonymousDenied",
+          "http": 401,
+          "passed": true
+        },
+        {
+          "name": "ownerFees",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true,
+          "fixturePresent": true
+        },
+        {
+          "name": "ownerFeesAnonymousDenied",
+          "http": 401,
+          "passed": true
+        },
+        {
+          "name": "knownBaselineGapProof",
+          "verifiedIssues": 2,
+          "passed": true
+        },
+        {
+          "name": "syntheticRoomWriteRestore",
+          "guardedFixture": true,
+          "rejectedUpdateUnchanged": true,
+          "writeRead": true,
+          "restored": true,
+          "passed": true
+        }
+      ],
+      "roomRestored": true,
+      "fixtureWritePhases": [
+        {
+          "name": "originalRead",
+          "guardedRoomId": true
+        },
+        {
+          "name": "snapshotSaved",
+          "fields": [
+            "roomId",
+            "unitId",
+            "roomNum",
+            "layer",
+            "section",
+            "apartment",
+            "builtUpArea",
+            "feeCoefficient",
+            "state",
+            "remark",
+            "floorId",
+            "roomType"
+          ]
+        },
+        {
+          "name": "invalidUpdateResponse",
+          "http": 500,
+          "code": null
+        },
+        {
+          "name": "invalidUpdateUnchanged",
+          "passed": true,
+          "mismatchedFields": []
+        },
+        {
+          "name": "validUpdateResponse",
+          "http": 200,
+          "code": 0
+        },
+        {
+          "name": "validUpdateRead",
+          "passed": true
+        },
+        {
+          "name": "restoreResponse",
+          "http": 200,
+          "code": 0
+        },
+        {
+          "name": "restoreRead",
+          "passed": true,
+          "mismatchedFields": []
+        }
+      ],
+      "knownBaselineIssues": [
+        {
+          "name": "accounts",
+          "http": 500,
+          "proof": "TT.account is absent",
+          "acceptedForFixtureWrite": true
+        },
+        {
+          "name": "contractsGateway",
+          "code": 404,
+          "proof": "Direct contractsService query passed; existing application gateway route is unavailable",
+          "acceptedForFixtureWrite": true
+        }
+      ],
+      "passed": false
+    }
+  },
+  "acceptance": {
+    "sameCheckOutcomesAcrossAllModes": true,
+    "knownFailures": [
+      "contractsGateway: code 404; direct contract service succeeds for synthetic store",
+      "accounts: HTTP 500; TT.account table absent in original database"
+    ],
+    "newRuntimeRegressionsObserved": 0,
+    "rollbackExercised": true,
+    "finalMode": "merged",
+    "liveWeChatOAuthTested": false,
+    "fullDistributedCompensationTested": false
+  },
+  "memory": {
+    "platform": "Windows",
+    "before": {
+      "javaServiceCount": 12,
+      "javaWorkingSetMiB": 5542.7,
+      "javaPrivateMiB": 5857.3,
+      "totalWorkingSetMiB": 6094.8,
+      "totalPrivateMiB": 6533.9,
+      "measuredAt": "2026-10-28T19:08:42.845912+08:00"
+    },
+    "after": {
+      "javaServiceCount": 6,
+      "javaWorkingSetMiB": 3030.6,
+      "javaPrivateMiB": 3201.5,
+      "totalWorkingSetMiB": 3579.7,
+      "totalPrivateMiB": 3907.2,
+      "measuredAt": "2026-10-28T19:13:22.590957+08:00"
+    },
+    "javaWorkingSetReductionMiB": 2512.1,
+    "javaWorkingSetReductionPercent": 45.3,
+    "caveat": "Windows working set sums include shared pages, JIT/cache and timing variation; not production Linux capacity guarantee"
+  },
+  "runtimeSafety": {
+    "mixedLayoutRejectedBeforeConfigChange": true,
+    "preservedProcesses": [
+      "kafka",
+      "mysql",
+      "owner-h5",
+      "redis",
+      "wechat-gateway",
+      "zookeeper"
+    ],
+    "originalDomainPortsStopped": true,
+    "scheduledTasksDisabled": true,
+    "genericMissingLogicalIdentityRejected": true,
+    "fixtureRemarkConfirmedInDatabase": true
+  },
+  "kafkaGroupsBefore": {
+    "brokerQuerySucceeded": true,
+    "expectedLegacyGroupsPresent": [
+      "commonBusinessStatus",
+      "communityBusinessStatus",
+      "notifyBusinessStatus",
+      "storeBusinessStatus"
+    ],
+    "missingExpectedLegacyGroups": []
+  },
+  "kafkaGroupsAfter": {
+    "brokerQuerySucceeded": true,
+    "expectedLegacyGroupsPresent": [
+      "commonBusinessStatus",
+      "communityBusinessStatus",
+      "notifyBusinessStatus",
+      "storeBusinessStatus"
+    ],
+    "missingExpectedLegacyGroups": []
+  }
+}

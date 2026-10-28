@@ -32,7 +32,7 @@ public class CommunityServiceKafka extends BaseController {
     @Autowired
     private ICommunityServiceSMO communityServiceSMOImpl;
 
-    @KafkaListener(topics = {"communityServiceTopic"})
+    @KafkaListener(topics = {"communityServiceTopic"}, groupId = "${java110.kafka.community.group-id:${kafka.consumer.group.id}}")
     public void listen(ConsumerRecord<?, ?> record) {
         logger.info("kafka的key: " + record.key());
         logger.info("kafka的value: " + record.value().toString());

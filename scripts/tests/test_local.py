@@ -11,7 +11,15 @@ local = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(local)
 
 
-class LocalConfigTests(unittest.TestCase):
+class IsolatedLauncherTest(unittest.TestCase):
+    def setUp(self):
+        # Unit tests must not inspect/mutate a developer's live runtime layout.
+        check = patch.object(local, 'live_java_services', return_value=set())
+        check.start()
+        self.addCleanup(check.stop)
+
+
+class LocalConfigTests(IsolatedLauncherTest):
     def test_all_services_use_isolated_middleware(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(local, 'RUN', Path(directory)), patch.object(local, 'settings', return_value={'db_password': 'test_only'}):
             local.configure()
@@ -59,18 +67,18 @@ class LocalConfigTests(unittest.TestCase):
             self.assertNotIn('test_only', str(spawn.call_args.args))
 
 
-class RuntimeProfileTests(unittest.TestCase):
+class RuntimeProfileTests(IsolatedLauncherTest):
     def test_property_profile_preserves_business_services(self):
         with patch.dict(os.environ, {}, clear=True):
             selected = local.selected_services(['all'], 'property')
         self.assertNotIn('goods', selected)
-        self.assertEqual(set(selected), set(local.SERVICES) - {'goods'} | {'web'})
+        self.assertEqual(set(selected), set(local.SERVICES) - {'goods', 'business'} | {'web'})
         self.assertIn('job', selected)
         self.assertIn('acct', selected)
         self.assertIn('report', selected)
 
     def test_full_and_explicit_goods_are_available(self):
-        self.assertEqual(local.selected_services(['all'], 'full'), list(local.SERVICES) + ['web'])
+        self.assertEqual(local.selected_services(['all'], 'full'), [name for name in local.SERVICES if name != 'business'] + ['web'])
         self.assertEqual(local.selected_services(['goods'], 'property'), ['goods'])
 
     def test_scheduled_jobs_restore_goods_dependency(self):
@@ -81,24 +89,24 @@ class RuntimeProfileTests(unittest.TestCase):
             self.assertLess(full.index('goods'), full.index('job'))
             with patch.object(local, 'stop') as stop:
                 local.trim('property')
-                stop.assert_not_called()
+                stop.assert_called_once_with(['business'])
 
     def test_trim_only_stops_excluded_project_services(self):
         with patch.dict(os.environ, {}, clear=True), patch.object(local, 'processes', return_value={}), patch.object(local, 'stop') as stop:
             local.trim('property')
-            stop.assert_called_once_with(['goods'])
+            stop.assert_called_once_with(['goods', 'business'])
         with patch.object(local, 'stop') as stop:
             local.trim('full')
-            stop.assert_not_called()
+            stop.assert_called_once_with(['business'])
 
     def test_trim_preserves_dependency_of_existing_scheduled_job(self):
         recorded = {'job': {'command': ['java.exe', '-Djava110.local.disableScheduledTasks=false']}}
         with patch.dict(os.environ, {}, clear=True), patch.object(local, 'processes', return_value=recorded), patch.object(local, 'listening', return_value=True), patch.object(local, 'stop') as stop:
             local.trim('property')
-            stop.assert_not_called()
+            stop.assert_called_once_with(['business'])
         with patch.dict(os.environ, {}, clear=True), patch.object(local, 'processes', return_value=recorded), patch.object(local, 'listening', return_value=False), patch.object(local, 'stop') as stop:
             local.trim('property')
-            stop.assert_called_once_with(['goods'])
+            stop.assert_called_once_with(['goods', 'business'])
 
     def test_profile_configs_keep_data_and_bound_idle_resources(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(local, 'RUN', Path(directory)), patch.object(local, 'settings', return_value={'db_password': 'test_only'}):

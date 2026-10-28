@@ -1,0 +1,34 @@
+java110:
+  mappingPath: classpath*:mapper/*/*.xml
+spring:
+  application:
+    name: business-service
+  http:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  activiti:
+    database-schema-update: false
+kafka:
+  consumer:
+    enable:
+      auto:
+        commit: true
+    session:
+      timeout: 6000
+    auto:
+      commit:
+        interval: 100
+      offset:
+        reset: latest
+    group:
+      id: notifyBusinessStatus
+    concurrency: 1
+  producer:
+    retries: 0
+    batch:
+      size: 4096
+    linger: 1
+    buffer:
+      memory: 40960

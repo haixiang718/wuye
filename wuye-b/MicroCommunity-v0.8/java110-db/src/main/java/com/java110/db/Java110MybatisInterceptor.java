@@ -8,6 +8,7 @@ import com.java110.db.dao.IQueryServiceDAO;
 import com.java110.dto.order.OrderItemDto;
 import com.java110.utils.constant.ServiceConstant;
 import com.java110.utils.factory.ApplicationContextFactory;
+import com.java110.utils.factory.LogicalServiceContext;
 import com.java110.utils.util.DateUtil;
 import com.java110.utils.util.StringUtil;
 import org.apache.ibatis.executor.Executor;
@@ -105,7 +106,7 @@ public class Java110MybatisInterceptor implements Interceptor {
         orderItemDto.setAction("DEL");
         orderItemDto.setActionObj(tmpTable.trim());
         orderItemDto.setLogText(logText.toJSONString());
-        orderItemDto.setServiceName(ApplicationContextFactory.getApplicationName());
+        orderItemDto.setServiceName(LogicalServiceContext.resolve(ApplicationContextFactory.getApplicationName()));
         orderItemDto.setoId(Java110TransactionalFactory.getOId());
 
         String url = ServiceConstant.SERVICE_ORDER_URL + "/order/oIdApi/createOrderItem";
@@ -158,7 +159,7 @@ public class Java110MybatisInterceptor implements Interceptor {
         orderItemDto.setAction("MOD");
         orderItemDto.setActionObj(tmpTable.trim());
         orderItemDto.setLogText(logText.toJSONString());
-        orderItemDto.setServiceName(ApplicationContextFactory.getApplicationName());
+        orderItemDto.setServiceName(LogicalServiceContext.resolve(ApplicationContextFactory.getApplicationName()));
         orderItemDto.setoId(Java110TransactionalFactory.getOId());
 
         String url = ServiceConstant.SERVICE_ORDER_URL + "/order/oIdApi/createOrderItem";
@@ -256,7 +257,7 @@ public class Java110MybatisInterceptor implements Interceptor {
         orderItemDto.setAction("ADD");
         orderItemDto.setActionObj(tmpTable.trim());
         orderItemDto.setLogText(logText.toJSONString());
-        orderItemDto.setServiceName(ApplicationContextFactory.getApplicationName());
+        orderItemDto.setServiceName(LogicalServiceContext.resolve(ApplicationContextFactory.getApplicationName()));
         orderItemDto.setoId(Java110TransactionalFactory.getOId());
 
         String url = ServiceConstant.SERVICE_ORDER_URL + "/order/oIdApi/createOrderItem";

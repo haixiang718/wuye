@@ -1,5 +1,6 @@
 """Isolated Windows development services. Run: python scripts/local.py --help."""
 import argparse
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -19,17 +20,26 @@ RUN = ROOT / '.runtime'
 TOOLS = ROOT / '.tools'
 SERVICES = {'eureka': 8761, 'order': 8001, 'user': 8002, 'acct': 8003,
             'common': 8005, 'store': 8006, 'report': 8007, 'api': 8008,
-            'community': 8009, 'fee': 8010, 'front': 8012, 'job': 8013, 'goods': 8014}
-PROFILES = ('property', 'full')
+            'community': 8009, 'fee': 8010, 'front': 8012, 'job': 8013, 'goods': 8014,
+            'business': 8015}
+MERGED_DOMAINS = ('user', 'community', 'fee', 'acct', 'store', 'common', 'report')
+PROFILES = ('property', 'full', 'merged')
 
 
 def selected_services(names=None, profile='property'):
     if profile not in PROFILES:
         raise ValueError('Unknown runtime profile: ' + profile)
     if not names or 'all' in names:
-        selected = [name for name in SERVICES if profile == 'full' or name != 'goods'] + ['web']
+        excluded = (set(MERGED_DOMAINS) | {'goods'}) if profile == 'merged' else ({'business'} | (set() if profile == 'full' else {'goods'}))
+        selected = [name for name in SERVICES if name not in excluded] + ['web']
     else:
         selected = list(dict.fromkeys(names))
+    if 'business' in selected and any(name in selected for name in MERGED_DOMAINS):
+        raise ValueError('business cannot run alongside its original business services')
+    if profile == 'merged' and any(name in selected for name in MERGED_DOMAINS):
+        raise ValueError('Use business instead of original business services in merged mode')
+    if profile != 'merged' and 'business' in selected:
+        raise ValueError('business requires --profile merged')
     # Existing scheduled group-buy jobs call goods; do not leave a missing dependency.
     if 'job' in selected and os.environ.get('WUYE_ENABLE_SCHEDULED_TASKS') == '1':
         if 'goods' in selected:
@@ -39,6 +49,7 @@ def selected_services(names=None, profile='property'):
 
 
 def trim(profile='property'):
+    validate_layout(profile)
     excluded = [name for name in SERVICES if name not in selected_services(['all'], profile)]
     job = processes().get('job', {})
     if ('goods' in excluded and
@@ -95,7 +106,7 @@ def processes():
     return json.loads(path.read_text()) if path.exists() else {}
 
 
-def spawn(name, command, port, cwd=ROOT, env=None):
+def spawn(name, command, port, cwd=ROOT, env=None, profile=None):
     recorded = processes()
     if listening(port):
         if name in recorded:
@@ -107,6 +118,8 @@ def spawn(name, command, port, cwd=ROOT, env=None):
         process = subprocess.Popen(command, cwd=cwd, env=env, stdout=log, stderr=log,
                                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS)
     recorded[name] = {'pid': process.pid, 'port': port, 'command': command}
+    if profile is not None:
+        recorded[name]['profile'] = profile
     save(RUN / 'processes.json', recorded)
     wait_port(port, process)
     print(f'{name}: 127.0.0.1:{port} (PID {process.pid})', flush=True)
@@ -121,7 +134,7 @@ def properties(path, values):
 def configure(profile='property'):
     if profile not in PROFILES:
         raise ValueError('Unknown runtime profile: ' + profile)
-    compact = profile == 'property'
+    compact = profile != 'full'
     cfg = settings()
     (RUN / 'config').mkdir(parents=True, exist_ok=True)
     # The bundled XML sets child API/Druid loggers to DEBUG, overriding parent
@@ -163,7 +176,20 @@ def configure(profile='property'):
         }
         if compact:
             values['spring.jmx.enabled'] = 'false'
-        yaml = BACK / f'service-{name}/src/main/resources/dataSource.yml'
+        if name == 'business':
+            values['jedis.pool.timeout'] = 3000
+            values['jedis.pool.config.maxWaitMillis'] = 20000
+            for domain, group in {'user': 'notifyBusinessStatus', 'acct': 'notifyBusinessStatus',
+                                  'community': 'communityBusinessStatus', 'fee': 'communityBusinessStatus',
+                                  'store': 'storeBusinessStatus', 'common': 'commonBusinessStatus'}.items():
+                values[f'java110.kafka.{domain}.group-id'] = group
+        if profile == 'merged':
+            values['java110.runtime.merged-enabled'] = 'true'
+            for domain in MERGED_DOMAINS:
+                prefix = domain + '-service.ribbon.'
+                values[prefix + 'NIWSServerListClassName'] = 'com.netflix.loadbalancer.ConfigurationBasedServerList'
+                values[prefix + 'listOfServers'] = f'127.0.0.1:{SERVICES["business"]}'
+        yaml = BACK / f'service-{"user" if name == "business" else name}/src/main/resources/dataSource.yml'
         if yaml.exists():
             text = yaml.read_text(encoding='utf-8')
             # Preserve the original sharding rules, replace only connection/pool settings.
@@ -177,6 +203,19 @@ def configure(profile='property'):
             output = RUN / f'config/{name}-datasource.yml'
             output.write_text(text, encoding='utf-8')
             values['java110.datasource.config'] = output.as_uri()
+            if name == 'business':
+                for domain in ('community', 'report'):
+                    original = BACK / f'service-{domain}/src/main/resources/dataSource.yml'
+                    domain_text = original.read_text(encoding='utf-8')
+                    domain_text = re.sub(r'jdbc:mysql://[^\s]+/(hc_community|TT)\?[^\s]+', lambda m: jdbc(m[1]), domain_text)
+                    domain_text = re.sub(r'(?m)^(\s*)username:.*$', r'\1username: wuye_local', domain_text)
+                    domain_text = re.sub(r'(?m)^(\s*)password:.*$', lambda m: m[1] + 'password: ' + cfg['db_password'], domain_text)
+                    domain_text = re.sub(r'(?m)^(\s*)(minIdle|initialSize):.*$', lambda m: m[1] + m[2] + ': ' + str(idle), domain_text)
+                    if compact:
+                        domain_text = re.sub(r'(?m)^(\s*)poolPreparedStatements:.*$', r'\1poolPreparedStatements: false', domain_text)
+                    domain_output = RUN / f'config/business-{domain}-datasource.yml'
+                    domain_output.write_text(domain_text, encoding='utf-8')
+                    values[f'java110.datasource.{domain}.config'] = domain_output.as_uri()
         properties(RUN / f'config/{name}.properties', values)
     properties(RUN / 'config/zookeeper.properties', {
         'tickTime': 2000, 'dataDir': RUN / 'zookeeper', 'clientPort': 12181,
@@ -296,6 +335,8 @@ def build():
 
 
 def start(names, profile='property'):
+    selected_services(names, profile)
+    validate_layout(profile)
     configure(profile)
     for name in names:
         if name == 'web':
@@ -311,11 +352,62 @@ def start(names, profile='property'):
         # JSON has higher precedence and keeps passwords out of command-line arguments.
         config = RUN / f'config/{name}.properties'
         env['SPRING_APPLICATION_JSON'] = json.dumps(dict(line.split('=', 1) for line in config.read_text(encoding='utf-8').splitlines() if line))
-        spawn(name, [java(), '-Xms48m', '-Xmx256m', '-XX:ParallelGCThreads=2',
+        spawn(name, [java(), '-Xms48m', '-Xmx768m' if name == 'business' else '-Xmx256m', '-XX:ParallelGCThreads=2',
                      '-Dlogback.configurationFile=' + str(RUN / 'config/logback-local.xml'),
                      '-Djava110.local.disableScheduledTasks=' + ('false' if os.environ.get('WUYE_ENABLE_SCHEDULED_TASKS') == '1' else 'true'), '-Dfile.encoding=UTF-8',
                      '-jar', str(jar), '--spring.profiles.active=dev',
-                     '--spring.config.additional-location=' + config.as_uri()], SERVICES[name], env=env)
+                     '--spring.config.additional-location=' + config.as_uri()], SERVICES[name], env=env, profile=profile)
+
+
+def live_java_services():
+    """Also find tracked JVMs still starting before their port is bound."""
+    live = {name for name, port in SERVICES.items() if listening(port)}
+    pending = {name: value for name, value in processes().items()
+               if name in SERVICES and name not in live}
+    if pending:
+        ids = ','.join(str(int(value['pid'])) for value in pending.values())
+        command = ('Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -in @('
+                   + ids + ') } | Select-Object ProcessId,CommandLine | ConvertTo-Json -Compress')
+        result = subprocess.run(['powershell', '-NoProfile', '-Command', command],
+                                capture_output=True, text=True, check=True)
+        if result.stdout.strip():
+            values = json.loads(result.stdout)
+            values = values if isinstance(values, list) else [values]
+            for name, record in pending.items():
+                jar = next((item for item in record['command'] if item.endswith('.jar')), None)
+                if jar and any(item['ProcessId'] == record['pid'] and
+                               jar.lower() in (item.get('CommandLine') or '').lower() for item in values):
+                    live.add(name)
+    return live
+
+
+def validate_layout(profile):
+    live = live_java_services()
+    conflicts = set(MERGED_DOMAINS) if profile == 'merged' else {'business'}
+    recorded = processes()
+    callers = {'api', 'front', 'order', 'job', 'goods'}
+    stale = {name for name in live & callers
+             if (recorded.get(name, {}).get('profile', 'property') == 'merged') != (profile == 'merged')}
+    if live & conflicts or stale:
+        raise RuntimeError('Conflicting business layout/routes are running; use restart all --profile ' + profile)
+
+
+def preflight(names):
+    for name in names:
+        if name == 'web':
+            continue
+        jar = BACK / f'service-{name}/target/service-{name}.jar'
+        if not jar.exists():
+            raise RuntimeError(f'{jar} missing: run build first; running services were preserved')
+
+
+def restart(names=None, profile='property'):
+    selected = selected_services(names, profile)
+    preflight(selected)
+    if names and 'all' not in names:
+        validate_layout(profile)
+    stop(list(SERVICES) + ['web'] if not names or 'all' in names else selected)
+    start(selected, profile=profile)
 
 
 def stop(names=None):
@@ -332,9 +424,51 @@ def stop(names=None):
         if token.lower() not in actual.lower():
             print(f'{name}: PID command changed; skipped')
             continue
-        subprocess.run(['taskkill', '/PID', str(value['pid']), '/T', '/F'], capture_output=True)
+        killed = subprocess.run(['taskkill', '/PID', str(value['pid']), '/T', '/F'], capture_output=True)
+        if killed.returncode != 0:
+            raise RuntimeError(f'{name}: taskkill failed; preserved process records, retry after checking the process')
+        deadline = time.monotonic() + 20
+        while True:
+            remaining = subprocess.run(['powershell', '-NoProfile', '-Command', command],
+                                       capture_output=True, text=True, check=True)
+            still_matched = (remaining.stdout.strip() and
+                             token.lower() in (json.loads(remaining.stdout).get('CommandLine') or '').lower())
+            if not listening(value['port']) and not still_matched:
+                break
+            if time.monotonic() >= deadline:
+                raise RuntimeError(f'{name}: process/port did not close; preserved process records')
+            time.sleep(0.2)
         print(f'{name}: stopped')
     save(RUN / 'processes.json', {key: value for key, value in processes().items() if names and key not in names})
+
+
+@contextmanager
+def launcher_lock():
+    """Serialize CLI mutations; Windows releases this lock even after a crash."""
+    RUN.mkdir(parents=True, exist_ok=True)
+    with (RUN / 'launcher.lock').open('a+b') as lock:
+        lock.seek(0, 2)
+        if lock.tell() == 0:
+            lock.write(b'0')
+            lock.flush()
+        lock.seek(0)
+        try:
+            if os.name == 'nt':
+                import msvcrt
+                msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as error:
+            raise RuntimeError('Another local launcher is running; retry after it finishes') from error
+        try:
+            yield
+        finally:
+            lock.seek(0)
+            if os.name == 'nt':
+                msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
 
 def main():
@@ -342,17 +476,15 @@ def main():
     parser.add_argument('action', choices=['configure', 'infra', 'import-db', 'migrate', 'build', 'start', 'restart', 'stop', 'status', 'trim'])
     parser.add_argument('services', nargs='*', choices=[*SERVICES, 'web', 'all'])
     parser.add_argument('--profile', choices=PROFILES, default='property',
-                        help='property omits unused goods and disables API docs; full restores the previous runtime settings')
+                        help='property keeps original services; merged combines seven business services; full includes goods and API docs')
     args = parser.parse_args()
     if args.action == 'start':
+        preflight(selected_services(args.services, args.profile))
         if not args.services or 'all' in args.services:
             trim(args.profile)
         start(selected_services(args.services, args.profile), profile=args.profile)
     elif args.action == 'restart':
-        selected = selected_services(args.services, args.profile)
-        # Preserve Redis notification receipts/sessions and all middleware/data.
-        stop(list(SERVICES) + ['web'] if not args.services or 'all' in args.services else selected)
-        start(selected, profile=args.profile)
+        restart(args.services, args.profile)
     elif args.action == 'stop':
         stop(None if not args.services or 'all' in args.services else args.services)
     elif args.action == 'status':
@@ -366,7 +498,8 @@ def main():
 
 if __name__ == '__main__':
     try:
-        main()
+        with launcher_lock():
+            main()
     except (RuntimeError, subprocess.CalledProcessError) as error:
         print(str(error), file=sys.stderr)
         sys.exit(1)
