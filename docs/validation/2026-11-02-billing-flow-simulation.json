@@ -1,0 +1,310 @@
+{
+  "date": "2026-11-02",
+  "simulationCompleted": true,
+  "endToEndReady": false,
+  "productionBusinessCodeChanged": false,
+  "database": "isolated-local-TT-on-loopback-13306",
+  "realWechatMessages": 0,
+  "realPayments": 0,
+  "realOAuthPerformed": false,
+  "registration": [
+    {
+      "entry": "public-h5-front",
+      "http": 401,
+      "code": null,
+      "passed": false
+    },
+    {
+      "entry": "internal-api-diagnostic-continuation",
+      "http": 200,
+      "code": 0,
+      "passed": true
+    }
+  ],
+  "bindingApproval": {
+    "mode": "approve",
+    "checks": [
+      {
+        "name": "pending_binding_cannot_login",
+        "passed": true,
+        "http": 403
+      },
+      {
+        "name": "property_approval_via_real_management_entry",
+        "passed": true,
+        "code": 0
+      },
+      {
+        "name": "approved_owner_password_login",
+        "passed": true,
+        "http": 200
+      }
+    ],
+    "passed": true
+  },
+  "beforeBill": {
+    "mode": "before-bill",
+    "checks": [
+      {
+        "name": "owner_fee_visible_before-bill",
+        "passed": true,
+        "http": 200,
+        "matchingFixtureFee": true
+      },
+      {
+        "name": "unpublished_fee_is_hidden",
+        "passed": false,
+        "actual": "Fee visible before any bill generation or approval",
+        "required": "Only reviewed and published bill should become payable"
+      },
+      {
+        "name": "anonymous_fee_access_denied",
+        "passed": true,
+        "http": 401
+      },
+      {
+        "name": "other_owner_room_denied_despite_spoofed_header",
+        "passed": true,
+        "http": 403
+      },
+      {
+        "name": "compiled_h5_shows_own_room",
+        "passed": true
+      },
+      {
+        "name": "compiled_h5_shows_fixture_fee",
+        "passed": true
+      },
+      {
+        "name": "payment_button_stays_disabled",
+        "passed": true
+      },
+      {
+        "name": "compiled_h5_has_no_page_errors",
+        "passed": true,
+        "errorCount": 0
+      }
+    ],
+    "passed": false
+  },
+  "generation": {
+    "mode": "actual-local-business-services",
+    "headers": 1,
+    "details": 1,
+    "amount": "0.01",
+    "state": "1000",
+    "repeatBlocked": true,
+    "matchingOwner": true,
+    "deadline": "2026-12-01 00:00:00",
+    "messageRequests": 0
+  },
+  "afterBill": {
+    "mode": "after-bill",
+    "checks": [
+      {
+        "name": "owner_fee_visible_after-bill",
+        "passed": true,
+        "http": 200,
+        "matchingFixtureFee": true
+      },
+      {
+        "name": "anonymous_fee_access_denied",
+        "passed": true,
+        "http": 401
+      },
+      {
+        "name": "other_owner_room_denied_despite_spoofed_header",
+        "passed": true,
+        "http": 403
+      },
+      {
+        "name": "compiled_h5_shows_own_room",
+        "passed": true
+      },
+      {
+        "name": "compiled_h5_shows_fixture_fee",
+        "passed": true
+      },
+      {
+        "name": "payment_button_stays_disabled",
+        "passed": true
+      },
+      {
+        "name": "compiled_h5_has_no_page_errors",
+        "passed": true,
+        "errorCount": 0
+      }
+    ],
+    "passed": true
+  },
+  "notification": {
+    "mode": "same-real-generated-bill-with-synthetic-notification-transport-and-oauth-identity",
+    "passed": true,
+    "simulatedAcceptances": 1,
+    "realFixtureStateUpdates": 1,
+    "sameRequestDeduplicated": true,
+    "realWechatRequests": 0,
+    "billStateAfter": "3000",
+    "linkRoomMatches": true,
+    "databaseOAuthBindingModified": false
+  },
+  "afterNotice": {
+    "mode": "after-notice",
+    "checks": [
+      {
+        "name": "owner_fee_visible_after-notice",
+        "passed": true,
+        "http": 200,
+        "matchingFixtureFee": true
+      },
+      {
+        "name": "notified_unpaid_bill_remains_in_arrears_list",
+        "passed": true,
+        "http": 200,
+        "matchingUnpaidBill": true
+      },
+      {
+        "name": "anonymous_fee_access_denied",
+        "passed": true,
+        "http": 401
+      },
+      {
+        "name": "other_owner_room_denied_despite_spoofed_header",
+        "passed": true,
+        "http": 403
+      },
+      {
+        "name": "compiled_h5_shows_own_room",
+        "passed": true
+      },
+      {
+        "name": "compiled_h5_shows_fixture_fee",
+        "passed": true
+      },
+      {
+        "name": "payment_button_stays_disabled",
+        "passed": true
+      },
+      {
+        "name": "compiled_h5_has_no_page_errors",
+        "passed": true,
+        "errorCount": 0
+      },
+      {
+        "name": "h5_arrears_page_loads_without_runtime_errors",
+        "passed": false,
+        "newErrorCount": 1,
+        "undefinedRoomLoader": true
+      }
+    ],
+    "passed": false
+  },
+  "paymentAdapterDiagnostic": {
+    "mode": "production-legacy-v2-adapters-with-in-process-network-and-redis-stubs",
+    "checks": [
+      {
+        "name": "single_standard_xml_with_query_wid",
+        "passed": false,
+        "actual": "downstream confirmations=0",
+        "boundary": "Production public XML method; wId supplied as URL parameter"
+      },
+      {
+        "name": "arrears_standard_xml_with_query_wid",
+        "passed": false,
+        "actual": "downstream confirmations=0",
+        "boundary": "Production public XML method; no nonstandard wId in WeChat body"
+      },
+      {
+        "name": "single_valid_map_can_reach_confirmation",
+        "passed": true,
+        "actual": "confirmation requests=1",
+        "boundary": "Map method isolates behavior AFTER missing URL-parameter propagation; downstream is a stub"
+      },
+      {
+        "name": "invalid_signature_rejected",
+        "passed": true,
+        "actual": "confirmation requests=0",
+        "boundary": "Map method, synthetic key only"
+      },
+      {
+        "name": "incorrect_amount_must_not_confirm",
+        "passed": false,
+        "actual": "signed amount=1 cent, expected synthetic order=100 cents, confirmations=1",
+        "boundary": "Adapter does not load expected order or forward the paid amount for comparison"
+      },
+      {
+        "name": "incorrect_app_and_merchant_must_not_confirm",
+        "passed": false,
+        "actual": "confirmation requests=1",
+        "boundary": "Signed synthetic payload has appId and merchant differing from selected configuration"
+      },
+      {
+        "name": "business_failure_must_not_ack_success",
+        "passed": false,
+        "actual": "adapter result=1",
+        "boundary": "Downstream HTTP 200 body code=1; no real posting performed"
+      },
+      {
+        "name": "arrears_downstream_failure_remains_retryable",
+        "passed": false,
+        "actual": "first result=0, retry result=1, total downstream requests=1",
+        "boundary": "Synthetic Redis GETSET/DEL semantics; retry must call posting again after initial HTTP 500"
+      }
+    ],
+    "issues": 6,
+    "duplicateSingleCallbackForwarded": 2,
+    "duplicatePostingVerified": false,
+    "realNetworkRequests": 0,
+    "databaseWrites": 0,
+    "passed": false
+  },
+  "finalStateBeforeCleanup": {
+    "billState": "3000",
+    "billAmount": "0.01",
+    "amountStillOwed": "0.01",
+    "billReceipts": "0.00",
+    "paymentDetails": 0,
+    "accountTablesUnchanged": true,
+    "realPaymentPostingVerified": false
+  },
+  "regressions": {
+    "billNotification": {
+      "tests": 23,
+      "failures": 0,
+      "boundary": "stubbed transport"
+    },
+    "ownerOAuth": {
+      "tests": 11,
+      "failures": 0,
+      "boundary": "stubbed WeChat; not live OAuth or anonymous registration integration"
+    }
+  },
+  "preservation": {
+    "checkedTables": 15,
+    "changedTables": [],
+    "rowsAndHashesRestored": true,
+    "orderAndOperationAuditTracesRetained": true,
+    "scope": "15 selected business tables, not a complete database rollback"
+  },
+  "limitations": [
+    "Base data inserted by fixture, not management form acceptance",
+    "Anonymous H5 registration failed; internal API used only to continue diagnosis",
+    "Real local approval and password session used; no live WeChat OAuth",
+    "No independent bill review/publish gate",
+    "Notification transport and external identity stubbed; no management push button acceptance or phone delivery",
+    "H5 queries match feeId; bill snapshot semantics not proved",
+    "Payment tests use independent synthetic orders and legacy V2 adapters, not the generated local bill",
+    "Expected synthetic order amount is not an actual production order lookup",
+    "Downstream payment posting and duplicate posting not verified",
+    "No successful writeoff or financial posting demonstrated"
+  ],
+  "diagnosticHarnessVerification": {
+    "browserFailureInjection": "passed",
+    "completedOnStartupFailure": false,
+    "passedOnStartupFailure": false,
+    "exitCodeOnStartupFailure": 2,
+    "networkRequests": 0,
+    "databaseWrites": 0,
+    "businessRunsPredateCompletedField": true
+  }
+}
