@@ -40,12 +40,6 @@
 					<text class="text-grey">我的房屋</text>
 				</view>
 			</view>
-			<view class="cu-item arrow" @click="mallOrder()">
-				<view class="content">
-					<text class="cuIcon-shopfill text-orange"></text>
-					<text class="text-grey">商城订单</text>
-				</view>
-			</view>
 			<view class="cu-item arrow" @click="feeDetail()">
 				<view class="content">
 					<text class="cuIcon-profile text-pink"></text>
@@ -88,10 +82,6 @@
 	const constant = context.constant;
 	//获取app实例
 	const app = getApp().globalData;
-	import conf from '../../conf/config.js';
-	import {getHcCode} from '../../api/webView/webViewApi.js'
-	
-	import {getCurCommunity} from '../../api/community/communityApi.js'
 	export default {
 		data() {
 			return {
@@ -269,20 +259,6 @@
 			myParking: function() {
 				this.vc.navigateTo({
 					url: '/pages/parkingInfo/parkingInfo',
-				});
-			},
-			mallOrder:function(){
-				let that = this;
-				let _communityId = '';
-				getCurCommunity()
-				.then(res=>{
-					_communityId = res.communityId;
-					return getHcCode();
-				}).then(_data => {
-					let _url = "/pages/myOrder/myOrder?hcCommunityId="+_communityId+"&hcCode="+_data.hcCode;
-					uni.navigateTo({
-						url: '/pages/hcWebView/hcWebView?url='+_url
-					});
 				});
 			}
 
