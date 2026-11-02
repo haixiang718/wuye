@@ -105,6 +105,9 @@
             ,building_owner bow
         </if>
         where 1 =1
+        <if test="byOwnerInfo == true and communityId != null and communityId != ''">
+            and bow.community_id = #{communityId}
+        </if>
         <if test="byOwnerInfo == true">
             and t.owner_id = bow.owner_id
             and bow.status_cd = '0'
@@ -192,6 +195,9 @@
             ,building_owner bow
         </if>
         where 1 =1
+        <if test="byOwnerInfo == true and communityId != null and communityId != ''">
+            and bow.community_id = #{communityId}
+        </if>
         <if test="byOwnerInfo == true">
             and t.owner_id = bow.owner_id
             and bow.status_cd = '0'

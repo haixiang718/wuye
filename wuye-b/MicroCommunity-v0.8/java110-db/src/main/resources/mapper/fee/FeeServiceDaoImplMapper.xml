@@ -603,8 +603,21 @@
     </insert>
 
     <update id="updateBill" parameterType="Map">
-        update bill set cur_bill= 'F' where config_id = #{configId}
+        update bill set cur_bill= 'F', bill_time = bill_time
+        where config_id = #{configId} and community_id = #{communityId}
     </update>
+
+    <select id="lockBillConfig" parameterType="Map" resultType="Map">
+        select config_id configId, bill_type billType from pay_fee_config
+        where config_id = #{configId} and community_id = #{communityId} and status_cd = '0'
+        for update
+    </select>
+
+    <select id="lockCurrentBills" parameterType="Map" resultType="Map">
+        select bill_id billId, DATE_FORMAT(bill_time, '%Y-%m-%d %H:%i:%s') billTime from bill
+        where config_id = #{configId} and community_id = #{communityId} and cur_bill = 'T'
+        for update
+    </select>
 
 
     <!-- 查询费用数量 add by wuxw 2018-07-03 -->

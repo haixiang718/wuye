@@ -168,11 +168,8 @@ public class OwnerRegisterListener extends AbstractServiceApiPlusListener {
                 paramObj.put("appType", OwnerAppUserDto.APP_TYPE_APP);
             }
             paramObj.put("userId", GenerateCodeFactory.getUserId());
-            if (reqJson.containsKey("openId")) {
-                paramObj.put("openId", reqJson.getString("openId"));
-            } else {
-                paramObj.put("openId", "-1");
-            }
+            // Attach WeChat identity only after a verified OAuth ticket at login.
+            paramObj.put("openId", "-1");
             //添加小区楼
             ownerBMOImpl.addOwnerAppUser(paramObj, tmpCommunityDto, tmpOwnerDto, dataFlowContext);
             paramObj.put("name", paramObj.getString("appUserName"));

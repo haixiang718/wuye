@@ -185,7 +185,7 @@
             and t.owner_id= #{ownerId}
         </if>
         <if test="ownerName !=null and ownerName != ''">
-            and bow.name like '%${ownerName}%'
+            and bow.name like concat('%', #{ownerName}, '%')
         </if>
         <if test="bId !=null and bId != ''">
             and t.b_id= #{bId}
@@ -332,7 +332,7 @@
             and t.owner_id= #{ownerId}
         </if>
         <if test="ownerName !=null and ownerName != ''">
-            and bow.name like '%${ownerName}%'
+            and bow.name like concat('%', #{ownerName}, '%')
         </if>
         <if test="bId !=null and bId != ''">
             and t.b_id= #{bId}

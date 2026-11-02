@@ -8,6 +8,7 @@ import com.java110.dto.owner.OwnerRoomRelDto;
 import com.java110.dto.task.TaskDto;
 import com.java110.job.task.fee.GenerateBillProTemplate;
 import com.java110.utils.factory.ApplicationContextFactory;
+import com.java110.utils.util.BillCycleWindow;
 import org.springframework.context.support.StaticApplicationContext;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -103,6 +104,20 @@ public class BillingWorkflowAudit {
                 if(failHeader)throw new IllegalStateException("Synthetic bill-header failure");
                 synchronized(this) {for(BillDto b:bills)b.setCurBill("F");bills.add(copy((BillDto)args[0],BillDto.class));}return 1;
             }
+            if(name.equals("saveBillSnapshot")) {
+                BillSnapshotDto snapshot=(BillSnapshotDto)args[0];
+                // Atomic HTTP boundary only; real SQL and transactions have a separate suite.
+                synchronized(this) {
+                    String cutoff=format(BillCycleWindow.start(snapshot.getBillType(),new Date()));
+                    for(BillDto b:bills)if("T".equals(b.getCurBill())&&b.getBillTime().compareTo(cutoff)>=0)
+                        throw new IllegalStateException("Current cycle already billed");
+                    if(failHeader)throw new IllegalStateException("Synthetic bill-header failure");
+                    for(BillDto b:bills)b.setCurBill("F");
+                    bills.add(copy(snapshot.getBill(),BillDto.class));
+                    for(BillOweFeeDto d:snapshot.getDetails())details.add(copy(d,BillOweFeeDto.class));
+                }
+                return 1;
+            }
             throw new IllegalStateException("Unexpected audit dependency: "+name);
         }
     }
@@ -137,10 +152,10 @@ public class BillingWorkflowAudit {
         check("header_failure_leaves_no_orphans",threw&&m.details.isEmpty(),"failure propagated="+threw+", headers="+m.bills.size()+", persisted details="+m.details.size());
         m.failHeader=false;m.generate();
         check("retry_after_header_failure_no_duplicates",m.details.size()==1,"after retry headers="+m.bills.size()+", details="+m.details.size());
-        m=new Memory();m.fees.add(m.fee("fee-2","room-2"));m.failSecondFee=true;m.generate();
+        m=new Memory();m.fees.add(m.fee("fee-2","room-2"));m.failSecondFee=true;try{m.generate();}catch(Exception expected){}
         int partial=m.details.size();m.failSecondFee=false;boolean blocked=false;try{m.generate();}catch(Exception e){blocked=true;}
         check("failed_fee_can_recover_same_cycle",m.details.size()==2,"partial details="+partial+", retry blocked="+blocked+", final details="+m.details.size());
-        m=new Memory();m.missingOwner=true;m.generate();
+        m=new Memory();m.missingOwner=true;try{m.generate();}catch(Exception expected){}
         check("missing_owner_has_no_invalid_detail",m.details.isEmpty(),"details="+m.details.size()+", owner="+(m.details.isEmpty()?"none":m.details.get(0).getOwnerId())+", oweId="+(m.details.isEmpty()?"none":m.details.get(0).getOweId()));
         m=new Memory();m.config.setBillType("005");m.fees.get(0).setFeeFlag(FeeDto.FEE_FLAG_ONCE);m.generate();
         // Existing query uses a strict greater-than comparison against now for bill type 005.
@@ -151,7 +166,7 @@ public class BillingWorkflowAudit {
         try {
             Future<?> a=pool.submit(new Callable<Object>(){public Object call()throws Exception{concurrent.generate(one);return null;}});
             Future<?> b=pool.submit(new Callable<Object>(){public Object call()throws Exception{concurrent.generate(two);return null;}});
-            a.get(15,TimeUnit.SECONDS);b.get(15,TimeUnit.SECONDS);
+            for(Future<?> f:Arrays.asList(a,b))try{f.get(15,TimeUnit.SECONDS);}catch(ExecutionException expected){}
             check("concurrent_monthly_execution_no_duplicates",concurrent.bills.size()==1&&concurrent.details.size()==1,"concurrent headers="+concurrent.bills.size()+", details="+concurrent.details.size());
         } finally {pool.shutdownNow();}
     }

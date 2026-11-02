@@ -19,6 +19,7 @@ import com.java110.job.quartz.TaskSystemQuartz;
 import com.java110.utils.constant.ResponseConstant;
 import com.java110.utils.exception.TaskTemplateException;
 import com.java110.utils.util.DateUtil;
+import com.java110.utils.util.BillCycleWindow;
 import com.java110.utils.util.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -27,6 +28,7 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 
 /**
@@ -153,6 +155,7 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
 
         startTime = (billDtos == null || billDtos.size() < 1) ? getDefaultStartTime(feeConfigDto.getBillType())
                 : DateUtil.getDateFromString(billDtos.get(0).getBillTime(), DateUtil.DATE_FORMATE_STRING_A);
+        String previousBillId = (billDtos == null || billDtos.isEmpty()) ? null : billDtos.get(0).getBillId();
 
         FeeDto feeDto = new FeeDto();
         feeDto.setConfigId(feeConfigDto.getConfigId());
@@ -160,18 +163,15 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         List<FeeDto> feeDtos = feeInnerServiceSMOImpl.queryFees(feeDto);
 
         //没有关联费用不做出账
-        if (feeDto == null || feeDtos.size() < 1) {
+        if (feeDtos == null || feeDtos.isEmpty()) {
             return;
         }
         billDto.setReceivable("0");
         billDto.setReceipts("0");
         billDto.setCurReceivable("0");
+        List<BillOweFeeDto> details = new ArrayList<>();
         for (FeeDto tmpFeeDto : feeDtos) {
-            try {
-                generateFee(startTime, tmpFeeDto, billDto, feeConfigDto);
-            } catch (Exception e) {
-                logger.error("生成费用失败", e);
-            }
+            generateFee(startTime, tmpFeeDto, billDto, feeConfigDto, details);
         }
 
 
@@ -179,7 +179,14 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         Date billEndTime = DateUtil.getCurrentDate();
         billDto.setRemark(DateUtil.getFormatTimeString(startTime, DateUtil.DATE_FORMATE_STRING_A) +
                 "-" + DateUtil.getFormatTimeString(billEndTime, DateUtil.DATE_FORMATE_STRING_A) + "账单数据");
-        feeInnerServiceSMOImpl.insertBill(billDto);
+        BillSnapshotDto snapshot = new BillSnapshotDto();
+        snapshot.setBill(billDto);
+        snapshot.setDetails(details);
+        snapshot.setBillType(feeConfigDto.getBillType());
+        snapshot.setPreviousBillId(previousBillId);
+        if (feeInnerServiceSMOImpl.saveBillSnapshot(snapshot) != 1) {
+            throw new IllegalStateException("账单整批保存失败");
+        }
 
     }
 
@@ -188,7 +195,13 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
      *
      * @param feeDto
      */
-    private void generateFee(Date startTime, FeeDto feeDto, BillDto billDto, FeeConfigDto feeConfigDto) {
+    private void generateFee(Date startTime, FeeDto feeDto, BillDto billDto, FeeConfigDto feeConfigDto,
+                             List<BillOweFeeDto> details) {
+
+        if (!billDto.getCommunityId().equals(feeDto.getCommunityId())
+                || !billDto.getConfigId().equals(feeDto.getConfigId())) {
+            throw new IllegalArgumentException("费用与收费项归属不一致");
+        }
 
         if (FeeDto.STATE_FINISH.equals(feeDto.getState())) { //判断是否缴费结束
             return;
@@ -226,13 +239,13 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         billOweFeeDto.setOweId(GenerateCodeFactory.getGeneratorId(GenerateCodeFactory.CODE_PREFIX_oweId));
         billOweFeeDto.setFeeId(feeDto.getFeeId());
         billOweFeeDto.setBillId(billDto.getBillId());
-        BigDecimal curFeePrice = new BigDecimal(feeDto.getFeePrice());
-        curFeePrice = curFeePrice.multiply(new BigDecimal(paymentCycle));
-        billOweFeeDto.setAmountOwed(curFeePrice.doubleValue() + "");
-        BigDecimal feePrice = new BigDecimal(feeDto.getFeePrice());
-        feePrice = feePrice.multiply(new BigDecimal(oweMonth));
+        BigDecimal curFeePrice = BigDecimal.valueOf(feeDto.getFeePrice());
+        curFeePrice = curFeePrice.multiply(new BigDecimal(paymentCycle)).setScale(2, BigDecimal.ROUND_HALF_UP);
+        billOweFeeDto.setAmountOwed(curFeePrice.toPlainString());
+        BigDecimal feePrice = BigDecimal.valueOf(feeDto.getFeePrice());
+        feePrice = feePrice.multiply(BigDecimal.valueOf(oweMonth)).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-        billOweFeeDto.setBillAmountOwed(feePrice.doubleValue() + "");
+        billOweFeeDto.setBillAmountOwed(feePrice.toPlainString());
         billOweFeeDto.setFeeEndTime(DateUtil.getFormatTimeString(feeDto.getEndTime(), DateUtil.DATE_FORMATE_STRING_A));
         billOweFeeDto.setCommunityId(feeDto.getCommunityId());
         billOweFeeDto.setPayerObjType(feeDto.getPayerObjType());
@@ -240,25 +253,27 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         billOweFeeDto.setDeadlineTime(DateUtil.getFormatTimeString(targetEndDate, DateUtil.DATE_FORMATE_STRING_A));
         if (FeeDto.PAYER_OBJ_TYPE_ROOM.equals(feeDto.getPayerObjType())) {
             getRoomInfo(billOweFeeDto, feeDto);
-        } else {
+        } else if (FeeDto.PAYER_OBJ_TYPE_CAR.equals(feeDto.getPayerObjType())) {
             getParkingSpaceInfo(billOweFeeDto, feeDto);
+        } else {
+            throw new IllegalArgumentException("当前出账不支持该付款对象类型");
         }
 
-        feeInnerServiceSMOImpl.insertBillOweFees(billOweFeeDto);
+        if (StringUtil.isEmpty(billOweFeeDto.getOwnerId())) {
+            throw new IllegalArgumentException("费用未关联有效业主，请补齐后重新出账");
+        }
+        details.add(billOweFeeDto);
 
-        double recFee = StringUtil.isEmpty(billDto.getReceivable()) ? 0.0 : Double.parseDouble(billDto.getReceivable());
-
-        BigDecimal recFeeBig = new BigDecimal(recFee);
+        BigDecimal recFeeBig = new BigDecimal(billDto.getReceivable());
         BigDecimal newRecFee = recFeeBig.add(feePrice);
 
         //应收
-        billDto.setReceivable(newRecFee.doubleValue() + "");
+        billDto.setReceivable(newRecFee.toPlainString());
 
         //当期应收
-        double curRecFee = StringUtil.isEmpty(billDto.getCurReceivable()) ? 0.0 : Double.parseDouble(billDto.getCurReceivable());
-        BigDecimal curRecFeeBig = new BigDecimal(curRecFee);
+        BigDecimal curRecFeeBig = new BigDecimal(billDto.getCurReceivable());
         BigDecimal curNewRecFee = curRecFeeBig.add(curFeePrice);
-        billDto.setCurReceivable(curNewRecFee.doubleValue() + "");
+        billDto.setCurReceivable(curNewRecFee.toPlainString());
 
         FeeDetailDto feeDetailDto = new FeeDetailDto();
         feeDetailDto.setFeeId(feeDto.getFeeId());
@@ -267,15 +282,14 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         feeDetailDto.setEndTime(billEndTime);
         List<FeeDetailDto> feeDetailDtos = feeDetailInnerServiceSMOImpl.queryFeeDetails(feeDetailDto);
 
-        double curReceiptFee = StringUtil.isEmpty(billDto.getReceipts()) ? 0.0 : Double.parseDouble(billDto.getReceipts());
-        BigDecimal curReceipts = new BigDecimal(curReceiptFee);
+        BigDecimal curReceipts = new BigDecimal(billDto.getReceipts());
         if (feeDetailDtos != null && feeDetailDtos.size() > 0) {
             for (FeeDetailDto tmpFeeDetailDto : feeDetailDtos) {
-                BigDecimal recAmount = new BigDecimal(Double.parseDouble(tmpFeeDetailDto.getReceivedAmount()));
+                BigDecimal recAmount = new BigDecimal(tmpFeeDetailDto.getReceivedAmount());
                 curReceipts = recAmount.add(curReceipts);
             }
         }
-        billDto.setReceipts(curReceipts.doubleValue() + "");
+        billDto.setReceipts(curReceipts.toPlainString());
     }
 
     /**
@@ -296,11 +310,7 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
 
 
         if (ownerCarDtos == null || ownerCarDtos.size() < 1) {
-            //房屋可能被删除了
-            billOweFeeDto.setOwnerId("1");
-            billOweFeeDto.setOwnerName("未知");
-            billOweFeeDto.setOwnerTel("19999999999");
-            return;
+            throw new IllegalArgumentException("费用未关联有效车辆，请补齐后重新出账");
         }
 
         billOweFeeDto.setPayerObjName(ownerCarDtos.get(0).getCarNum());
@@ -322,12 +332,7 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         List<RoomDto> roomDtos = roomInnerServiceSMOImpl.queryRooms(roomDto);
 
         if (roomDtos == null || roomDtos.size() < 1) {
-            //房屋可能被删除了
-            billOweFeeDto.setOweId("1");
-            billOweFeeDto.setOwnerName("未知");
-            billOweFeeDto.setOwnerTel("19999999999");
-            billOweFeeDto.setPayerObjName("未知");
-            return;
+            throw new IllegalArgumentException("费用未关联有效房屋，请补齐后重新出账");
         }
 
         RoomDto tmpRoomDto = roomDtos.get(0);
@@ -340,14 +345,11 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         OwnerRoomRelDto ownerRoomRelDto = new OwnerRoomRelDto();
         ownerRoomRelDto.setByOwnerInfo(true);
         ownerRoomRelDto.setRoomId(tmpRoomDto.getRoomId());
+        ownerRoomRelDto.setCommunityId(feeDto.getCommunityId());
         List<OwnerRoomRelDto> ownerRoomRelDtos = ownerRoomRelInnerServiceSMOImpl.queryOwnerRoomRels(ownerRoomRelDto);
 
         if (ownerRoomRelDtos == null || ownerRoomRelDtos.size() < 1) {
-            //房屋可能被删除了
-            billOweFeeDto.setOweId("1");
-            billOweFeeDto.setOwnerName("未知");
-            billOweFeeDto.setOwnerTel("19999999999");
-            return;
+            throw new IllegalArgumentException("房屋未关联有效业主，请补齐后重新出账");
         }
 
         billOweFeeDto.setOwnerId(ownerRoomRelDtos.get(0).getOwnerId());
@@ -357,29 +359,7 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
     }
 
     private Date getDefaultStartTime(String billType) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(new Date());
-        if (billType.equals(TASK_ATTR_VALUE_MONTH)) {
-            calendar.add(Calendar.MONTH, -1);
-            return calendar.getTime();
-        }
-
-        if (billType.equals(TASK_ATTR_VALUE_DAY)) {
-            calendar.add(Calendar.DATE, -1);
-            return calendar.getTime();
-        }
-
-        if (billType.equals(TASK_ATTR_VALUE_DAY)) {
-            calendar.add(Calendar.DATE, -1);
-            return calendar.getTime();
-        }
-
-        if (billType.equals(TASK_ATTR_VALUE_YEAR)) {
-            calendar.add(Calendar.YEAR, -1);
-            return calendar.getTime();
-        }
-
-        return calendar.getTime();
+        return BillCycleWindow.start(billType, new Date());
 
     }
 

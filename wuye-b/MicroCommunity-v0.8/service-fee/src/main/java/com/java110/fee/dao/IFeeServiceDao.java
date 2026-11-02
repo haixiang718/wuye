@@ -16,6 +16,9 @@ import java.util.Map;
  * Created by wuxw on 2016/12/27.
  */
 public interface IFeeServiceDao {
+    Map lockBillConfig(Map info);
+
+    List<Map> lockCurrentBills(Map info);
 
     /**
      * 保存 费用信息

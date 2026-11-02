@@ -51,6 +51,14 @@ public class FeeInnerServiceSMOImpl extends BaseServiceSMO implements IFeeInnerS
     @Autowired
     private IFeeAttrServiceDao feeAttrServiceDaoImpl;
 
+    @Autowired
+    private BillSnapshotService billSnapshotService;
+
+    @Override
+    public int saveBillSnapshot(@RequestBody com.java110.dto.fee.BillSnapshotDto snapshot) {
+        return billSnapshotService.save(snapshot);
+    }
+
 
     @Override
     public List<FeeDto> queryFees(@RequestBody FeeDto feeDto) {

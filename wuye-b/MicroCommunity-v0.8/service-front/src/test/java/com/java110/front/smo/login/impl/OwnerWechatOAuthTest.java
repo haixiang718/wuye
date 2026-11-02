@@ -34,13 +34,14 @@ public class OwnerWechatOAuthTest {
                 return ResponseEntity.ok("{\"code\":0,\"data\":{\"key\":\"test-user-key\"}}");
             }
             if (url.contains("openId=test-open-id")) assertTrue(url, url.contains("appType=WECHAT"));
-            return ResponseEntity.ok("{\"code\":0,\"data\":[{\"userId\":\"test-user\",\"appType\":\"WECHAT\"}]}");
+            return ResponseEntity.ok("{\"code\":0,\"data\":[{\"userId\":\"test-user\",\"appType\":\"WECHAT\",\"state\":\"" + bindingState + "\"}]}");
         }
     };
     private final WechatAuthProperties properties = new WechatAuthProperties();
     private int externalCalls;
     private String tokenReply;
     private int loginCalls;
+    private String bindingState = "12000";
     @Before public void setup() throws Exception {
         properties.setWechatAppId("wx-test"); properties.setWechatAppSecret("test-secret");
         inject("wechatAuthProperties", properties);
@@ -149,6 +150,21 @@ public class OwnerWechatOAuthTest {
         assertFalse(login.getBody().contains("test-user-key"));
         assertEquals(HttpStatus.UNAUTHORIZED,service.doLoginByKey(pd(data)).getStatusCode());
         assertEquals(1,loginCalls);
+    }
+    @Test public void pendingBindingCannotReceiveAutomaticLoginTicket() throws Exception {
+        bindingState = "10000";
+        JSONObject callback = begin();
+        JSONObject cached = JSONObject.parseObject(cache.get(callback.getString("urlCode")));
+        cached.put("loginFlag", "0"); cache.put(callback.getString("urlCode"),cached.toJSONString());
+        String location = service.getPageAccessToken(pd(callback),request()).getHeaders().getFirst("Location");
+        assertFalse(location, location.contains("authTicket="));
+        assertTrue(location, location.contains("&code="));
+    }
+    @Test public void pendingBindingCannotExchangeLoginTicket() throws Exception {
+        bindingState = "10000";
+        cache.put("owner-wechat-login:pending", "{\"appId\":\"992020061452450002\",\"key\":\"test-user-key\"}");
+        JSONObject input = new JSONObject();input.put("authTicket", "pending");
+        assertEquals(HttpStatus.FORBIDDEN,service.doLoginByKey(pd(input)).getStatusCode());
     }
     @Test public void upstreamFailureReturnsSafeRedirect() throws Exception {
         JSONObject callback=begin(); tokenReply=null;

@@ -116,10 +116,15 @@ async function main(config) {
     });
     const port = service => config.profile === 'merged' ? 8015 : {acct:8003,common:8005,community:8009,store:8006}[service];
     await check('contractsService',async () => {
-      // Synthetic store scope only; exercise the retained controller without relying
-      // on the separately observed broken baseline application gateway route.
+      // Empty synthetic scope tests only the count path; it cannot prove that a
+      // contract detail SELECT works on the imported legacy schema.
       const response = await context.request.get(`http://127.0.0.1:${port('store')}/contract/queryContract`,
         {params:{page:1,row:10},headers:{'store-id':'TEST-SMOKE'},timeout:TIMEOUT});
+      return summary(response,await json(response),'data');
+    });
+    await check('contractsServiceExistingStore',async () => {
+      const response = await context.request.get(`http://127.0.0.1:${port('store')}/contract/queryContract`,
+        {params:{page:1,row:10},headers:{'store-id':'402019032924930007'},timeout:TIMEOUT});
       return summary(response,await json(response),'data');
     });
     for (const [name,service,url,payload] of [
@@ -192,6 +197,31 @@ async function main(config) {
         return {http:response.status(),passed:denied};
       });
     }
+    await check('ownerOtherRoomDeniedDespiteForgedIdentity',async () => {
+      assert.ok(auth?.token);
+      const response = await ownerContext.get('http://127.0.0.1:8012/app/fee.listFee',{
+        params:{communityId:COMMUNITY,payerObjId:ROOM,payerObjType:'3333',page:1,row:10},
+        headers:{...h5Headers,'user-id':'30518940136629616640','user_id':'30518940136629616640',cookie:'_java110_token_='+auth.token},maxRedirects:0});
+      return {http:response.status(),passed:response.status() === 403};
+    });
+    await check('ownerCannotUseManagementApi',async () => {
+      assert.ok(auth?.token);
+      // Read-only management query: even a regression cannot send a notification.
+      const response = await ownerContext.get('http://127.0.0.1:8012/app/fee.listBill',{
+        params:{communityId:fixture.communityId,page:1,row:10},
+        headers:{...h5Headers,cookie:'_java110_token_='+auth.token},maxRedirects:0});
+      return {http:response.status(),passed:response.status() === 403};
+    });
+    await check('ownerBindingListIgnoresForgedUser',async () => {
+      assert.ok(auth?.token);
+      const response = await ownerContext.get('http://127.0.0.1:8012/app/owner.listAppUserBindingOwners',{
+        params:{userId:'30518940136629616640',page:1,row:100},
+        headers:{...h5Headers,cookie:'_java110_token_='+auth.token},maxRedirects:0});
+      const body=await json(response);
+      assert.equal(response.status(),200);assert.equal(Number(body.code),0);assert.ok(body.data?.length);
+      assert.ok(body.data.every(binding => binding.ownerId === fixture.ids.owner));
+      return {http:response.status(),scopedToFixture:true};
+    });
 
     let knownBaselineFailuresOnly = false;
     if (config.allowKnownMissingAccountTable || config.allowKnownBaselineGaps) {

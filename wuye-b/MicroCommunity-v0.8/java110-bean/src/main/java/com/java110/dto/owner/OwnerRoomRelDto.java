@@ -24,6 +24,10 @@ public class OwnerRoomRelDto extends PageDto implements Serializable {
     private String link;
     private String userId;
     private String roomId;
+    private String communityId;
+
+    public String getCommunityId() { return communityId; }
+    public void setCommunityId(String communityId) { this.communityId = communityId; }
     private String bId;
     private boolean byOwnerInfo = false;
 

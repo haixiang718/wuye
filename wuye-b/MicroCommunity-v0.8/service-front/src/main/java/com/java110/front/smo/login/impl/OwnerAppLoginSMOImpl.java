@@ -95,11 +95,11 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
                 pd.getAppId());
         OwnerAppUserDto ownerAppUserDto = new OwnerAppUserDto();
         ownerAppUserDto.setUserId(userId);
-        List<OwnerAppUserDto> ownerAppUserDtos = super.getForApis(pd, ownerAppUserDto, ServiceCodeConstant.LIST_APPUSERBINDINGOWNERS, OwnerAppUserDto.class);
+        List<OwnerAppUserDto> ownerAppUserDtos = approvedBindings(super.getForApis(pd, ownerAppUserDto, ServiceCodeConstant.LIST_APPUSERBINDINGOWNERS, OwnerAppUserDto.class));
 
 
         if (ownerAppUserDtos == null || ownerAppUserDtos.size() < 1) {
-            responseEntity = new ResponseEntity<>("用户未绑定业主", HttpStatus.BAD_REQUEST);
+            responseEntity = new ResponseEntity<>("尚无审核通过的房产绑定，请联系物业审核", HttpStatus.FORBIDDEN);
             return responseEntity;
         }
 
@@ -160,11 +160,11 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
                 pd.getAppId());
         OwnerAppUserDto ownerAppUserDto = new OwnerAppUserDto();
         ownerAppUserDto.setUserId(userId);
-        List<OwnerAppUserDto> ownerAppUserDtos = super.getForApis(pd, ownerAppUserDto, ServiceCodeConstant.LIST_APPUSERBINDINGOWNERS, OwnerAppUserDto.class);
+        List<OwnerAppUserDto> ownerAppUserDtos = approvedBindings(super.getForApis(pd, ownerAppUserDto, ServiceCodeConstant.LIST_APPUSERBINDINGOWNERS, OwnerAppUserDto.class));
 
 
         if (ownerAppUserDtos == null || ownerAppUserDtos.size() < 1) {
-            responseEntity = new ResponseEntity<>("用户未绑定业主", HttpStatus.BAD_REQUEST);
+            responseEntity = new ResponseEntity<>("尚无审核通过的房产绑定，请联系物业审核", HttpStatus.FORBIDDEN);
             return responseEntity;
         }
 
@@ -263,7 +263,7 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
         OwnerAppUserDto ownerAppUserDto = new OwnerAppUserDto();
         ownerAppUserDto.setOpenId(openId);
         ownerAppUserDto.setAppType(OwnerAppUserDto.APP_TYPE_WECHAT);
-        List<OwnerAppUserDto> ownerAppUserDtos = super.getForApis(pd, ownerAppUserDto, ServiceCodeConstant.LIST_APPUSERBINDINGOWNERS, OwnerAppUserDto.class);
+        List<OwnerAppUserDto> ownerAppUserDtos = approvedBindings(super.getForApis(pd, ownerAppUserDto, ServiceCodeConstant.LIST_APPUSERBINDINGOWNERS, OwnerAppUserDto.class));
 
         if (ownerAppUserDtos == null || ownerAppUserDtos.size() < 1) {
             //将openId放到redis 缓存，给前段下发临时票据
@@ -433,6 +433,14 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
      * @param ownerAppUserDtos
      * @return
      */
+    private List<OwnerAppUserDto> approvedBindings(List<OwnerAppUserDto> bindings) {
+        List<OwnerAppUserDto> approved = new java.util.ArrayList<>();
+        if (bindings != null) for (OwnerAppUserDto binding : bindings) {
+            if ("12000".equals(binding.getState())) approved.add(binding);
+        }
+        return approved;
+    }
+
     private ResponseEntity<String> wechat(IPageData pd, JSONObject paramIn, JSONObject paramOut, String userId,
                                           List<OwnerAppUserDto> ownerAppUserDtos) {
 

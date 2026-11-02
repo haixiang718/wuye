@@ -31,6 +31,10 @@ def compile_audit():
     java = Path(local.java())
     javac = java.with_name('javac.exe' if os.name == 'nt' else 'javac')
     sources = [ROOT / 'scripts/billing/BillingWorkflowAudit.java',
+        local.BACK / 'java110-bean/src/main/java/com/java110/dto/fee/BillSnapshotDto.java',
+        local.BACK / 'java110-bean/src/main/java/com/java110/dto/owner/OwnerRoomRelDto.java',
+        local.BACK / 'java110-utils/src/main/java/com/java110/utils/util/BillCycleWindow.java',
+        local.BACK / 'java110-interface/src/main/java/com/java110/intf/fee/IFeeInnerServiceSMO.java',
         local.BACK / 'service-job/src/main/java/com/java110/job/task/fee/GenerateBillProTemplate.java',
         local.BACK / 'java110-core/src/main/java/com/java110/core/smo/impl/ComputeFeeSMOImpl.java']
     subprocess.run([str(javac), '-encoding', 'UTF-8', '-source', '8', '-target', '8',

@@ -141,11 +141,8 @@ public class OwnerRegisterWxPhotoListener extends AbstractServiceApiPlusListener
 
             paramObj.put("appType", OwnerAppUserDto.APP_TYPE_APP);
             paramObj.put("userId", GenerateCodeFactory.getUserId());
-            if (reqJson.containsKey("openId")) {
-                paramObj.put("openId", reqJson.getString("openId"));
-            } else {
-                paramObj.put("openId", "-1");
-            }
+            // Client-submitted OpenID is not proof of WeChat identity.
+            paramObj.put("openId", "-1");
             //添加小区楼
             ownerBMOImpl.addOwnerAppUser(paramObj, tmpCommunityDto, tmpOwnerDto, dataFlowContext);
             paramObj.put("name", paramObj.getString("appUserName"));

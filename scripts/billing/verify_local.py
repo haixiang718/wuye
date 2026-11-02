@@ -32,7 +32,8 @@ def preflight():
     job = local.processes().get('job', {})
     if '-Djava110.local.disableScheduledTasks=true' not in job.get('command', []):
         raise RuntimeError('Use the normal local profile with automatic tasks disabled')
-    for port in (13306, 8002, 8009, 8010):
+    merged = local.processes().get('business', {}).get('profile') == 'merged'
+    for port in ((13306, 8015) if merged else (13306, 8002, 8009, 8010)):
         if not local.listening(port):
             raise RuntimeError('A required isolated local service is not listening')
 
@@ -47,6 +48,7 @@ def prepare():
         raise RuntimeError('The existing synthetic owner/room relationship is not unique')
     base = 'BLA' + uuid.uuid4().hex[:12]
     fixture = dict(prefix=base, communityId=community, roomId=room, ownerId=owner,
+                   merged=local.processes().get('business', {}).get('profile') == 'merged',
                    configId=base+'C', feeId=base+'F', label=LABEL)
     input_path = ROOT / '.runtime/billing-audit/local-fixture.json'
     input_path.parent.mkdir(parents=True, exist_ok=True)
@@ -100,14 +102,14 @@ def main():
     subprocess.run([str(java.with_name('javac.exe')), '-encoding', 'UTF-8', '-source', '8', '-target', '8',
                     '-cp', classpath, '-d', str(output), str(ROOT/'scripts/billing/LocalMonthlyBillingAudit.java')], check=True)
     issues = 0
-    for scenario in ('normal', 'header-failure'):
+    for scenario in ('normal', 'snapshot-failure'):
         fixture, input_path = prepare()
-        result_path = output / ('local-results.json' if scenario == 'normal' else 'local-header-failure-results.json')
+        result_path = output / ('local-results.json' if scenario == 'normal' else 'local-snapshot-failure-results.json')
         result = None
         try:
             process = subprocess.run([str(java), '-Dlogback.configurationFile='+str(logging), '-cp', classpath,
                 'LocalMonthlyBillingAudit', str(input_path), str(result_path)]
-                + ([] if scenario == 'normal' else ['header-failure']), cwd=ROOT,
+                + ([] if scenario == 'normal' else ['snapshot-failure']), cwd=ROOT,
                 capture_output=True, text=True, encoding='utf-8', errors='replace')
             (output / ('local-'+scenario+'-run.log')).write_text(process.stdout+process.stderr, encoding='utf-8')
             # Do not echo HTTP exception URLs or local owner details.

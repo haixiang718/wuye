@@ -1,0 +1,277 @@
+{
+  "date": "2026-11-02",
+  "scope": "Local business repairs; production rollout not complete",
+  "baseCommit": "3313a67",
+  "branch": "codex/business-fixes",
+  "allRetainedBusinessReady": false,
+  "build": {
+    "fullMavenModules": 22,
+    "fullMavenPassed": true,
+    "apiFrontRepackagePassed": true,
+    "finalReviewedBusinessFrontRepackagePassed": true
+  },
+  "suites": [
+    {
+      "name": "billingCalculation",
+      "passed": 20,
+      "total": 20,
+      "skipped": 0
+    },
+    {
+      "name": "billingSqlScope",
+      "passed": 4,
+      "total": 4,
+      "skipped": 0
+    },
+    {
+      "name": "billingRealDatabaseTransaction",
+      "passed": 12,
+      "total": 12,
+      "skipped": 0
+    },
+    {
+      "name": "ownerAccessBinding",
+      "passed": 29,
+      "total": 29,
+      "skipped": 0
+    },
+    {
+      "name": "ownerOauth",
+      "passed": 11,
+      "total": 11,
+      "skipped": 0
+    },
+    {
+      "name": "billNotifications",
+      "passed": 23,
+      "total": 23,
+      "skipped": 0
+    },
+    {
+      "name": "mergedContainer",
+      "passed": 8,
+      "total": 8,
+      "skipped": 0
+    },
+    {
+      "name": "launcherPython",
+      "passed": 29,
+      "total": 32,
+      "skipped": 3
+    },
+    {
+      "name": "testGateway",
+      "passed": 1,
+      "total": 1,
+      "skipped": 0
+    }
+  ],
+  "liveBilling": {
+    "normalPassed": true,
+    "snapshotInterruptionRetryPassed": true,
+    "detailsPerScenario": 1,
+    "orphanDetailsPerScenario": 0,
+    "fixtureCleanupVerified": true,
+    "notificationsSent": 0,
+    "verifiedAfterReviewedBuild": true
+  },
+  "liveRuntime": {
+    "total": 24,
+    "passed": 21,
+    "allPassed": false,
+    "checks": [
+      {
+        "name": "rooms",
+        "http": 200,
+        "code": null,
+        "rows": 3,
+        "passed": true
+      },
+      {
+        "name": "owners",
+        "http": 200,
+        "code": null,
+        "rows": 3,
+        "passed": true
+      },
+      {
+        "name": "feeConfig",
+        "http": 200,
+        "code": null,
+        "rows": 2,
+        "passed": true
+      },
+      {
+        "name": "bills",
+        "code": 0,
+        "rows": 2,
+        "passed": true
+      },
+      {
+        "name": "wechatConfig",
+        "code": null,
+        "rows": 1,
+        "passed": true
+      },
+      {
+        "name": "parking",
+        "http": 200,
+        "code": null,
+        "rows": 0,
+        "passed": true
+      },
+      {
+        "name": "payments",
+        "http": 200,
+        "code": null,
+        "rows": 0,
+        "passed": true
+      },
+      {
+        "name": "feeReport",
+        "code": 0,
+        "rows": 0,
+        "passed": true
+      },
+      {
+        "name": "contractsGateway",
+        "code": 404,
+        "rows": null,
+        "passed": false
+      },
+      {
+        "name": "tasks",
+        "code": 0,
+        "rows": 10,
+        "passed": true
+      },
+      {
+        "name": "floors",
+        "http": 200,
+        "code": null,
+        "rows": 1,
+        "passed": true
+      },
+      {
+        "name": "contractsService",
+        "http": 200,
+        "code": 0,
+        "rows": 0,
+        "passed": true
+      },
+      {
+        "name": "contractsServiceExistingStore",
+        "http": 500,
+        "code": null,
+        "rows": null,
+        "passed": false
+      },
+      {
+        "name": "accounts",
+        "http": 500,
+        "code": null,
+        "rows": null,
+        "passed": false
+      },
+      {
+        "name": "area",
+        "http": 200,
+        "code": null,
+        "rows": 31,
+        "passed": true
+      },
+      {
+        "name": "communityShards",
+        "rows": 123,
+        "expectedDatabaseEquality": true,
+        "evenCommunity": true,
+        "oddCommunity": true,
+        "passed": true
+      },
+      {
+        "name": "ownerPasswordLogin",
+        "http": 200,
+        "fixtureOwner": true,
+        "passed": true
+      },
+      {
+        "name": "ownerHouses",
+        "http": 200,
+        "code": null,
+        "rows": 1,
+        "passed": true,
+        "fixturePresent": true
+      },
+      {
+        "name": "ownerHousesAnonymousDenied",
+        "http": 401,
+        "passed": true
+      },
+      {
+        "name": "ownerFees",
+        "http": 200,
+        "code": null,
+        "rows": 1,
+        "passed": true,
+        "fixturePresent": true
+      },
+      {
+        "name": "ownerFeesAnonymousDenied",
+        "http": 401,
+        "passed": true
+      },
+      {
+        "name": "ownerOtherRoomDeniedDespiteForgedIdentity",
+        "http": 403,
+        "passed": true
+      },
+      {
+        "name": "ownerCannotUseManagementApi",
+        "http": 403,
+        "passed": true
+      },
+      {
+        "name": "ownerBindingListIgnoresForgedUser",
+        "http": 200,
+        "scopedToFixture": true,
+        "passed": true
+      }
+    ],
+    "verifiedAfterReviewedBuild": true
+  },
+  "schemaPrerequisites": {
+    "endpoint": "127.0.0.1:13306",
+    "database": "TT",
+    "readOnly": true,
+    "missingTables": [
+      "account",
+      "account_detail",
+      "business_account",
+      "business_account_detail"
+    ],
+    "missingColumns": {
+      "contract": [
+        "b_id",
+        "contract_parent_id",
+        "obj_name",
+        "obj_person_id",
+        "obj_person_name",
+        "start_user_id"
+      ]
+    },
+    "passed": false
+  },
+  "limitations": [
+    "No authoritative 0.8 account/contract schema upgrade is available; user currently cannot obtain it.",
+    "No new financial schema has been inferred or installed.",
+    "Phone OAuth and complete manual binding approval require acceptance testing.",
+    "No payment or WeChat notification sent; scheduled jobs remain disabled.",
+    "Existing historical anomalous billing rows have not been rewritten."
+  ],
+  "review": {
+    "initialActionableFindings": 4,
+    "allFourAddressed": true,
+    "focusedRereviewFoundRemainingIssues": false,
+    "method": "Read-only independent code review plus targeted regression tests"
+  }
+}

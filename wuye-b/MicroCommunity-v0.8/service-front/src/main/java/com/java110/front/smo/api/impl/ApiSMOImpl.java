@@ -35,6 +35,9 @@ public class ApiSMOImpl extends BaseComponentSMO implements IApiSMO {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Autowired
+    private OwnerDataAccessService ownerDataAccessService;
+
     @Override
     protected ResponseEntity<String> getStoreInfo(IPageData pd, RestTemplate restTemplate) {
 
@@ -78,6 +81,20 @@ public class ApiSMOImpl extends BaseComponentSMO implements IApiSMO {
         HttpHeaders header = new HttpHeaders();
         IPageData pd = (IPageData) request.getAttribute(CommonConstant.CONTEXT_PAGE_DATA);
 
+        JSONObject scopedBody = JSONObject.parseObject(body);
+        try {
+            ownerDataAccessService.authorize(pd, headers.get(CommonConstant.HTTP_SERVICE), scopedBody);
+        } catch (SecurityException denied) {
+            JSONObject error = new JSONObject(); error.put("code", 403); error.put("msg", denied.getMessage());
+            return new ResponseEntity<>(error.toJSONString(), HttpStatus.FORBIDDEN);
+        }
+        body = scopedBody.toJSONString();
+        // Identity comes exclusively from the verified session, never caller-supplied headers.
+        for (String key : new String[]{"user-id", "user_id", "userid", "userId", "user-name", "user_name", "username", "store-id", "content-length", "transfer-encoding"}) headers.remove(key);
+        if (pd != null && !StringUtil.isEmpty(pd.getUserId())) {
+            headers.put("user-id", pd.getUserId()); headers.put("user_id", pd.getUserId()); headers.put("userid", pd.getUserId());
+        }
+
         ComponentValidateResult result = this.validateStoreStaffCommunityRelationship(pd, restTemplate);
         if (!StringUtil.isEmpty(result.getUserId())) {
             header.add("user-id", result.getUserId());
@@ -89,7 +106,8 @@ public class ApiSMOImpl extends BaseComponentSMO implements IApiSMO {
         header.add("store-id", result.getStoreId());
         logger.debug("api请求头" + headers + ";请求内容：" + body);
         HttpMethod method = null;
-        String url = ServiceConstant.SERVICE_API_URL + "/api/" + headers.get(CommonConstant.HTTP_SERVICE);
+        String service = headers.get(CommonConstant.HTTP_SERVICE);
+        String url = ServiceConstant.SERVICE_API_URL + "/api/" + (service.startsWith("/") ? service.substring(1) : service);
         if (CommonConstant.HTTP_METHOD_POST.equals(headers.get(CommonConstant.HTTP_METHOD))) {
             method = HttpMethod.POST;
         } else if (CommonConstant.HTTP_METHOD_GET.equals(headers.get(CommonConstant.HTTP_METHOD))) {
@@ -107,7 +125,7 @@ public class ApiSMOImpl extends BaseComponentSMO implements IApiSMO {
 
         for (String key : headers.keySet()
         ) {
-            header.add(key, headers.get(key));
+            header.set(key, headers.get(key));
         }
 
         HttpEntity<String> httpEntity = new HttpEntity<String>(body, header);

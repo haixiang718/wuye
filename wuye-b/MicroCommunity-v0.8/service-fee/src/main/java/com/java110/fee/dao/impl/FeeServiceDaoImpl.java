@@ -273,6 +273,16 @@ public class FeeServiceDaoImpl extends BaseServiceDao implements IFeeServiceDao 
         return saveFlag;
     }
 
+    @Override
+    public Map lockBillConfig(Map info) {
+        return sqlSessionTemplate.selectOne("feeServiceDaoImpl.lockBillConfig", info);
+    }
+
+    @Override
+    public List<Map> lockCurrentBills(Map info) {
+        return sqlSessionTemplate.selectList("feeServiceDaoImpl.lockCurrentBills", info);
+    }
+
     /**
      * 批量保存费用
      *

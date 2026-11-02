@@ -14,6 +14,7 @@ import com.java110.intf.user.IOwnerInnerServiceSMO;
 import com.java110.intf.user.IUserInnerServiceSMO;
 import com.java110.dto.msg.SmsDto;
 import com.java110.dto.user.UserDto;
+import com.java110.dto.app.AppDto;
 import com.java110.dto.community.CommunityDto;
 import com.java110.dto.owner.OwnerAppUserDto;
 import com.java110.dto.owner.OwnerDto;
@@ -119,16 +120,6 @@ public class AppUserBindingOwnerListener extends AbstractServiceApiPlusListener 
 
         Assert.hasLength(openId, "该用户不是能力开放用户");
 
-        OwnerAppUserDto ownerAppUserDto = BeanConvertUtil.covertBean(reqJson, OwnerAppUserDto.class);
-        ownerAppUserDto.setStates(new String[]{"10000", "12000"});
-
-        List<OwnerAppUserDto> ownerAppUserDtos = ownerAppUserInnerServiceSMOImpl.queryOwnerAppUsers(ownerAppUserDto);
-
-        //Assert.listOnlyOne(ownerAppUserDtos, "已经申请过入驻小区");
-        if (ownerAppUserDtos != null && ownerAppUserDtos.size() > 0) {
-            throw new IllegalArgumentException("已经申请过绑定业主");
-        }
-
         //查询小区是否存在
         CommunityDto communityDto = new CommunityDto();
         communityDto.setCityCode(reqJson.getString("areaCode"));
@@ -151,11 +142,26 @@ public class AppUserBindingOwnerListener extends AbstractServiceApiPlusListener 
 
         OwnerDto tmpOwnerDto = ownerDtos.get(0);
 
+        // Match duplicates only within the authenticated user and resolved property identity.
+        OwnerAppUserDto ownerAppUserDto = new OwnerAppUserDto();
+        ownerAppUserDto.setUserId(userId);
+        ownerAppUserDto.setCommunityId(tmpCommunityDto.getCommunityId());
+        ownerAppUserDto.setMemberId(tmpOwnerDto.getMemberId());
+        ownerAppUserDto.setStates(new String[]{"10000", "12000"});
+        List<OwnerAppUserDto> ownerAppUserDtos = ownerAppUserInnerServiceSMOImpl.queryOwnerAppUsers(ownerAppUserDto);
+        if (ownerAppUserDtos != null && !ownerAppUserDtos.isEmpty()) {
+            throw new IllegalArgumentException("已经申请过绑定业主");
+        }
+
         DataFlowContext dataFlowContext = event.getDataFlowContext();
         String paramIn = dataFlowContext.getReqData();
         JSONObject paramObj = JSONObject.parseObject(paramIn);
         paramObj.put("openId", openId);
         paramObj.put("userId", userId);
+        String appId = context.getAppId();
+        paramObj.put("appType", AppDto.WECHAT_OWNER_APP_ID.equals(appId) ? OwnerAppUserDto.APP_TYPE_WECHAT
+                : AppDto.WECHAT_MINA_OWNER_APP_ID.equals(appId) ? OwnerAppUserDto.APP_TYPE_WECHAT_MINA
+                : OwnerAppUserDto.APP_TYPE_APP);
 
         //添加小区楼
         ownerBMOImpl.addOwnerAppUser(paramObj, tmpCommunityDto, tmpOwnerDto,context);
