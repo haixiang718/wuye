@@ -54,6 +54,7 @@ public class BillNotificationService {
             if (bills == null || bills.size() != 1) return result(400,"账单不存在、已过期或不属于当前小区",0,false);
             BillOweFeeDto bill = bills.get(0);
             if (!communityId.equals(bill.getCommunityId()) || !oweId.equals(bill.getOweId())) return result(403,"账单不属于当前小区",0,false);
+            if (!"PUBLISHED".equals(bill.getReviewState())) return result(400,"账单尚未审核发布，请先在账单管理中审核",0,false);
             if (!("1000".equals(bill.getState()) || "3000".equals(bill.getState()))) return result(400,"该账单已支付或不允许推送",0,false);
             if (new BigDecimal(bill.getBillAmountOwed()).signum() <= 0) return result(400,"账单没有待缴金额",0,false);
             return sendLocked(bill, query, requestId);

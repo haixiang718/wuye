@@ -13,6 +13,15 @@ import java.io.Serializable;
  * add by wuxw 2020/5/28
  **/
 public class BillOweFeeDto extends PageDto implements Serializable {
+    private String reviewState;
+    private String feeName;
+    private String outstandingOnly;
+    public String getOutstandingOnly() { return outstandingOnly; }
+    public void setOutstandingOnly(String value) { outstandingOnly = value; }
+    public String getReviewState() { return reviewState; }
+    public void setReviewState(String value) { reviewState = value; }
+    public String getFeeName() { return feeName; }
+    public void setFeeName(String value) { feeName = value; }
 
     public static final String STATE_FINISH_FEE = "2000";//已缴费
     public static final String STATE_WILL_FEE = "1000";//未缴费

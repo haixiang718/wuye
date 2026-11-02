@@ -154,6 +154,7 @@ public class PublicWeChatPushMessageTemplate extends TaskSystemQuartz {
         billOweFeeDto.setOwnerIds(ownerIds);
         billOweFeeDto.setState("1000");
         billOweFeeDto.setCurBill("T");
+        billOweFeeDto.setReviewState("PUBLISHED");
         List<BillOweFeeDto> billOweFeeDtos = feeInnerServiceSMOImpl.queryBillOweFees(billOweFeeDto);
 
         String sendTemplate = MappingCache.getValue(WechatConstant.WECHAT_DOMAIN,WechatConstant.SEND_TEMPLATE_URL);
@@ -177,6 +178,9 @@ public class PublicWeChatPushMessageTemplate extends TaskSystemQuartz {
 
         String oweUrl = "";
         for (BillOweFeeDto fee : billOweFeeDtos) {
+            if (!"PUBLISHED".equals(fee.getReviewState())) {
+                continue;
+            }
             boolean sent = false;
             boolean failed = false;
             oweUrl = FeeDto.PAYER_OBJ_TYPE_ROOM.equals(fee.getPayerObjType()) ? oweRoomUrl : oweCarUrl;

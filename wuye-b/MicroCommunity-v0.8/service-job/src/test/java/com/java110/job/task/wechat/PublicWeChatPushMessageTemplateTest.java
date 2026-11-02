@@ -29,11 +29,14 @@ public class PublicWeChatPushMessageTemplateTest {
     private String reply;
     private boolean transportFailure;
     private boolean returnUnmatchedBill;
+    private String reviewState;
+    private String queriedReviewState;
     private HttpStatus responseStatus;
 
     @Before public void setup() throws Exception {
         sends = 0; updates = 0; reply = "{\"errcode\":0,\"msgid\":123}"; transportFailure = false;
         returnUnmatchedBill = false; responseStatus = HttpStatus.OK;
+        reviewState = "PUBLISHED"; queriedReviewState = null;
         StaticApplicationContext context = new StaticApplicationContext();
         context.getBeanFactory().registerSingleton("jedisPool", new JedisPool() {
             @Override public Jedis getResource() { return new Jedis() {
@@ -79,10 +82,12 @@ public class PublicWeChatPushMessageTemplateTest {
                 if (methodName.equals("queryOwnerAppUsers")) return Collections.singletonList(owner);
                 if (methodName.equals("queryBillOweFees")) {
                     BillOweFeeDto query = (BillOweFeeDto) args[0];
+                    queriedReviewState = query.getReviewState();
                     if (!returnUnmatchedBill && !Arrays.asList(query.getOwnerIds()).contains("owner")) return Collections.emptyList();
                     BillOweFeeDto fee = new BillOweFeeDto(); fee.setOwnerId("owner"); fee.setFeeId("fee"); fee.setBillId("bill");
                     fee.setFeeEndTime("2026-10-01 00:00:00"); fee.setDeadlineTime("2026-11-01 00:00:00");
                     fee.setBillAmountOwed("0.01"); fee.setPayerObjType("3333");
+                    fee.setReviewState(reviewState);
                     return Collections.singletonList(fee);
                 }
                 if (methodName.equals("updateBillOweFees")) { updates++; return 1; }
@@ -112,4 +117,6 @@ public class PublicWeChatPushMessageTemplateTest {
     @Test public void missingErrorCodeDoesNotMarkBillSent() throws Exception { reply="{\"msgid\":123}"; run(); assertEquals(1,sends); assertEquals(0,updates); }
     @Test public void missingMessageIdDoesNotMarkBillSent() throws Exception { reply="{\"errcode\":0}"; run(); assertEquals(1,sends); assertEquals(0,updates); }
     @Test public void nonSuccessHttpDoesNotMarkBillSent() throws Exception { responseStatus=HttpStatus.SERVICE_UNAVAILABLE; run(); assertEquals(1,sends); assertEquals(0,updates); }
+    @Test public void jobQueryRequiresPublishedBill() throws Exception { run(); assertEquals("PUBLISHED",queriedReviewState); }
+    @Test public void draftReturnedByDependencyIsNeverSent() throws Exception { reviewState="DRAFT"; run(); assertEquals(0,sends); assertEquals(0,updates); }
 }

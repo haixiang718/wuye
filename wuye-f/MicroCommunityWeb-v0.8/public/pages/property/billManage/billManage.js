@@ -8,6 +8,7 @@
         data: {
             billManageInfo: {
                 bills: [],
+                reviewing: {},
                 total: 0,
                 records: 1,
                 moreCondition: false,
@@ -35,6 +36,26 @@
             });
         },
         methods: {
+            _reviewBill: function (_bill) {
+                var _info = vc.component.billManageInfo;
+                if (_bill.reviewState != 'DRAFT' || _info.reviewing[_bill.billId]) return;
+                if (!window.confirm('确认已核对账单明细并审核发布？发布后业主可查看账单，物业可推送通知。')) return;
+                _info.reviewing = Object.assign({}, _info.reviewing, { [_bill.billId]: true });
+                var _finish = function () {
+                    var _next = Object.assign({}, _info.reviewing); delete _next[_bill.billId]; _info.reviewing = _next;
+                };
+                vc.http.apiPost('/fee.reviewBill', JSON.stringify({
+                    communityId: vc.getCurrentCommunity().communityId,
+                    billId: _bill.billId,
+                    remark: '物业审核发布'
+                }), { emulateJSON: true }, function (json) {
+                    _finish();
+                    try {
+                        var _result = JSON.parse(json); vc.toast(_result.msg || '审核结果异常，请刷新核对');
+                        vc.component._listbills(_info.conditions.page || DEFAULT_PAGE, DEFAULT_ROWS);
+                    } catch (e) { vc.toast('审核结果未知，请刷新核对后再操作'); }
+                }, function () { _finish(); vc.toast('审核请求失败，请刷新核对后重试'); });
+            },
             _listbills: function (_page, _rows) {
 
                 vc.component.billManageInfo.conditions.page = _page;

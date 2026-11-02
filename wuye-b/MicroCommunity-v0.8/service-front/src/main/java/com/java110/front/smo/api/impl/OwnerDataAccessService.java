@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.client.RestTemplate;
+import java.math.BigDecimal;
 import java.util.*;
 
 /** Public front boundary: authenticate first, then authorize against server-side bindings. */
@@ -21,6 +24,73 @@ public class OwnerDataAccessService {
         "user.userSendSms", "owner.ownerRegister", "owner.ownerRegisterWxPhoto"));
 
     @Autowired public OwnerDataAccessService(RestTemplate restTemplate) { this.restTemplate = restTemplate; }
+
+    /** Preserve the legacy response shape, but expose reviewed bill snapshots to residents. */
+    public ResponseEntity<String> ownerBillResponse(IPageData pd, String service, JSONObject params) {
+        String code = service.startsWith("/") ? service.substring(1) : service;
+        boolean list = "fee.listFee".equals(code);
+        boolean arrears = "feeApi/listOweFees".equals(code);
+        if (!list && !arrears) return null;
+        String userId = pd == null ? null : pd.getUserId();
+        require(userId != null && !userId.isEmpty() && !"-1".equals(userId));
+        JSONArray users = query("user-service/userApi/getUsers", object("userId",userId));
+        require(users.size() == 1 && userId.equals(users.getJSONObject(0).getString("userId")));
+        String level = users.getJSONObject(0).getString("levelCd");
+        if (!"02".equals(level) && !"03".equals(level)) return null;
+        if (!query("store-service/storeApi/getStoreUserInfo",object("userId",userId)).isEmpty()) return null;
+        String community = params.getString("communityId");
+        Set<String> owners = approvedOwners(userId,community);
+        require(!owners.isEmpty());
+        JSONObject scoped = object("communityId",community);
+        scoped.put("ownerIds",owners); scoped.put("reviewState","PUBLISHED");
+        scoped.put("curBill","T"); scoped.put("outstandingOnly","T");
+        scoped.put("payObjId",params.getString(list ? "payerObjId" : "payObjId"));
+        scoped.put("payerObjType",params.getString(list ? "payerObjType" : "payObjType"));
+        for (String key : Arrays.asList("feeId","oweId","billId"))
+            if (params.getString(key) != null && !params.getString(key).isEmpty()) scoped.put(key,params.getString(key));
+        int page = params.getInteger("page") == null ? 1 : params.getIntValue("page");
+        int row = params.getInteger("row") == null ? 30 : params.getIntValue("row");
+        require(page > 0 && row > 0 && row <= 100);
+        scoped.put("page",page); scoped.put("row",row);
+        JSONArray snapshots = query("fee-service/feeApi/queryBillOweFees",scoped);
+        JSONArray visible = new JSONArray();
+        for (Object item : snapshots) {
+            JSONObject bill = (JSONObject)item;
+            if (!"PUBLISHED".equals(bill.getString("reviewState")) || !community.equals(bill.getString("communityId"))
+                    || !owners.contains(bill.getString("ownerId")) || !scoped.getString("payObjId").equals(bill.getString("payObjId"))
+                    || !("1000".equals(bill.getString("state")) || "3000".equals(bill.getString("state")))) continue;
+            BigDecimal amount = new BigDecimal(bill.getString("billAmountOwed"));
+            if (amount.signum() <= 0) continue;
+            JSONObject fee = new JSONObject();
+            for (String key : Arrays.asList("feeId","oweId","billId","feeName","feeEndTime","deadlineTime","payerObjType")) fee.put(key,bill.get(key));
+            fee.put("communityId",community); fee.put("payerObjId",bill.getString("payObjId"));
+            fee.put("feePrice",amount.setScale(2,BigDecimal.ROUND_UNNECESSARY).toPlainString());
+            fee.put("amountOwed",fee.get("feePrice")); fee.put("endTime",bill.get("feeEndTime"));
+            fee.put("reviewState","PUBLISHED"); fee.put("billSnapshot",true);
+            // Frozen bill amount, not a selectable future prepayment cycle.
+            fee.put("feeFlag","2006012"); fee.put("paymentCycle",1);
+            fee.put("squarePrice","0"); fee.put("additionalAmount",fee.get("feePrice"));
+            visible.add(fee);
+        }
+        HttpHeaders headers = new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+        String rawCount = restTemplate.postForObject("http://fee-service/feeApi/queryBillOweFeeCount",
+                new HttpEntity<>(scoped.toJSONString(),headers),String.class);
+        int count = Integer.parseInt(rawCount);
+        JSONObject response = new JSONObject(); response.put("code",0); response.put("total",count);
+        response.put("records",(count + row - 1) / row); response.put(list ? "fees" : "data",visible);
+        return new ResponseEntity<>(response.toJSONString(),HttpStatus.OK);
+    }
+
+    private Set<String> approvedOwners(String userId,String community) {
+        Set<String> owners = new HashSet<>();
+        for (Object item : query("user-service/ownerAppUserApi/queryOwnerAppUsers",object("userId",userId))) {
+            JSONObject binding = (JSONObject)item;
+            if (userId.equals(binding.getString("userId")) && community.equals(binding.getString("communityId"))
+                    && "12000".equals(binding.getString("state")) && binding.getString("memberId") != null)
+                owners.add(binding.getString("ownerId") == null ? binding.getString("memberId") : binding.getString("ownerId"));
+        }
+        return owners;
+    }
 
     public void authorize(IPageData pd, String service, JSONObject params) {
         String code = service.startsWith("/") ? service.substring(1) : service;
@@ -39,7 +109,7 @@ public class OwnerDataAccessService {
 
         if ("owner.listAppUserBindingOwners".equals(code)) {
             JSONObject scoped = object("userId", userId);
-            for (String key : Arrays.asList("page", "row", "communityId", "appType"))
+            for (String key : Arrays.asList("page", "row", "communityId", "appType", "state"))
                 if (params.containsKey(key)) scoped.put(key, params.get(key));
             params.clear(); params.putAll(scoped);
             return;
@@ -103,7 +173,8 @@ public class OwnerDataAccessService {
             require(ownsObject(community, owners, members, params.getString("payObjType"), params.getString("payObjId"))); return;
         }
         if ("fee.queryFeeByParkingSpace".equals(code)) {
-            require(ownsObject(community, owners, members, "parking", params.getString("psId"))); return;
+            // This legacy endpoint returns raw fee rules, not reviewed bill snapshots.
+            throw new SecurityException("请通过已发布账单查询停车费用");
         }
         // Do not let a resident choose a different client AppID to reach management APIs.
         throw new SecurityException("业主账号无权访问该功能");

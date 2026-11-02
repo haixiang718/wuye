@@ -42,7 +42,7 @@
         methods: {
             _canPushBill: function (_bill) {
                 var _amount = Number(_bill.billAmountOwed);
-                return (_bill.state == '1000' || _bill.state == '3000')
+                return _bill.reviewState == 'PUBLISHED' && (_bill.state == '1000' || _bill.state == '3000')
                     && isFinite(_amount) && _amount > 0;
             },
             _isPushingBill: function (_bill) {

@@ -1,5 +1,14 @@
 [
   {
+    "id": "local_20261102_001",
+    "code": "fee.reviewBill",
+    "url": "",
+    "method": "POST",
+    "apps": ["8000418004"],
+    "instance": "N",
+    "reason": "Property staff publish reviewed bill snapshots before owner visibility or notification."
+  },
+  {
     "id": "local_20261021_003",
     "code": "fee.pushBill",
     "url": "",

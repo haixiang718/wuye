@@ -50,6 +50,11 @@ export function getRoomFees(_objData,_tmpRoom) {
 						_tmpRoom.additionalAmount = _roomFee.additionalAmount;
 						_tmpRoom.squarePrice = _roomFee.squarePrice;
 						_tmpRoom.amount = _roomFee.feePrice;
+						_tmpRoom.billSnapshot = _roomFee.billSnapshot === true;
+						_tmpRoom.oweId = _roomFee.oweId;
+						_tmpRoom.billId = _roomFee.billId;
+						_tmpRoom.feeEndTime = _roomFee.feeEndTime;
+						_tmpRoom.deadlineTime = _roomFee.deadlineTime;
 						_tmpRoom.feeId = _roomFee.feeId;
 						_tmpRoom.feeName = _roomFee.feeName;
 						_tmpRoom.feeFlag = _roomFee.feeFlag;

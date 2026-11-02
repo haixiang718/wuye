@@ -1,0 +1,529 @@
+{
+  "date": "2026-11-02",
+  "branch": "codex/billing-flow-repairs",
+  "repairVerificationPassed": true,
+  "productionPaymentReady": false,
+  "realWechatRequests": 0,
+  "realMerchantPayments": 0,
+  "realOAuthPerformed": false,
+  "onlinePaymentCallbacksForged": false,
+  "sameLocalBillPaymentPosted": false,
+  "scope": "Real local registration, approval, generation, publication and H5; notification transport/OAuth substituted; payment SQL in separate disposable schema.",
+  "targetedChecks": {
+    "passed": 201,
+    "failed": 0,
+    "suites": {
+      "ownerAccessAndBinding": 36,
+      "billPublicationBoundary": 13,
+      "billReviewRealDatabase": 5,
+      "manualNotificationSubstitutes": 24,
+      "legacyJobNotificationSubstitutes": 12,
+      "paymentCallbackAndPlacementSubstitutes": 38,
+      "paymentRealDatabaseTransactions": 16,
+      "h5PageBehavior": 38,
+      "paymentMigrationRealDatabase": 5,
+      "localLauncherAndRouteCache": 14
+    }
+  },
+  "browserChecks": {
+    "passed": 43,
+    "failed": 0,
+    "phases": [
+      {
+        "mode": "approve",
+        "passed": true,
+        "checks": [
+          {
+            "name": "pending_binding_cannot_login",
+            "passed": true,
+            "http": 403
+          },
+          {
+            "name": "property_approval_via_real_management_entry",
+            "passed": true
+          },
+          {
+            "name": "approved_owner_password_login",
+            "passed": true,
+            "http": 200
+          }
+        ]
+      },
+      {
+        "mode": "before-bill",
+        "passed": true,
+        "checks": [
+          {
+            "name": "unpublished_fee_is_hidden",
+            "passed": true,
+            "http": 200
+          },
+          {
+            "name": "anonymous_fee_access_denied",
+            "passed": true,
+            "http": 401
+          },
+          {
+            "name": "other_owner_room_denied_despite_spoofed_header",
+            "passed": true,
+            "http": 403
+          },
+          {
+            "name": "compiled_h5_shows_own_room",
+            "passed": true
+          },
+          {
+            "name": "compiled_h5_hides_unpublished_fee",
+            "passed": true
+          },
+          {
+            "name": "compiled_h5_has_no_page_errors",
+            "passed": true,
+            "errorCount": 0
+          }
+        ]
+      },
+      {
+        "mode": "after-bill",
+        "passed": true,
+        "checks": [
+          {
+            "name": "unpublished_fee_is_hidden",
+            "passed": true,
+            "http": 200
+          },
+          {
+            "name": "draft_bill_hidden_from_arrears",
+            "passed": true,
+            "http": 200
+          },
+          {
+            "name": "anonymous_fee_access_denied",
+            "passed": true,
+            "http": 401
+          },
+          {
+            "name": "other_owner_room_denied_despite_spoofed_header",
+            "passed": true,
+            "http": 403
+          },
+          {
+            "name": "compiled_h5_shows_own_room",
+            "passed": true
+          },
+          {
+            "name": "compiled_h5_hides_unpublished_fee",
+            "passed": true
+          },
+          {
+            "name": "compiled_h5_has_no_page_errors",
+            "passed": true,
+            "errorCount": 0
+          }
+        ]
+      },
+      {
+        "mode": "publish",
+        "passed": true,
+        "checks": [
+          {
+            "name": "management_draft_bill_has_review_button",
+            "passed": true
+          },
+          {
+            "name": "management_review_button_publishes_bill",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "mode": "after-publish",
+        "passed": true,
+        "checks": [
+          {
+            "name": "owner_fee_visible_after-publish",
+            "passed": true,
+            "http": 200
+          },
+          {
+            "name": "owner_receives_published_snapshot_amount",
+            "passed": true
+          },
+          {
+            "name": "server_blocks_unconfigured_payment_toPay",
+            "passed": true,
+            "http": 503
+          },
+          {
+            "name": "server_blocks_unconfigured_payment_toOweFeePay",
+            "passed": true,
+            "http": 503
+          },
+          {
+            "name": "server_blocks_unconfigured_payment_toQrOweFeePay",
+            "passed": true,
+            "http": 503
+          },
+          {
+            "name": "published_unpaid_bill_remains_in_arrears_list",
+            "passed": true,
+            "http": 200
+          },
+          {
+            "name": "anonymous_fee_access_denied",
+            "passed": true,
+            "http": 401
+          },
+          {
+            "name": "other_owner_room_denied_despite_spoofed_header",
+            "passed": true,
+            "http": 403
+          },
+          {
+            "name": "compiled_h5_shows_own_room",
+            "passed": true
+          },
+          {
+            "name": "compiled_h5_shows_fixture_fee",
+            "passed": true
+          },
+          {
+            "name": "payment_button_stays_disabled",
+            "passed": true
+          },
+          {
+            "name": "compiled_detail_reloads_frozen_bill_amount",
+            "passed": true
+          },
+          {
+            "name": "compiled_h5_has_no_page_errors",
+            "passed": true,
+            "errorCount": 0
+          }
+        ]
+      },
+      {
+        "mode": "after-notice",
+        "passed": true,
+        "checks": [
+          {
+            "name": "owner_fee_visible_after-notice",
+            "passed": true,
+            "http": 200
+          },
+          {
+            "name": "owner_receives_published_snapshot_amount",
+            "passed": true
+          },
+          {
+            "name": "published_unpaid_bill_remains_in_arrears_list",
+            "passed": true,
+            "http": 200
+          },
+          {
+            "name": "anonymous_fee_access_denied",
+            "passed": true,
+            "http": 401
+          },
+          {
+            "name": "other_owner_room_denied_despite_spoofed_header",
+            "passed": true,
+            "http": 403
+          },
+          {
+            "name": "compiled_h5_shows_own_room",
+            "passed": true
+          },
+          {
+            "name": "compiled_h5_shows_fixture_fee",
+            "passed": true
+          },
+          {
+            "name": "payment_button_stays_disabled",
+            "passed": true
+          },
+          {
+            "name": "compiled_detail_reloads_frozen_bill_amount",
+            "passed": true
+          },
+          {
+            "name": "compiled_h5_has_no_page_errors",
+            "passed": true,
+            "errorCount": 0
+          },
+          {
+            "name": "h5_arrears_page_displays_snapshot_and_total",
+            "passed": true
+          },
+          {
+            "name": "h5_arrears_page_loads_without_runtime_errors",
+            "passed": true,
+            "newErrorCount": 0,
+            "undefinedRoomLoader": false
+          }
+        ]
+      }
+    ]
+  },
+  "registration": [
+    {
+      "entry": "public-h5-front",
+      "http": 200,
+      "code": 0,
+      "passed": true
+    }
+  ],
+  "generation": {
+    "mode": "actual-local-business-services",
+    "headers": 1,
+    "details": 1,
+    "amount": "0.01",
+    "state": "1000",
+    "repeatBlocked": true,
+    "matchingOwner": true,
+    "deadline": "2026-12-01 00:00:00",
+    "messageRequests": 0
+  },
+  "draftNotification": {
+    "passed": true,
+    "mode": "same-real-draft-bill-rejected-before-synthetic-transport",
+    "simulatedAcceptances": 0,
+    "realFixtureStateUpdates": 0,
+    "realWechatRequests": 0
+  },
+  "publishedNotification": {
+    "mode": "same-real-generated-bill-with-synthetic-notification-transport-and-oauth-identity",
+    "passed": true,
+    "simulatedAcceptances": 1,
+    "realFixtureStateUpdates": 1,
+    "sameRequestDeduplicated": true,
+    "realWechatRequests": 0,
+    "billStateAfter": "3000",
+    "linkRoomMatches": true,
+    "databaseOAuthBindingModified": false
+  },
+  "localBillFinalStateBeforeCleanup": {
+    "billState": "3000",
+    "billAmount": "0.01",
+    "amountStillOwed": "0.01",
+    "billReceipts": "0.00",
+    "paymentDetails": 0,
+    "accountTablesUnchanged": true,
+    "realPaymentPostingVerified": false
+  },
+  "paymentCallback": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "single_standard_xml_with_query_wid",
+        "passed": true
+      },
+      {
+        "name": "arrears_standard_xml_with_query_wid",
+        "passed": true
+      },
+      {
+        "name": "single_valid_map_can_reach_confirmation",
+        "passed": true
+      },
+      {
+        "name": "invalid_signature_rejected",
+        "passed": true
+      },
+      {
+        "name": "incorrect_amount_must_not_confirm",
+        "passed": true
+      },
+      {
+        "name": "incorrect_app_and_merchant_must_not_confirm",
+        "passed": true
+      },
+      {
+        "name": "business_failure_must_not_ack_success",
+        "passed": true
+      },
+      {
+        "name": "arrears_downstream_failure_remains_retryable",
+        "passed": true
+      },
+      {
+        "name": "duplicate_single_posts_once",
+        "passed": true
+      },
+      {
+        "name": "duplicate_arrears_posts_once",
+        "passed": true
+      },
+      {
+        "name": "missing_durable_order_not_success",
+        "passed": true
+      },
+      {
+        "name": "failure_returns_valid_fail_xml",
+        "passed": true
+      },
+      {
+        "name": "malformed_xml_returns_fail",
+        "passed": true
+      },
+      {
+        "name": "external_document_declaration_rejected_before_parse",
+        "passed": true
+      },
+      {
+        "name": "partial_posting_failure_rolls_back",
+        "passed": true
+      },
+      {
+        "name": "partial_posting_failure_retries",
+        "passed": true
+      },
+      {
+        "name": "response_loss_returns_retry",
+        "passed": true
+      },
+      {
+        "name": "response_loss_retry_no_duplicate",
+        "passed": true
+      },
+      {
+        "name": "fee_service_rechecks_amount",
+        "passed": true
+      },
+      {
+        "name": "fee_service_rechecks_merchant",
+        "passed": true
+      },
+      {
+        "name": "fee_service_rechecks_app",
+        "passed": true
+      },
+      {
+        "name": "fractional_fen_rejected",
+        "passed": true
+      },
+      {
+        "name": "posted_transaction_cannot_change",
+        "passed": true
+      },
+      {
+        "name": "transaction_unique_across_orders",
+        "passed": true
+      },
+      {
+        "name": "concurrent_duplicate_posts_once",
+        "passed": true
+      },
+      {
+        "name": "create_uses_snapshot_ignores_client_price",
+        "passed": true
+      },
+      {
+        "name": "repeat_placement_reuses_order",
+        "passed": true
+      },
+      {
+        "name": "changed_pending_period_rejected_before_provider",
+        "passed": true
+      },
+      {
+        "name": "overlapping_payment_cannot_create_second_order",
+        "passed": true
+      },
+      {
+        "name": "no_payable_snapshot_rejected",
+        "passed": true
+      },
+      {
+        "name": "changed_bill_snapshot_rolls_back",
+        "passed": true
+      },
+      {
+        "name": "placement_rejects_other_community_openid",
+        "passed": true
+      },
+      {
+        "name": "placement_rejects_unapproved_openid",
+        "passed": true
+      },
+      {
+        "name": "placement_rejects_other_user_openid",
+        "passed": true
+      },
+      {
+        "name": "placement_rejects_other_app_type_openid",
+        "passed": true
+      },
+      {
+        "name": "placement_checks_later_pages_for_ambiguous_openid",
+        "passed": true
+      },
+      {
+        "name": "placement_accepts_one_unique_approved_openid",
+        "passed": true
+      },
+      {
+        "name": "placement_binding_query_is_scoped",
+        "passed": true
+      }
+    ],
+    "realNetworkRequests": 0,
+    "databaseWrites": 0
+  },
+  "realPaymentDatabase": {
+    "passed": true,
+    "checks": 16,
+    "syntheticRowsOnly": true,
+    "temporarySchemaDropped": true,
+    "covers": [
+      "atomic posting",
+      "rollback and retry",
+      "restart idempotency",
+      "unique transaction",
+      "concurrent create and confirm",
+      "cross-period reservation",
+      "changed pending snapshot rejection"
+    ]
+  },
+  "migrations": {
+    "backedUp": true,
+    "billOriginalValuesPreserved": true,
+    "legacyReceiptContractAccountValuesPreserved": true,
+    "repeatPlanEmpty": true
+  },
+  "builds": {
+    "backend22Modules": true,
+    "finalFrontAndDependencies8Modules": true,
+    "h5Production": true,
+    "mavenTestsSkippedAndRunSeparately": true
+  },
+  "integrationRepairs": [
+    "Explicit payment Feign client registration verified by actual front startup",
+    "Application route cache refreshed; actual review button accepted"
+  ],
+  "runtime": {
+    "javaServicesListening": {
+      "eureka": true,
+      "order": true,
+      "api": true,
+      "front": true,
+      "job": true,
+      "business": true
+    },
+    "managementPort3000": true,
+    "scheduledTasksDisabled": true,
+    "paymentDisabled": true
+  },
+  "cleanup": {
+    "checkedTables": 15,
+    "changedTables": [],
+    "businessRowsAndHashesRestored": true,
+    "orderAuditTracesRetained": true
+  },
+  "limitations": [
+    "No real merchant, API V3, provider reconciliation, refunds or provider-confirmed order closing",
+    "Pending orders do not expire locally; stale cross-period bills require reconciliation before another payment",
+    "Management tested through home then menu navigation; initial deep-link timing not comprehensively covered",
+    "Separate payment SQL evidence does not mean the same TT fixture was paid"
+  ]
+}

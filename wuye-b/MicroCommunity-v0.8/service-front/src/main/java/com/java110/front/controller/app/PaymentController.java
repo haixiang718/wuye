@@ -19,11 +19,15 @@ import com.java110.core.base.controller.BaseController;
 import com.java110.core.context.IPageData;
 import com.java110.core.context.PageData;
 import com.java110.front.smo.payment.*;
+import com.alibaba.fastjson.JSONObject;
+import com.java110.front.smo.api.impl.OwnerDataAccessService;
 import com.java110.utils.constant.CommonConstant;
 import com.java110.utils.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -64,6 +68,28 @@ public class PaymentController extends BaseController {
     @Autowired
     private IToQrPayOweFeeSMO toQrPayOweFeeSMOImpl;
 
+    @Value("${java110.payment.enabled:false}")
+    private boolean paymentEnabled;
+    @Autowired private OwnerDataAccessService ownerDataAccessService;
+
+    private ResponseEntity<String> paymentGuard(String body,IPageData pd,boolean single) {
+        if (!paymentEnabled) return new ResponseEntity<>("{\"code\":503,\"msg\":\"微信支付未开通\"}",HttpStatus.SERVICE_UNAVAILABLE);
+        if (pd == null || StringUtil.isEmpty(pd.getUserId()) || "-1".equals(pd.getUserId()))
+            return new ResponseEntity<>("{\"code\":401,\"msg\":\"请先登录\"}",HttpStatus.UNAUTHORIZED);
+        try {
+            JSONObject scoped = JSONObject.parseObject(body);
+            if (single) ownerDataAccessService.authorize(pd,"fee.queryFeeDetail",scoped);
+            else {
+                scoped.put("payObjId",scoped.getString("roomId"));
+                if (StringUtil.isEmpty(scoped.getString("payObjType"))) scoped.put("payObjType","3333");
+                ownerDataAccessService.authorize(pd,"feeApi/listOweFees",scoped);
+            }
+            return null;
+        } catch (Exception denied) {
+            return new ResponseEntity<>("{\"code\":403,\"msg\":\"未绑定该房产或无权支付该账单\"}",HttpStatus.FORBIDDEN);
+        }
+    }
+
     /**
      * <p>统一下单入口</p>
      *
@@ -73,6 +99,8 @@ public class PaymentController extends BaseController {
     @RequestMapping(path = "/toPay", method = RequestMethod.POST)
     public ResponseEntity<String> toPay(@RequestBody String postInfo, HttpServletRequest request) {
         IPageData pd = (IPageData) request.getAttribute(CommonConstant.CONTEXT_PAGE_DATA);
+        ResponseEntity<String> rejected = paymentGuard(postInfo,pd,true);
+        if (rejected != null) return rejected;
         /*IPageData pd = (IPageData) request.getAttribute(CommonConstant.CONTEXT_PAGE_DATA);*/
         String appId = request.getHeader("APP_ID");
         if (StringUtil.isEmpty(appId)) {
@@ -93,6 +121,8 @@ public class PaymentController extends BaseController {
     @RequestMapping(path = "/toOweFeePay", method = RequestMethod.POST)
     public ResponseEntity<String> toOweFeePay(@RequestBody String postInfo, HttpServletRequest request) {
         IPageData pd = (IPageData) request.getAttribute(CommonConstant.CONTEXT_PAGE_DATA);
+        ResponseEntity<String> rejected = paymentGuard(postInfo,pd,false);
+        if (rejected != null) return rejected;
         /*IPageData pd = (IPageData) request.getAttribute(CommonConstant.CONTEXT_PAGE_DATA);*/
         String appId = request.getHeader("APP_ID");
         if (StringUtil.isEmpty(appId)) {
@@ -135,7 +165,6 @@ public class PaymentController extends BaseController {
     @RequestMapping(path = "/notify", method = RequestMethod.POST)
     public ResponseEntity<String> notify(@RequestBody String postInfo, HttpServletRequest request) {
 
-        logger.debug("微信支付回调报文" + postInfo);
 
         return toNotifySMOImpl.toNotify(postInfo, request);
 
@@ -170,7 +199,6 @@ public class PaymentController extends BaseController {
      */
     @RequestMapping(path = "/oweFeeNotify", method = RequestMethod.POST)
     public ResponseEntity<String> oweFeeNotify(@RequestBody String postInfo, HttpServletRequest request) {
-        logger.debug("微信支付回调报文" + postInfo);
 
         return oweFeeToNotifySMOImpl.toNotify(postInfo, request);
     }
@@ -184,7 +212,6 @@ public class PaymentController extends BaseController {
     @RequestMapping(path = "/rentingNotify", method = RequestMethod.POST)
     public ResponseEntity<String> rentingNotify(@RequestBody String postInfo, HttpServletRequest request) {
 
-        logger.debug("微信支付回调报文" + postInfo);
 
         return rentingToNotifySMOImpl.toNotify(postInfo, request);
 
@@ -200,6 +227,8 @@ public class PaymentController extends BaseController {
     @RequestMapping(path = "/toQrOweFeePay", method = RequestMethod.POST)
     public ResponseEntity<String> toQrOweFeePay(@RequestBody String postInfo, HttpServletRequest request) {
         IPageData pd = (IPageData) request.getAttribute(CommonConstant.CONTEXT_PAGE_DATA);
+        ResponseEntity<String> rejected = paymentGuard(postInfo,pd,false);
+        if (rejected != null) return rejected;
         String appId = request.getHeader("APP_ID");
         if (StringUtil.isEmpty(appId)) {
             appId = request.getHeader("APP-ID");

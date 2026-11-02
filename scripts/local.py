@@ -301,6 +301,18 @@ def local_database_settings():
     migrate()
 
 
+def refresh_local_route_cache():
+    if not listening(SERVICES['order']):
+        return False
+    request = urllib.request.Request('http://127.0.0.1:8001/cacheApi/flush',
+                                     headers={'cache': 'APP_ROUTE_SERVICE'})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        if response.status != 200 or response.read().decode('utf-8') != '刷新缓存成功':
+            raise RuntimeError('Local route cache refresh failed; retry migrate before using new APIs')
+    print('Local application route cache refreshed.', flush=True)
+    return True
+
+
 def migrate():
     changes = json.loads((ROOT / 'scripts/local-schema.json').read_text(encoding='utf-8'))
     for change in changes:
@@ -323,6 +335,7 @@ def migrate():
     mysql_run("INSERT INTO TT.c_service_sql(service_code,name,params,query_model,`sql`,template) SELECT "
               + ','.join([literal(query['code']), literal(query['name']), "'1'", "'1'", literal(json.dumps(query['queries'], ensure_ascii=False)), literal(json.dumps(query['template']))])
               + " WHERE NOT EXISTS(SELECT 1 FROM TT.c_service_sql WHERE service_code='api.getListPayFee');")
+    refresh_local_route_cache()
 
 
 def build():
@@ -357,6 +370,8 @@ def start(names, profile='property'):
                      '-Djava110.local.disableScheduledTasks=' + ('false' if os.environ.get('WUYE_ENABLE_SCHEDULED_TASKS') == '1' else 'true'), '-Dfile.encoding=UTF-8',
                      '-jar', str(jar), '--spring.profiles.active=dev',
                      '--spring.config.additional-location=' + config.as_uri()], SERVICES[name], env=env, profile=profile)
+        if name == 'order':
+            refresh_local_route_cache()
 
 
 def live_java_services():

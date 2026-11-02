@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="paymentOrder">
+    <sql id="orderColumns">order_id orderId, community_id communityId,user_id userId,app_id appId,mch_id mchId,order_type orderType,total_fee totalFee,payload,state,transaction_id transactionId</sql>
+    <select id="queryOrder" parameterType="Map" resultType="Map">select <include refid="orderColumns"/> from payment_order where order_id=#{orderId}</select>
+    <select id="lockOrder" parameterType="Map" resultType="Map">select <include refid="orderColumns"/> from payment_order where order_id=#{orderId} for update</select>
+    <select id="merchantMatches" parameterType="Map" resultType="int">
+        select case when count(*)=1 and min(mch_id)=#{mchId} then 1 else 0 end
+        from small_wechat where obj_id=#{communityId} and obj_type='1000' and appId=#{appId} and status_cd='0'
+    </select>
+    <select id="reservation" parameterType="Map" resultType="string">select order_id from payment_order_reservation where community_id=#{communityId} and fee_id=#{feeId}</select>
+    <sql id="snapshotColumns">
+        bof.owe_id oweId,bof.bill_id billId,bof.fee_id feeId,bof.bill_amount_owed billAmountOwed,
+        DATE_FORMAT(bof.fee_end_time,'%Y-%m-%d %H:%i:%s') feeEndTime,
+        DATE_FORMAT(bof.deadline_time,'%Y-%m-%d %H:%i:%s') deadlineTime,
+        bof.owner_id ownerId,bof.owner_name ownerName,bof.payer_obj_name payerObjName,
+        bof.payer_obj_type payerObjType,pf.payer_obj_id payerObjId,pfc.fee_name feeName,
+        bof.community_id communityId
+    </sql>
+    <sql id="snapshotJoin">
+        from bill_owe_fee bof
+        inner join bill b on b.bill_id=bof.bill_id and b.community_id=bof.community_id
+        inner join pay_fee pf on pf.fee_id=bof.fee_id and pf.community_id=bof.community_id and pf.status_cd='0'
+        inner join pay_fee_config pfc on pfc.config_id=pf.config_id and pfc.community_id=pf.community_id and pfc.status_cd='0'
+    </sql>
+    <select id="snapshots" parameterType="Map" resultType="Map">
+        select <include refid="snapshotColumns"/> <include refid="snapshotJoin"/>
+        where bof.community_id=#{communityId} and b.review_state='PUBLISHED' and b.cur_bill='T'
+        and bof.state in ('1000','3000') and bof.bill_amount_owed &gt; 0
+        and pf.end_time=bof.fee_end_time
+        and exists (select 1 from owner_app_user oau inner join building_owner bo
+            on bo.member_id=oau.member_id and bo.community_id=oau.community_id and bo.status_cd='0'
+            where oau.user_id=#{userId} and oau.community_id=bof.community_id and oau.state='12000'
+            and oau.status_cd='0' and bo.owner_id=bof.owner_id)
+        <if test="feeId != null and feeId != ''">and bof.fee_id=#{feeId}</if>
+        <if test="oweId != null and oweId != ''">and bof.owe_id=#{oweId}</if>
+        <if test="billId != null and billId != ''">and bof.bill_id=#{billId}</if>
+        <if test="roomId != null and roomId != ''">and pf.payer_obj_id=#{roomId} and bof.payer_obj_type=#{payObjType}</if>
+        order by bof.owe_id
+        for update
+    </select>
+    <select id="lockSnapshot" parameterType="Map" resultType="Map">
+        select <include refid="snapshotColumns"/> <include refid="snapshotJoin"/>
+        where bof.owe_id=#{oweId} and bof.bill_id=#{billId} and bof.community_id=#{communityId}
+        and b.review_state='PUBLISHED' and bof.state in ('1000','3000')
+        and pf.end_time=bof.fee_end_time
+        for update
+    </select>
+    <insert id="insertOrder" parameterType="Map">
+        insert into payment_order(order_id,community_id,user_id,app_id,mch_id,order_type,total_fee,payload,state)
+        values(#{orderId},#{communityId},#{userId},#{appId},#{mchId},#{orderType},#{totalFee},#{payload},'CREATED')
+    </insert>
+    <insert id="reserveSnapshot" parameterType="Map">insert into payment_order_item(owe_id,order_id) values(#{oweId},#{orderId})</insert>
+    <insert id="reserveFee" parameterType="Map">insert into payment_order_reservation(community_id,fee_id,order_id) values(#{communityId},#{feeId},#{orderId})</insert>
+    <delete id="releaseFee" parameterType="Map">delete from payment_order_reservation where community_id=#{communityId} and fee_id=#{feeId} and order_id=#{orderId}</delete>
+    <update id="reserveTransaction" parameterType="Map">update payment_order set transaction_id=#{transactionId} where order_id=#{orderId} and state='CREATED' and transaction_id is null</update>
+    <insert id="insertDetail" parameterType="Map">
+        insert into pay_fee_detail(prime_rate,detail_id,receivable_amount,cycles,remark,status_cd,received_amount,community_id,b_id,fee_id,state,start_time,end_time)
+        values('6',#{detailId},#{billAmountOwed},#{cycles},concat('微信账单支付 ',#{orderId}),'0',#{billAmountOwed},#{communityId},'-1',#{feeId},'1400',#{feeEndTime},#{deadlineTime})
+    </insert>
+    <insert id="insertReceiptDetail" parameterType="Map">
+        insert into fee_receipt_detail(amount,fee_name,detail_id,start_time,end_time,community_id,receipt_id,fee_id,cycle)
+        values(#{billAmountOwed},#{feeName},#{detailId},#{feeEndTime},#{deadlineTime},#{communityId},#{receiptId},#{feeId},#{cycles})
+    </insert>
+    <update id="advanceFee" parameterType="Map">
+        update pay_fee pf inner join pay_fee_config pfc on pf.config_id=pfc.config_id and pf.community_id=pfc.community_id
+        set pf.end_time=#{deadlineTime},pf.state=case when pf.fee_flag='2006012' or #{deadlineTime}&gt;pfc.end_time then '2009001' else '2008001' end
+        where pf.fee_id=#{feeId} and pf.community_id=#{communityId} and pf.status_cd='0' and pf.end_time=#{feeEndTime}
+    </update>
+    <update id="settleSnapshot" parameterType="Map">update bill_owe_fee set state='2000',fee_end_time=fee_end_time where owe_id=#{oweId} and community_id=#{communityId} and bill_id=#{billId} and state in ('1000','3000')</update>
+    <update id="increaseBillReceipts" parameterType="Map">update bill set receipts=coalesce(receipts,0)+#{billAmountOwed},bill_time=bill_time where bill_id=#{billId} and community_id=#{communityId} and review_state='PUBLISHED'</update>
+    <insert id="insertReceipt" parameterType="Map">
+        insert into fee_receipt(amount,obj_id,obj_name,community_id,receipt_id,obj_type,pay_obj_id,pay_obj_name,remark)
+        values(#{amount},#{payerObjId},#{payerObjName},#{communityId},#{receiptId},#{payerObjType},#{ownerId},#{ownerName},concat('微信账单支付 ',#{orderId}))
+    </insert>
+    <update id="markPosted" parameterType="Map">update payment_order set state='POSTED',posted_time=current_timestamp where order_id=#{orderId} and transaction_id=#{transactionId} and state='CREATED'</update>
+</mapper>

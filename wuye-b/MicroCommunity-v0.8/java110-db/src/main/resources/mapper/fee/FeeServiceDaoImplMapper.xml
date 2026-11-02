@@ -391,6 +391,10 @@
         t.community_id communityId,
         t.config_id configId,
         t.cur_bill curBill,
+        t.review_state reviewState,
+        t.review_user_id reviewUserId,
+        t.review_time reviewTime,
+        t.review_remark reviewRemark,
         c.fee_name feeName
         from bill t
         left join pay_fee_config c on t.config_id = c.config_id and c.community_id = t.community_id and c.status_cd =
@@ -472,6 +476,8 @@
         t.owe_id oweId,
         t.bill_id billId,
         t.fee_id feeId,
+        b.review_state reviewState,
+        pfc.fee_name feeName,
         t.bill_amount_owed billAmountOwed,
         t.amount_owed amountOwed,
         t.fee_end_time feeEndTime,
@@ -487,13 +493,17 @@
         pf.payer_obj_id payObjId,
         td.`name` feeTypeName
         from bill_owe_fee t
-        <if test="curBill !=null and curBill != ''">
-            inner join bill b on t.bill_id = b.bill_id and b.community_id = t.community_id and b.cur_bill = #{curBill}
-        </if>
+        inner join bill b on t.bill_id = b.bill_id and b.community_id = t.community_id
         left join pay_fee pf on t.fee_id = pf.fee_id and t.community_id = pf.community_id and pf.status_cd = '0'
+        left join pay_fee_config pfc on pf.config_id=pfc.config_id and pfc.community_id=t.community_id and pfc.status_cd='0'
         left join t_dict td on pf.fee_type_cd = td.status_cd and td.table_name = 'pay_fee_config' and td.table_columns =
         'fee_type_cd'
         where 1 =1
+        <if test="curBill !=null and curBill != ''">and b.cur_bill = #{curBill}</if>
+        <if test="reviewState !=null and reviewState != ''">and b.review_state = #{reviewState}</if>
+        <if test="payObjId !=null and payObjId != ''">and pf.payer_obj_id = #{payObjId}</if>
+        <if test="payerObjType !=null and payerObjType != ''">and pf.payer_obj_type = #{payerObjType}</if>
+        <if test='outstandingOnly == "T"'>and t.state in ('1000','3000') and t.bill_amount_owed &gt; 0</if>
         <if test="oweId !=null and oweId != ''">
             and t.owe_id= #{oweId}
         </if>
@@ -541,7 +551,18 @@
     <select id="queryBillOweFeeCount" parameterType="Map" resultType="Map">
         select count(1) count
         from bill_owe_fee t
+        inner join bill b on t.bill_id=b.bill_id and b.community_id=t.community_id
+        left join pay_fee pf on t.fee_id=pf.fee_id and t.community_id=pf.community_id and pf.status_cd='0'
         where 1 =1
+        <if test="curBill !=null and curBill != ''">and b.cur_bill = #{curBill}</if>
+        <if test="reviewState !=null and reviewState != ''">and b.review_state = #{reviewState}</if>
+        <if test="payObjId !=null and payObjId != ''">and pf.payer_obj_id = #{payObjId}</if>
+        <if test="payerObjType !=null and payerObjType != ''">and pf.payer_obj_type = #{payerObjType}</if>
+        <if test='outstandingOnly == "T"'>and t.state in ('1000','3000') and t.bill_amount_owed &gt; 0</if>
+        <if test="ownerIds !=null">
+            and t.owner_id in
+            <foreach collection="ownerIds" open="(" close=")" separator="," item="item">#{item}</foreach>
+        </if>
         <if test="oweId !=null and oweId != ''">
             and t.owe_id= #{oweId}
         </if>
@@ -593,6 +614,14 @@
         <if test='state == "3000"'>
             and t.state in ('1000','3000')
         </if>
+    </update>
+
+    <update id="reviewBill" parameterType="Map">
+        update bill b set review_state='PUBLISHED',review_user_id=#{reviewUserId},
+        review_time=CURRENT_TIMESTAMP,review_remark=#{reviewRemark},bill_time=bill_time
+        where bill_id=#{billId} and community_id=#{communityId} and cur_bill='T'
+        and review_state='DRAFT'
+        and exists (select 1 from bill_owe_fee d where d.bill_id=b.bill_id and d.community_id=b.community_id)
     </update>
 
     <insert id="insertBill" parameterType="Map">

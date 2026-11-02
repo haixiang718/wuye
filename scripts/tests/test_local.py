@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 spec = importlib.util.spec_from_file_location('wuye_local', Path(__file__).parents[1] / 'local.py')
 local = importlib.util.module_from_spec(spec)
@@ -17,6 +17,9 @@ class IsolatedLauncherTest(unittest.TestCase):
         check = patch.object(local, 'live_java_services', return_value=set())
         check.start()
         self.addCleanup(check.stop)
+        cache = patch.object(local, 'refresh_local_route_cache', return_value=False)
+        cache.start()
+        self.addCleanup(cache.stop)
 
 
 class LocalConfigTests(IsolatedLauncherTest):
@@ -151,6 +154,31 @@ class RuntimeProfileTests(IsolatedLauncherTest):
                 self.assertNotIn(name, stop.call_args.args[0])
             self.assertNotIn('goods', start.call_args.args[0])
             self.assertEqual(start.call_args.kwargs['profile'], 'property')
+
+
+class RouteCacheRefreshTests(unittest.TestCase):
+    def test_stopped_order_never_calls_network(self):
+        with patch.object(local, 'listening', return_value=False), patch.object(local.urllib.request, 'urlopen') as http:
+            self.assertFalse(local.refresh_local_route_cache())
+            http.assert_not_called()
+
+    def test_only_local_application_routes_are_refreshed(self):
+        response = MagicMock(status=200)
+        response.read.return_value = '\u5237\u65b0\u7f13\u5b58\u6210\u529f'.encode('utf-8')
+        response.__enter__.return_value = response
+        with patch.object(local, 'listening', return_value=True), patch.object(local.urllib.request, 'urlopen', return_value=response) as http:
+            self.assertTrue(local.refresh_local_route_cache())
+            request = http.call_args.args[0]
+            self.assertEqual('http://127.0.0.1:8001/cacheApi/flush', request.full_url)
+            self.assertEqual('APP_ROUTE_SERVICE', request.get_header('Cache'))
+
+    def test_bad_refresh_response_is_not_silently_accepted(self):
+        response = MagicMock(status=200)
+        response.read.return_value = b'synthetic failure'
+        response.__enter__.return_value = response
+        with patch.object(local, 'listening', return_value=True), patch.object(local.urllib.request, 'urlopen', return_value=response):
+            with self.assertRaises(RuntimeError):
+                local.refresh_local_route_cache()
 
 
 if __name__ == '__main__':

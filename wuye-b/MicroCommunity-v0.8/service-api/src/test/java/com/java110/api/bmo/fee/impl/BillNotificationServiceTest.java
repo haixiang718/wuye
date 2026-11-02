@@ -54,6 +54,7 @@ public class BillNotificationServiceTest {
         authorized=true;template=true;account=true;timeout=false;updateFailure=false;secondOwnerFailure=false;sends=0;updates=0;
         response="{\"errcode\":0,\"msgid\":123}";
         bill=new BillOweFeeDto();bill.setOweId("owe");bill.setBillId("bill");bill.setFeeId("fee");bill.setCommunityId("community");bill.setOwnerId("owner");bill.setState("1000");bill.setBillAmountOwed("0.01");bill.setAmountOwed("0.01");bill.setPayerObjType("3333");bill.setPayObjId("room");bill.setPayerObjName("TEST101");bill.setFeeEndTime("2026-10-01 00:00:00");bill.setDeadlineTime("2026-11-01 00:00:00");bill.setFeeTypeName("物业费");
+        bill.setReviewState("PUBLISHED");
         owner=new OwnerAppUserDto();owner.setOwnerId("owner");owner.setMemberId("different-member");owner.setOpenId("synthetic-openid");owner.setState("12000");owner.setAppType("WECHAT");owners.clear();owners.add(owner);
         inject("communityInnerServiceSMOImpl");inject("feeInnerServiceSMOImpl");inject("smallWeChatInnerServiceSMOImpl");inject("smallWechatAttrInnerServiceSMOImpl");inject("ownerAppUserInnerServiceSMOImpl");
     }
@@ -75,6 +76,13 @@ public class BillNotificationServiceTest {
         }));
     }
     private JSONObject run(){return service.send("community","owe",request,"store","staff");}
+    @Test public void unreviewedBillCannotSend(){
+        // Old DTOs lack the review field; that must never be treated as approval.
+        try { bill.getClass().getMethod("setReviewState",String.class).invoke(bill,"DRAFT"); }
+        catch (NoSuchMethodException oldDto) { }
+        catch (Exception e) { throw new AssertionError(e); }
+        assertNotEquals(0,run().getIntValue("code"));assertEquals(0,sends);assertEquals(0,updates);
+    }
     @Test public void chineseNotificationReachesHttpTransportAsUtf8() throws Exception {
         final ByteArrayOutputStream body = new ByteArrayOutputStream();
         final HttpHeaders headers = new HttpHeaders();

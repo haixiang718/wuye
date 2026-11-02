@@ -28,17 +28,18 @@
 					</view>
 				</view>
 			</view>
-			<view class="block__title">费用信息</view>
+			<view class="block__title">{{billSnapshot ? '账单信息' : '费用信息'}}</view>
+			<view class="block__title" v-if="billSnapshot && billMessage">{{billMessage}}</view>
 			<view class="cu-list menu fee-last">
 				<view class="cu-item">
 					<view class="content">
-						<text class="text-grey">费用编号</text>
+						<text class="text-grey">{{billSnapshot ? '账单编号' : '费用编号'}}</text>
 					</view>
 					<view class="action">
-						<text class="text-grey text-sm">{{feeId }}</text>
+						<text class="text-grey text-sm">{{billSnapshot ? billId : feeId}}</text>
 					</view>
 				</view>
-				<view class="cu-item"  v-if="feeFlag == '1003006'">
+				<view class="cu-item"  v-if="!billSnapshot && feeFlag == '1003006'">
 					<view class="content">
 						<text class="text-grey">金额</text>
 					</view>
@@ -54,7 +55,15 @@
 						<text class="text-grey text-sm">{{amount + '元' }}</text>
 					</view>
 				</view>
-				<view class="cu-item arrow" v-if="feeFlag == '1003006'">
+				<view class="cu-item" v-if="billSnapshot">
+					<view class="content">
+						<text class="text-grey">账期</text>
+					</view>
+					<view class="action">
+						<text class="text-grey text-sm">{{feeEndTime}} 至 {{deadlineTime}}</text>
+					</view>
+				</view>
+				<view class="cu-item arrow" v-if="!billSnapshot && feeFlag == '1003006'">
 					<view class="content">
 						<text class="text-grey">周期</text>
 					</view>
@@ -66,7 +75,7 @@
 						</picker>
 					</view>
 				</view>
-				<view class="cu-item" v-if="feeFlag != '2006012'">
+				<view class="cu-item" v-if="!billSnapshot && feeFlag != '2006012'">
 					<view class="content">
 						<text class="text-grey">到期时间</text>
 					</view>
@@ -74,7 +83,7 @@
 						<text class="text-grey text-sm">{{endTime }}</text>
 					</view>
 				</view>
-				<vcDiscount ref="vcDiscountRef" @computeFeeDiscount="computeFeeDiscount" payerObjType="3333" :payerObjId="roomId" :endTime="formatEndTime" :feeId="feeId" :cycles="feeMonth" :communityId="communityId"></vcDiscount>
+				<vcDiscount v-if="!billSnapshot" ref="vcDiscountRef" @computeFeeDiscount="computeFeeDiscount" payerObjType="3333" :payerObjId="roomId" :endTime="formatEndTime" :feeId="feeId" :cycles="feeMonth" :communityId="communityId"></vcDiscount>
 			</view>
 			
 		</scroll-view>
@@ -85,10 +94,10 @@
 			</view>
 			<view class="btn-group">
 				<!-- #ifdef H5 || MP-WEIXIN -->
-				<button class="cu-btn bg-red shadow-blur lgplus sharp" :disabled="!paymentEnabled" @click="onPayFee()">{{ paymentEnabled ? '提交订单' : '微信支付未开通' }}</button>
+				<button class="cu-btn bg-red shadow-blur lgplus sharp" :disabled="!paymentEnabled || (billSnapshot && !billReady)" @click="onPayFee()">{{ paymentEnabled ? (billSnapshot && !billReady ? '账单不可支付' : '提交订单') : '微信支付未开通' }}</button>
 				<!-- #endif -->
 				<!-- #ifdef APP-PLUS -->
-				<button class="cu-btn bg-red shadow-blur lgplus sharp" :disabled="!paymentEnabled" @click="_payWxApp()">{{ paymentEnabled ? '提交订单' : '微信支付未开通' }}</button>
+				<button class="cu-btn bg-red shadow-blur lgplus sharp" :disabled="!paymentEnabled || (billSnapshot && !billReady)" @click="_payWxApp()">{{ paymentEnabled ? (billSnapshot && !billReady ? '账单不可支付' : '提交订单') : '微信支付未开通' }}</button>
 				<!-- #endif -->
 			</view>
 
@@ -96,7 +105,6 @@
 		</view>
 	</view>
 
-	</view>
 </template>
 
 <script>
@@ -118,6 +126,7 @@
 	// #endif
 	
 	import {addMonth,formatDate,date2String} from '../../utils/DateUtil.js'
+	import {getRoomFees} from '../../api/fee/feeApi.js'
 	export default {
 		components:{
 			vcDiscount
@@ -142,6 +151,13 @@
 				communityId: '',
 				communityName: '',
 				feeId: '',
+				billSnapshot: false,
+				billReady: false,
+				billMessage: '',
+				billId: '',
+				oweId: '',
+				feeEndTime: '',
+				deadlineTime: '',
 				roomId: '',
 				floorNum: '',
 				unitNum: '',
@@ -170,6 +186,21 @@
 				this.appId = uni.getStorageSync(constant.mapping.W_APP_ID)
 			// #endif
 			let _fee = JSON.parse(options.fee);
+			let _communityInfo = context.getCurrentCommunity();
+			this.communityId = _communityInfo.communityId;
+			this.communityName = _communityInfo.communityName;
+			this.billSnapshot = _fee.billSnapshot === true || !!_fee.oweId || !!_fee.billId;
+			if (this.billSnapshot) {
+				this.feeId = _fee.feeId;
+				this.oweId = _fee.oweId;
+				this.billId = _fee.billId;
+				this.roomId = _fee.roomId;
+				this.floorNum = _fee.floorNum;
+				this.unitNum = _fee.unitNum;
+				this.roomNum = _fee.roomNum;
+				this.builtUpArea = _fee.builtUpArea;
+				return this._loadBillSnapshot(_fee);
+			}
 			let _amount = _fee.amount;
 			let _receivableAmount = _amount;
 			if(_fee.feeFlag == "2006012"){ // 周期性费用
@@ -177,7 +208,6 @@
 			}else{ // 一次性费用
 				_receivableAmount = ((_fee.builtUpArea * _fee.squarePrice + parseFloat(_fee.additionalAmount)) * _fee.paymentCycle).toFixed(2);
 			}
-			let _communityInfo = context.getCurrentCommunity();
 			let _lastDate = new Date(_fee.endTime);
 			this.receivableAmount = _receivableAmount;
 			this.communityId = _communityInfo.communityId;
@@ -212,11 +242,67 @@
 			})
 		},
 		methods: {
+			_rejectBillSnapshot: function() {
+				this.billReady = false;
+				this.amount = '0.00';
+				this.receivableAmount = '0.00';
+				this.feeEndTime = '';
+				this.deadlineTime = '';
+				this.endTime = '';
+				this.billMessage = '账单已失效、已缴清或加载失败，请返回刷新';
+				uni.showToast({ icon: 'none', title: this.billMessage });
+			},
+			_loadBillSnapshot: function(_room) {
+				this.billReady = false;
+				this.amount = '0.00';
+				this.receivableAmount = '0.00';
+				this.feeMonthList = [];
+				this.billMessage = '账单核验中';
+				if (!this.communityId || !this.roomId || !this.feeId || !this.oweId || !this.billId) {
+					this._rejectBillSnapshot();
+					return Promise.resolve();
+				}
+				let _params = { page: 1, row: 1, communityId: this.communityId,
+					payerObjId: this.roomId, payerObjType: '3333',
+					feeId: this.feeId, oweId: this.oweId, billId: this.billId };
+				return getRoomFees(_params, _room).then(_fees => {
+					let _bill = Array.isArray(_fees) && _fees.length === 1 ? _fees[0] : null;
+					let _amount = _bill ? Number(_bill.amount) : NaN;
+					if (!_bill || _bill.billSnapshot !== true || _bill.feeId !== this.feeId
+						|| _bill.oweId !== this.oweId || _bill.billId !== this.billId
+						|| !Number.isFinite(_amount) || _amount <= 0 || !_bill.feeEndTime || !_bill.deadlineTime) {
+						this._rejectBillSnapshot();
+						return;
+					}
+					this.amount = _amount.toFixed(2);
+					this.receivableAmount = this.amount;
+					this.feeEndTime = _bill.feeEndTime;
+					this.deadlineTime = _bill.deadlineTime;
+					this.ordEndTime = _bill.feeEndTime;
+					this.formatEndTime = _bill.feeEndTime;
+					this.endTime = _bill.deadlineTime;
+					this.billMessage = '';
+					this.billReady = true;
+				}).catch(() => this._rejectBillSnapshot());
+			},
+			_canPayFee: function() {
+				if (this.paymentEnabled !== true) {
+					uni.showToast({ icon: 'none', title: '微信支付未开通' });
+					return false;
+				}
+				if (this.billSnapshot && !this.billReady) {
+					uni.showToast({ icon: 'none', title: this.billMessage || '账单不可支付，请返回刷新' });
+					return false;
+				}
+				return true;
+			},
 			computeFeeDiscount:function(_price){
+				if (this.billSnapshot) return;
 				// this.receivableAmount = this.receivableAmount - _price;
 				this.receivableAmount = (parseFloat(this.receivableAmount) + parseFloat(_price)).toFixed(2);
 			},
 			dateChange: function(e) {
+				if (this.billSnapshot) return;
 				let _feeMonthName = null;
 				_feeMonthName = this.feeMonthList[e.detail.value];;
 				let _feeMonth = _feeMonthName.replace("个月","");
@@ -238,6 +324,7 @@
 				this.showFeeMonth = false;
 			},
 			_payWxApp: function(_data) {
+				if (!this._canPayFee()) return;
 				let _receivedAmount = this.receivableAmount;
 				wx.showLoading({
 					title: '支付中'
@@ -248,6 +335,8 @@
 					cycles: this.feeMonth,
 					communityId: this.communityId,
 					feeId: this.feeId,
+					oweId: this.oweId,
+					billId: this.billId,
 					feeName: '物业费',
 					receivedAmount: _receivedAmount,
 					tradeType: _tradeType,
@@ -319,6 +408,7 @@
 				});
 			},
 			onPayFee: function() {
+				if (!this._canPayFee()) return;
 				let _receivedAmount = this.receivableAmount;
 				wx.showLoading({
 					title: '支付中'
@@ -328,6 +418,8 @@
 					cycles: this.feeMonth,
 					communityId: this.communityId,
 					feeId: this.feeId,
+					oweId: this.oweId,
+					billId: this.billId,
 					feeName: '物业费',
 					receivedAmount: _receivedAmount,
 					tradeType: _tradeType,

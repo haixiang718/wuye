@@ -95,7 +95,7 @@ def register():
     payload={'communityName':record['communityName'],'areaCode':record['areaCode'],'appUserName':record['ownerName'],
              'link':record['phone'],'msgCode':'LOCAL_ONLY_NO_SMS','password':record['password'],'remark':LABEL}
     results=[]
-    for endpoint in ['http://127.0.0.1:8012/app/owner.ownerRegister','http://127.0.0.1:8008/api/owner.ownerRegister']:
+    for endpoint in ['http://127.0.0.1:8012/app/owner.ownerRegister']:
         request=urllib.request.Request(endpoint,data=json.dumps(payload,ensure_ascii=False).encode('utf-8'),
             headers={'Content-Type':'application/json','app-id':'992020061452450002','user-id':'-1',
                      'transaction-id':record['prefix'],'req-time':'20261102000000','sign':'1234567'},method='POST')
@@ -113,7 +113,7 @@ def register():
             break
     if not results[-1]['passed']:
         (RUN/'registration-response-private.txt').write_text(raw,encoding='utf-8')
-        raise RuntimeError('Both registration entries failed')
+        raise RuntimeError('Public H5 registration failed; no internal bypass is permitted in the repaired flow')
     user=query('SELECT u.user_id FROM owner_app_user o JOIN u_user u ON u.user_id=o.user_id WHERE o.member_id='+q(record['ids']['member'])+' AND u.tel='+q(record['phone'])+' AND o.remark='+q(LABEL))
     if not user or '\n' in user:
         raise RuntimeError('Cannot prove registration fixture ownership')

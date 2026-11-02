@@ -128,7 +128,6 @@ public class PayUtil {
             }
         }
         sb.append("key=" + key);
-        logger.debug("加密前串：" + sb.toString());
         String sign = md5(sb.toString()).toUpperCase();
         return sign;
     }

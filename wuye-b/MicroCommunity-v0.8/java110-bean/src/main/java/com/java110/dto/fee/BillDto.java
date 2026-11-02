@@ -13,6 +13,21 @@ import java.io.Serializable;
  * add by wuxw 2020/5/28
  **/
 public class BillDto extends PageDto implements Serializable {
+    public static final String REVIEW_DRAFT = "DRAFT";
+    public static final String REVIEW_PUBLISHED = "PUBLISHED";
+    private String reviewState;
+    private String reviewUserId;
+    private String reviewTime;
+    private String reviewRemark;
+
+    public String getReviewState() { return reviewState; }
+    public void setReviewState(String value) { reviewState = value; }
+    public String getReviewUserId() { return reviewUserId; }
+    public void setReviewUserId(String value) { reviewUserId = value; }
+    public String getReviewTime() { return reviewTime; }
+    public void setReviewTime(String value) { reviewTime = value; }
+    public String getReviewRemark() { return reviewRemark; }
+    public void setReviewRemark(String value) { reviewRemark = value; }
 
     private String billId;
     private String billName;

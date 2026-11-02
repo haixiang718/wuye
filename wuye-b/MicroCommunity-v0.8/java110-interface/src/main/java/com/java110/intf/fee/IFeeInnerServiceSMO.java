@@ -189,6 +189,9 @@ public interface IFeeInnerServiceSMO {
     @RequestMapping(value = "/saveBillSnapshot", method = RequestMethod.POST)
     int saveBillSnapshot(@RequestBody com.java110.dto.fee.BillSnapshotDto snapshot);
 
+    @RequestMapping(value = "/reviewBill", method = RequestMethod.POST)
+    int reviewBill(@RequestBody BillDto billDto);
+
 
     @RequestMapping(value = "/updateFee", method = RequestMethod.POST)
     public int updateFee(@RequestBody PayFeePo payFeePo);

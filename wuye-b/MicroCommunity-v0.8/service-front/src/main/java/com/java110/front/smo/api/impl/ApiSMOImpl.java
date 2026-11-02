@@ -24,6 +24,8 @@ import org.springframework.web.client.RestTemplate;
 import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 
 @Service("apiSMOImpl")
@@ -84,18 +86,25 @@ public class ApiSMOImpl extends BaseComponentSMO implements IApiSMO {
         JSONObject scopedBody = JSONObject.parseObject(body);
         try {
             ownerDataAccessService.authorize(pd, headers.get(CommonConstant.HTTP_SERVICE), scopedBody);
+            ResponseEntity<String> ownerReply = ownerDataAccessService.ownerBillResponse(pd, headers.get(CommonConstant.HTTP_SERVICE), scopedBody);
+            if (ownerReply != null) return ownerReply;
         } catch (SecurityException denied) {
             JSONObject error = new JSONObject(); error.put("code", 403); error.put("msg", denied.getMessage());
             return new ResponseEntity<>(error.toJSONString(), HttpStatus.FORBIDDEN);
         }
         body = scopedBody.toJSONString();
-        // Identity comes exclusively from the verified session, never caller-supplied headers.
-        for (String key : new String[]{"user-id", "user_id", "userid", "userId", "user-name", "user_name", "username", "store-id", "content-length", "transfer-encoding"}) headers.remove(key);
-        if (pd != null && !StringUtil.isEmpty(pd.getUserId())) {
-            headers.put("user-id", pd.getUserId()); headers.put("user_id", pd.getUserId()); headers.put("userid", pd.getUserId());
-        }
+        // Anonymous requests reach here only after the public-service allowlist passes.
+        // HTTP header names are case-insensitive, including caller identity aliases.
+        headers.keySet().removeIf(key -> Arrays.asList("user-id", "user_id", "userid", "user-name", "user_name", "username", "store-id", "content-length", "transfer-encoding")
+                .contains(key.toLowerCase(Locale.ROOT)));
+        boolean authenticated = pd != null && !StringUtil.isEmpty(pd.getUserId())
+                && !CommonConstant.ORDER_DEFAULT_USER_ID.equals(pd.getUserId());
+        String userId = authenticated ? pd.getUserId() : CommonConstant.ORDER_DEFAULT_USER_ID;
+        headers.put("user-id", userId); headers.put("user_id", userId); headers.put("userid", userId);
 
-        ComponentValidateResult result = this.validateStoreStaffCommunityRelationship(pd, restTemplate);
+        ComponentValidateResult result = authenticated
+                ? this.validateStoreStaffCommunityRelationship(pd, restTemplate)
+                : new ComponentValidateResult("", "", "", userId, "");
         if (!StringUtil.isEmpty(result.getUserId())) {
             header.add("user-id", result.getUserId());
             if (!StringUtil.isEmpty(result.getUserName())) {

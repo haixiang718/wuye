@@ -60,7 +60,6 @@
 		</view>
 	</view>
 
-	</view>
 </template>
 
 <script>
@@ -96,7 +95,7 @@
 			return {
 				scrollLeft: 0,
 				amount: 0,
-				receivableAmount: 0.00,
+				receivableAmount: '0.00',
 				communityId: '',
 				communityName: '',
 				floorNum: '',
@@ -106,6 +105,8 @@
 				additionalAmount: "",
 				appId: '',
 				fees: [],
+				rooms: [],
+				curRoom: {},
 				roomId: ''
 			};
 		},
@@ -122,36 +123,41 @@
 			// #ifdef H5
 			this.appId = uni.getStorageSync(constant.mapping.W_APP_ID)
 			// #endif
-			this.roomId = options.roomId;
+			this.roomId = options.roomId || '';
+			this.fees = [];
+			this.receivableAmount = '0.00';
 
-			getCurCommunity()
-				.then(function(_curCommunity) {
-					_that.communityId = _curCommunity.communityId;
-					_that.communityName = _curCommunity.communityName;
-					return _curCommunity;
-				}).then(function(_curCommunity) {
-					_that._loadRoomOweFee();
-				});
-			getRooms().then(data => {
-				let _rooms = data.rooms;
-				this.rooms = _rooms;
-				let _owner = data.owner;
-				_that.moreRooms = [];
-				_rooms.forEach(function(_room) {
-					if(_room.roomId == _that.roomId){
-						_that.floorNum = _room.floorNum;
-						_that.unitNum = _room.unitNum;
-						_that.roomNum = _room.roomNum;
-					}
-				});
-				_that.curRoom = _rooms[0];
-				_that._loadRoomFee();
+			return Promise.all([getCurCommunity(), getRooms()]).then(function(results) {
+				let _curCommunity = results[0];
+				_that.communityId = _curCommunity.communityId;
+				_that.communityName = _curCommunity.communityName;
+				_that.rooms = Array.isArray(results[1].rooms) ? results[1].rooms : [];
+				let _room = _that.roomId
+					? _that.rooms.find(room => room.roomId === _that.roomId)
+					: _that.rooms[0];
+				_that.curRoom = _room || {};
+				if (!_room) {
+					uni.showToast({ icon: 'none', title: '未找到可查询的房屋' });
+					return;
+				}
+				_that.roomId = _room.roomId;
+				_that.floorNum = _room.floorNum;
+				_that.unitNum = _room.unitNum;
+				_that.roomNum = _room.roomNum;
+				_that.builtUpArea = _room.builtUpArea;
+				return _that._loadRoomOweFee();
+			}).catch(function() {
+				_that.fees = [];
+				_that.receivableAmount = '0.00';
+				uni.showToast({ icon: 'none', title: '房屋信息加载失败，请稍后重试' });
 			});
 		},
 		methods: {
 
 			_loadRoomOweFee: function() {
 				let _that =this;
+				this.fees = [];
+				this.receivableAmount = '0.00';
 				let _objData = {
 					payObjId: this.roomId,
 					payObjType:'3333',
@@ -160,26 +166,29 @@
 					communityId: this.communityId
 				}
 
-				getRoomOweFees(_objData)
+				return getRoomOweFees(_objData)
 					.then(function(_fees) {
-						_that.fees = _fees;
-						return _fees;
-					}, function(error) {
+						_that.fees = Array.isArray(_fees) ? _fees : [];
+						let _totalCents = _that.fees.reduce(function(total, item) {
+							let _price = Number(item.feePrice);
+							return total + (Number.isFinite(_price) ? Math.round((_price + Number.EPSILON) * 100) : 0);
+						}, 0);
+						_that.receivableAmount = (_totalCents / 100).toFixed(2);
+					}).catch(function() {
+						_that.fees = [];
+						_that.receivableAmount = '0.00';
 						uni.showToast({
 							icon:'none',
-							title:'没有欠费信息'
+							title:'暂无欠费信息或加载失败，请稍后重试'
 						})
-					})
-					.then(function(_fees){
-						_fees.forEach(function(_item){
-							_that.receivableAmount += _item.feePrice;
-							
-						})
-						_that.receivableAmount = _that.receivableAmount.toFixed(2);
-					})
+					});
 			},
 
 			_payWxApp: function(_data) {
+				if (!this.paymentEnabled) {
+					uni.showToast({ icon: 'none', title: '微信支付未开通' });
+					return;
+				}
 				let _receivedAmount = this.receivableAmount;
 				wx.showLoading({
 					title: '支付中'
@@ -252,6 +261,10 @@
 				});
 			},
 			onPayFee: function() {
+				if (!this.paymentEnabled) {
+					uni.showToast({ icon: 'none', title: '微信支付未开通' });
+					return;
+				}
 				let _receivedAmount = this.receivableAmount;
 				wx.showLoading({
 					title: '支付中'

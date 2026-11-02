@@ -29,7 +29,7 @@ def main():
     runtime_jars = [path for path in libs.glob('*.jar') if not path.name.startswith('log4j-slf4j-impl-')]
     cp = os.pathsep.join(map(str, [output, project / 'service-api/target/classes'] + runtime_jars + test_jars))
     java = Path(local.java())
-    sources = [project / ('service-api/src/' + name) for name in [
+    sources = [project / 'java110-bean/src/main/java/com/java110/dto/fee/BillOweFeeDto.java'] + [project / ('service-api/src/' + name) for name in [
         'main/java/com/java110/api/bmo/fee/impl/BillNotificationService.java',
         'main/java/com/java110/api/listener/fee/PushBillListener.java',
         'test/java/com/java110/api/bmo/fee/impl/BillNotificationServiceTest.java']]

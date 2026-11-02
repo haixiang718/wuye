@@ -69,6 +69,7 @@
                             <th class="text-center">实收金额</th>
                             <th class="text-center">账单日期</th>
                             <th class="text-center">账单类型</th>
+                            <th class="text-center">审核状态</th>
                             <th class="text-center">操作</th>
                         </tr>
                         </thead>
@@ -82,8 +83,13 @@
                             <td class="text-center">{{bill.receipts}}元</td>
                             <td class="text-center">{{bill.billTime}}</td>
                             <td class="text-center">{{bill.curBill == 'T'?'当期账单':'往期账单'}}</td>
+                            <td class="text-center">{{bill.reviewState == 'PUBLISHED'?'已审核发布':'待审核'}}</td>
                             <td class="text-center">
                                 <div class="btn-group">
+                                    <button v-if="bill.reviewState == 'DRAFT' && bill.curBill == 'T'" class="btn-primary btn btn-xs"
+                                            :disabled="billManageInfo.reviewing[bill.billId]" v-on:click="_reviewBill(bill)">
+                                        {{billManageInfo.reviewing[bill.billId]?'审核中':'审核发布'}}
+                                    </button>
                                     <button class="btn-white btn btn-xs"
                                             v-on:click="_openBillDetail(bill)">欠费清单
                                     </button>
@@ -93,7 +99,7 @@
                         </tbody>
                         <tfoot>
                         <tr>
-                            <td colspan="9">
+                            <td colspan="10">
                                 <ul class="pagination float-right"></ul>
                             </td>
                         </tr>

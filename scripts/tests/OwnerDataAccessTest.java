@@ -19,6 +19,7 @@ public class OwnerDataAccessTest {
     private String forwardedBody;
     private String forwardedUrl;
     private HttpHeaders forwardedHeaders;
+    private JSONObject billQuery;
     private final RestTemplate template=new RestTemplate(){
         @Override public <T> T postForObject(String url,Object body,Class<T> type,Object... vars){
             String reply;
@@ -26,6 +27,11 @@ public class OwnerDataAccessTest {
             else if(url.endsWith("/getStoreUserInfo"))reply=storeMember?"[{\"storeId\":\"verified-store\"}]":"[]";
             else if(url.endsWith("/queryOwnerAppUsers"))reply="[{\"appUserId\":\"binding-me\",\"userId\":\"me\",\"communityId\":\"community\",\"ownerId\":\"owner-me\",\"memberId\":\"family-member\",\"state\":\""+(approved?"12000":"10000")+"\"}]";
             else if(url.endsWith("/queryRoomsByOwner"))reply="[{\"roomId\":\"room-1\"},{\"roomId\":\"room-2\"}]";
+            else if(url.endsWith("/queryBillOweFeeCount"))reply="1";
+            else if(url.endsWith("/queryBillOweFees")) {
+                billQuery=JSON.parseObject(String.valueOf(((HttpEntity<?>)body).getBody()));
+                reply="[{\"oweId\":\"owe-1\",\"billId\":\"bill-1\",\"feeId\":\"fee-own\",\"ownerId\":\"owner-me\",\"communityId\":\"community\",\"payObjId\":\"room-2\",\"payerObjType\":\"3333\",\"feeName\":\"Published fee\",\"billAmountOwed\":\"0.01\",\"feeEndTime\":\"2026-10-01\",\"deadlineTime\":\"2026-11-01\",\"reviewState\":\"PUBLISHED\",\"state\":\"1000\"}]";
+            }
             else if(url.endsWith("/queryOwnerCars")) {
                 JSONObject q=JSON.parseObject(String.valueOf(((HttpEntity<?>)body).getBody()));
                 reply="family-member".equals(q.getString("ownerId"))?"[{\"carId\":\"family-car\",\"psId\":\"family-parking\"}]":"[]";
@@ -64,6 +70,7 @@ public class OwnerDataAccessTest {
             (proxy,method,args)->"getAttribute".equals(method.getName())?pd:null);
         Map<String,String> headers=new HashMap<>();headers.put(CommonConstant.HTTP_SERVICE,code);headers.put(CommonConstant.HTTP_METHOD,"GET");
         headers.put("user-id","other");headers.put("userid","other");headers.put("user_id","other");
+        headers.put("USER-ID","other");headers.put("User_Name","forged-name");headers.put("Store-Id","forged-store");
         return api.doApi(json,headers,request);
     }
     private void forbidden(String code,String json)throws Exception {
@@ -71,7 +78,7 @@ public class OwnerDataAccessTest {
     }
     @Test public void otherOwnerRoomsAreRejected()throws Exception{forbidden("room.queryRoomsByOwner","{\"communityId\":\"community\",\"ownerId\":\"other\"}");}
     @Test public void ownSecondRoomIsAllowed()throws Exception{assertEquals(HttpStatus.OK,call("fee.listFee","{\"communityId\":\"community\",\"payerObjId\":\"room-2\",\"payerObjType\":\"3333\"}").getStatusCode());}
-    @Test public void existingH5RoomRequestWithoutTypeIsScoped()throws Exception{assertEquals(HttpStatus.OK,call("fee.listFee","{\"communityId\":\"community\",\"payerObjId\":\"room-2\"}").getStatusCode());assertEquals("3333",JSON.parseObject(forwardedBody).getString("payerObjType"));}
+    @Test public void existingH5RoomRequestWithoutTypeIsScoped()throws Exception{assertEquals(HttpStatus.OK,call("fee.listFee","{\"communityId\":\"community\",\"payerObjId\":\"room-2\"}").getStatusCode());assertEquals("3333",billQuery.getString("payerObjType"));}
     @Test public void familyMemberCanReadApprovedOwnerRooms()throws Exception{assertEquals(HttpStatus.OK,call("room.queryRoomsByOwner","{\"communityId\":\"community\",\"ownerId\":\"owner-me\"}").getStatusCode());}
     @Test public void otherRoomFeesAreRejected()throws Exception{forbidden("fee.listFee","{\"communityId\":\"community\",\"payerObjId\":\"room-other\",\"payerObjType\":\"3333\"}");}
     @Test public void unscopedFeeListIsRejected()throws Exception{forbidden("fee.listFee","{\"communityId\":\"community\"}");}
@@ -91,9 +98,33 @@ public class OwnerDataAccessTest {
         call("owner.listAppUserBindingOwners","{}");
         for(String name:Arrays.asList("user-id","user_id","userid"))assertEquals(Collections.singletonList("me"),forwardedHeaders.get(name));
     }
+    @Test public void ownBindingListPreservesApprovalFilterButReplacesIdentity()throws Exception{
+        call("owner.listAppUserBindingOwners","{\"userId\":\"other\",\"state\":\"12000\",\"communityId\":\"community\",\"appType\":\"WECHAT\"}");
+        JSONObject query=JSON.parseObject(forwardedBody);assertEquals("me",query.getString("userId"));assertEquals("12000",query.getString("state"));
+    }
     @Test public void cannotUnbindOthers()throws Exception{forbidden("owner.deleteAppUserBindingOwner","{\"appUserId\":\"binding-other\"}");}
     @Test public void anonymousRegistrationCanRequestSmsThroughExistingBusiness()throws Exception{assertEquals(HttpStatus.OK,callAs("user.userSendSms","{\"tel\":\"19900000999\"}",null).getStatusCode());assertEquals(1,forwarded);}
     @Test public void anonymousWechatPhotoRegistrationReachesExistingBusiness()throws Exception{assertEquals(HttpStatus.OK,callAs("owner.ownerRegisterWxPhoto","{}",null).getStatusCode());assertEquals(1,forwarded);}
+    @Test public void anonymousOwnerRegistrationForwardsServerDefaultIdentity()throws Exception{
+        assertEquals(HttpStatus.OK,callAs("owner.ownerRegister","{}",null).getStatusCode());
+        assertEquals(1,forwarded);
+        for(String name:Arrays.asList("user-id","user_id","userid"))assertEquals(Collections.singletonList(CommonConstant.ORDER_DEFAULT_USER_ID),forwardedHeaders.get(name));
+        assertNull(forwardedHeaders.getFirst("user-name"));assertNull(forwardedHeaders.getFirst("user_name"));
+        assertNotEquals("forged-store",forwardedHeaders.getFirst("store-id"));
+    }
+    @Test public void anonymousDefaultIdentityAlsoSupportsPublicSmsBusiness()throws Exception{
+        callAs("user.userSendSms","{}",null);
+        assertEquals(CommonConstant.ORDER_DEFAULT_USER_ID,forwardedHeaders.getFirst("user-id"));
+    }
+    @Test public void blankAndDefaultSessionsCannotPromoteForgedIdentity()throws Exception{
+        for(String user:Arrays.asList("",CommonConstant.ORDER_DEFAULT_USER_ID)) {
+            callAs("/owner.ownerRegister","{}",user);
+            assertEquals(CommonConstant.ORDER_DEFAULT_USER_ID,forwardedHeaders.getFirst("user-id"));
+        }
+    }
+    @Test public void anonymousProtectedBusinessRemainsForbidden()throws Exception{
+        assertEquals(HttpStatus.FORBIDDEN,callAs("fee.listFee","{}",null).getStatusCode());assertEquals(0,forwarded);
+    }
     @Test public void discountPayerIsTakenFromVerifiedFee()throws Exception{
         assertEquals(HttpStatus.OK,call("/feeDiscount/computeFeeDiscount","{\"communityId\":\"community\",\"feeId\":\"fee-own\",\"payerObjId\":\"room-other\",\"payerObjType\":\"6666\"}").getStatusCode());
         JSONObject actual=JSON.parseObject(forwardedBody);assertEquals("room-2",actual.getString("payerObjId"));assertEquals("3333",actual.getString("payerObjType"));
@@ -101,6 +132,8 @@ public class OwnerDataAccessTest {
     @Test public void familyVehicleListUsesMemberIdentity()throws Exception{assertEquals(HttpStatus.OK,call("owner.queryOwnerCars","{\"communityId\":\"community\",\"ownerId\":\"family-member\"}").getStatusCode());}
     @Test public void familyVehicleFeesAreAccessible()throws Exception{assertEquals(HttpStatus.OK,call("fee.listFee","{\"communityId\":\"community\",\"payerObjId\":\"family-car\",\"payerObjType\":\"6666\"}").getStatusCode());}
     @Test public void familyVehicleHistoryIsAccessible()throws Exception{assertEquals(HttpStatus.OK,call("fee.queryFeeDetail","{\"communityId\":\"community\",\"feeId\":\"car-fee\"}").getStatusCode());}
+    @Test public void oldParkingFeeEndpointCannotExposeUnreviewedCharges()throws Exception{forbidden("fee.queryFeeByParkingSpace","{\"communityId\":\"community\",\"psId\":\"family-parking\"}");}
+    @Test public void staffRetainsParkingIntegration()throws Exception{level="01";assertEquals(HttpStatus.OK,call("fee.queryFeeByParkingSpace","{\"communityId\":\"community\",\"psId\":\"family-parking\"}").getStatusCode());}
     @Test public void unrelatedVehicleFeesAreRejected()throws Exception{forbidden("fee.listFee","{\"communityId\":\"community\",\"payerObjId\":\"foreign-car\",\"payerObjType\":\"6666\"}");}
     @Test public void ownerCarQueryStripsUnneededSearchExpressions()throws Exception{
         call("owner.queryOwnerCars","{\"communityId\":\"community\",\"ownerId\":\"family-member\",\"ownerName\":\"malicious-search-expression\",\"page\":1,\"row\":10}");

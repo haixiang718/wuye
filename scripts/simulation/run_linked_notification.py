@@ -14,7 +14,8 @@ def main():
     service=local.BACK/'service-api/src/main/java/com/java110/api/bmo/fee/impl/BillNotificationService.java'
     subprocess.run([str(java.with_name('javac.exe')),'-encoding','UTF-8','-cp',cp,'-d',str(output),str(source),str(service)],check=True)
     folder=local.RUN/'billing-flow-simulation'
-    subprocess.run([str(java),'-Dlogback.configurationFile='+str(logging),'-cp',cp,'LinkedNotificationAudit',str(folder/'fixture.json'),str(folder/'notification.json')],check=True)
+    draft='--draft' in sys.argv[1:]
+    subprocess.run([str(java),'-Dlogback.configurationFile='+str(logging),'-cp',cp,'LinkedNotificationAudit',str(folder/'fixture.json'),str(folder/('notification-draft.json' if draft else 'notification.json'))]+(['draft'] if draft else []),check=True)
 
 
 if __name__=='__main__':main()

@@ -150,6 +150,8 @@ public interface IFeeServiceDao {
      */
     int updateBillOweFees(Map info) throws DAOException;
 
+    int reviewBill(Map info);
+
     /**
      *  保存账单
      *

@@ -76,6 +76,13 @@ public class LinkedNotificationAudit {
             }));
         }
         JSONObject receipt=sender.send(fixture.getString("communityId"),fixture.getString("oweId"),fixture.getString("prefix")+"-notify", "simulation-property", "simulation-staff");
+        if(args.length>2 && "draft".equals(args[2])) {
+            require(receipt.getIntValue("code")==400&&sends==0&&updates==0,"Unreviewed bill was not rejected before delivery");
+            JSONObject report=new JSONObject(true);report.put("passed",true);report.put("mode","same-real-draft-bill-rejected-before-synthetic-transport");
+            report.put("simulatedAcceptances",sends);report.put("realFixtureStateUpdates",updates);report.put("realWechatRequests",0);
+            Files.write(Paths.get(args[1]),JSON.toJSONString(report,true).getBytes(StandardCharsets.UTF_8));
+            System.out.println("Draft notification rejected: no delivery and no bill state update.");return;
+        }
         require(receipt.getIntValue("code")==0&&sends==1&&updates==1,"Notification simulation did not complete");
         JSONObject repeated=sender.send(fixture.getString("communityId"),fixture.getString("oweId"),fixture.getString("prefix")+"-notify", "simulation-property", "simulation-staff");
         require(repeated.getIntValue("code")==0&&sends==1&&updates==1,"Repeated request sent twice");

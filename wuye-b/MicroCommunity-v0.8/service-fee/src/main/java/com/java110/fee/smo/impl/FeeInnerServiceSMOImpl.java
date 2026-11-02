@@ -59,6 +59,16 @@ public class FeeInnerServiceSMOImpl extends BaseServiceSMO implements IFeeInnerS
         return billSnapshotService.save(snapshot);
     }
 
+    @Override
+    public int reviewBill(@RequestBody BillDto billDto) {
+        if (StringUtil.isEmpty(billDto.getBillId()) || StringUtil.isEmpty(billDto.getCommunityId())
+                || StringUtil.isEmpty(billDto.getReviewUserId()) || "-1".equals(billDto.getReviewUserId())
+                || !BillDto.REVIEW_PUBLISHED.equals(billDto.getReviewState())) {
+            throw new IllegalArgumentException("审核账单参数不完整");
+        }
+        return feeServiceDaoImpl.reviewBill(BeanConvertUtil.beanCovertMap(billDto));
+    }
+
 
     @Override
     public List<FeeDto> queryFees(@RequestBody FeeDto feeDto) {
