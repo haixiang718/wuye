@@ -24,7 +24,7 @@
         <if test="detailType !=null and detailType != ''">
             and t.detail_type= #{detailType}
         </if>
-        <if test="amount !=null and amount != ''">
+        <if test="amount !=null and amount.toString() != ''">
             and t.amount= #{amount}
         </if>
         <if test="operate !=null and operate != ''">
@@ -68,7 +68,7 @@
         <if test="detailType !=null and detailType != ''">
             and t.detail_type= #{detailType}
         </if>
-        <if test="amount !=null and amount != ''">
+        <if test="amount !=null and amount.toString() != ''">
             and t.amount= #{amount}
         </if>
         and t.operate= 'ADD'
@@ -112,7 +112,7 @@
         <if test="detailType !=null and detailType != ''">
             and t.detail_type= #{detailType}
         </if>
-        <if test="amount !=null and amount != ''">
+        <if test="amount !=null and amount.toString() != ''">
             and t.amount= #{amount}
         </if>
         <if test="orderId !=null and orderId != ''">
@@ -159,7 +159,7 @@
         <if test="detailType !=null and detailType != ''">
             , t.detail_type= #{detailType}
         </if>
-        <if test="amount !=null and amount != ''">
+        <if test="amount !=null and amount.toString() != ''">
             , t.amount= #{amount}
         </if>
         <if test="orderId !=null and orderId != ''">
@@ -198,7 +198,7 @@
         <if test="detailType !=null and detailType != ''">
             and t.detail_type= #{detailType}
         </if>
-        <if test="amount !=null and amount != ''">
+        <if test="amount !=null and amount.toString() != ''">
             and t.amount= #{amount}
         </if>
         <if test="orderId !=null and orderId != ''">

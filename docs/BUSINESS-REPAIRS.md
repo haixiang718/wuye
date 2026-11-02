@@ -37,11 +37,11 @@ front 的 `/app` 转发入口新增服务端权限校验：
 
 资源型接口曾生成 `/api//contract/queryContract`，已规范 front 转发路径，兼容以 `/` 开头的服务名，不新增重复服务路由。但合同失败的主要原因不是路由丢失：真实商户范围返回的 404 业务码包装了下游数据库 500，具体缺少 `contract_parent_id` 等字段。原来的空测试商户查询只走数量分支，未执行详情 SQL，不能证明合同查询成功。
 
-当前 `contract` 相比映射器缺少 `b_id`、`contract_parent_id`、`obj_name`、`obj_person_id`、`obj_person_name`、`start_user_id` 六个字段，列表查询及部分写入均受影响。仓库现有 SQL 同样未提供对应升级定义。
+旧 `contract` 相比映射器缺少 `b_id`、`contract_parent_id`、`obj_name`、`obj_person_id`、`obj_person_name`、`start_user_id` 六个字段；独立库 `TT` 还缺少 `account`、`business_account`、`account_detail`、`business_account_detail` 四张表。根因是仓库附带 0.6 商业版数据库，而代码为 0.8，现有 SQL 没有对应升级定义。
 
-账户模块的数据库阻塞尚未解决：独立库 `TT` 缺少 `account`、`business_account`、`account_detail`、`business_account_detail` 四张表。仓库中可用的是 0.6 商业版 SQL，与 0.8 代码存在差异；已检索的 SQL 中没有这四张表的建表定义。直接账户查询目前仍返回 500，不能宣称账户功能已修复或全部保留业务可上线。
+用户在无法取得原厂脚本后，明确授权自行创建兼容结构。后续分支 `codex/account-contract-schema` 已完成建表和合同加列：先完整备份 TT（75,230,669 字节），执行 11 条增量 DDL，再次运行确认 0 条；原有 30 份合同原字段摘要保持一致，新建四表均为空。金额使用明确设计的 `DECIMAL(18,2)`，沿用原应用单位；合同新增字段可空，不生成历史余额或流水。
 
-需要取得与当前版本匹配的原始建表/升级脚本或原系统数据库结构备份，再备份本地库、审核迁移、验证账户及交易明细读写。用户已确认目前暂时拿不到这些脚本，因此这两个模块保留为阻塞项。不能根据 Java 字段猜测金额精度、约束和流水结构后直接投入财务使用。
+同时修复账户直接更新的 WHERE 条件，并修复 BigDecimal 零金额被旧空串判断忽略的问题。12 项真实 MySQL 迁移测试、14 项生产 MyBatis 读写测试通过，包含备份恢复、重复执行、归零、范围隔离与事务回滚。独立审查发现的两项问题已修正并复审通过。详细执行、恢复及验证边界见 [账户与合同结构说明](ACCOUNT-CONTRACT-SCHEMA.md)。补齐数据库结构不代表充值、退款、对账或全部财务业务已完成验收。
 
 ## 验证与范围
 
@@ -57,13 +57,18 @@ front 的 `/app` 转发入口新增服务端权限校验：
 | 合并容器 | `python scripts/tests/run_business_java.py` | 8/8 通过 |
 | 启动工具 Python 测试 | `python -m unittest discover -s scripts/tests -p 'test_*.py'` | 32 项，29 通过、3 跳过 |
 | 测试网关边界 | `node --test scripts/tests/wechat-test-gateway.test.cjs` | 1/1 通过 |
-| 真实后台及业主接口 | `node scripts/tests/consolidation-runtime-smoke.cjs --profile merged --label repairs-verified` | 24 项，21 通过；合同两项、账户一项因旧库缺结构失败，整体不通过 |
-| 数据库只读前置检查 | `python scripts/business_schema_check.py` | 明确列出缺失 4 张表及 6 个合同字段，返回 1，阻止误报已具备上线条件 |
+| 真实后台及业主接口（迁移前历史结果） | `node scripts/tests/consolidation-runtime-smoke.cjs --profile merged --label repairs-verified` | 24 项，21 通过；合同两项、账户一项因旧库缺结构失败，整体不通过；迁移后结果见新报告 |
+| 数据库只读前置检查（迁移后） | `python scripts/business_schema_check.py` | 通过，无缺失表和字段 |
+| 真实 MySQL 迁移与恢复 | `python -m unittest discover -s scripts/tests -p test_business_schema_migration.py` | 12/12 通过 |
+| 账户与合同生产 MyBatis 读写 | `python scripts/tests/run_account_contract_java.py` | 14/14 通过 |
+| 真实后台及业主接口（迁移后） | `node scripts/tests/consolidation-runtime-smoke.cjs --profile merged --label schema-repair` | 24/24 通过；含合同真实商户查询和账户查询 |
 
 全量 Maven 22 模块打包成功；后续改动的 API/front 及依赖再次打包成功，审查修正后的 business/front 及依赖也重新打包通过并启动。真实访问隔离检查覆盖：自身房屋/费用可见、匿名 401、伪造用户仍不能查另一测试房费用（403）、普通业主不能访问后台账单接口（403）、绑定列表忽略伪造用户条件。数据库只操作项目独立的 `127.0.0.1:13306`。
 
 独立代码审查发现的注册兼容、家庭成员车辆、优惠对象和车辆 SQL 四类问题已逐项修正并补充失败/通过回归，复审未再发现这四项的遗漏。
 
 完整日志、凭据和运行配置只保存在忽略的 `.runtime`，不提交仓库。脱敏结果见 [验证记录](validation/2026-11-02-business-repairs.json)。上述测试不能替代全部保留模块的业务验收。
+
+后续结构修复与恢复服务的结果见 [账户与合同验证记录](validation/2026-11-02-account-contract-schema.json)：迁移后真实接口 24/24 通过。旧报告中的 3 项失败保留为迁移前证据。
 
 本轮未发送微信通知、未发布菜单、未启用自动任务、未发起支付，未切换正式服务号。正式网关和 Linux 部署包按上线计划另行实施。

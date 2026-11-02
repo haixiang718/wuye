@@ -1,0 +1,226 @@
+{
+  "date": "2026-11-02",
+  "branch": "codex/account-contract-schema",
+  "baseCommit": "c7eb617",
+  "schemaOrigin": "Project-designed compatibility schema for current production mappers; not vendor DDL",
+  "endpoint": "127.0.0.1:13306",
+  "database": "TT",
+  "migration": {
+    "passed": true,
+    "applied": 11,
+    "repeatApplied": 0,
+    "backupBytes": 75230669,
+    "backupSha256": "e5c01bf54a2137685d47a653e0c9b3573f247882dab6e6c0b35f30ec7b5125ca",
+    "backupDirectory": ".runtime/backups/business-schema/TT-20261102-165851-b436663d",
+    "originalContractCount": 30,
+    "originalContractSha256Before": "28e111d0bc0ce5160935d6de60d754861c8a2c0a3412bb474c39e544f38b1805",
+    "originalContractSha256After": "28e111d0bc0ce5160935d6de60d754861c8a2c0a3412bb474c39e544f38b1805",
+    "newTableRowCounts": {
+      "account": 0,
+      "business_account": 0,
+      "account_detail": 0,
+      "business_account_detail": 0
+    },
+    "schemaCheckPassed": true
+  },
+  "tests": {
+    "migrationMysql": {
+      "total": 12,
+      "passed": 12
+    },
+    "productionMyBatisMysql": {
+      "total": 14,
+      "passed": 14
+    },
+    "businessBuild": {
+      "exitCode": 0,
+      "modules": 8
+    },
+    "runtime": {
+      "profile": "merged",
+      "label": "schema-repair",
+      "total": 24,
+      "passed": 24,
+      "checks": [
+        {
+          "name": "rooms",
+          "http": 200,
+          "code": null,
+          "rows": 3,
+          "passed": true
+        },
+        {
+          "name": "owners",
+          "http": 200,
+          "code": null,
+          "rows": 3,
+          "passed": true
+        },
+        {
+          "name": "feeConfig",
+          "http": 200,
+          "code": null,
+          "rows": 2,
+          "passed": true
+        },
+        {
+          "name": "bills",
+          "code": 0,
+          "rows": 2,
+          "passed": true
+        },
+        {
+          "name": "wechatConfig",
+          "code": null,
+          "rows": 1,
+          "passed": true
+        },
+        {
+          "name": "parking",
+          "http": 200,
+          "code": null,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "payments",
+          "http": 200,
+          "code": null,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "feeReport",
+          "code": 0,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "contractsGateway",
+          "code": 0,
+          "rows": 9,
+          "passed": true
+        },
+        {
+          "name": "tasks",
+          "code": 0,
+          "rows": 10,
+          "passed": true
+        },
+        {
+          "name": "floors",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true
+        },
+        {
+          "name": "contractsService",
+          "http": 200,
+          "code": 0,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "contractsServiceExistingStore",
+          "http": 200,
+          "code": 0,
+          "rows": 9,
+          "passed": true
+        },
+        {
+          "name": "accounts",
+          "http": 200,
+          "code": null,
+          "rows": 0,
+          "passed": true
+        },
+        {
+          "name": "area",
+          "http": 200,
+          "code": null,
+          "rows": 31,
+          "passed": true
+        },
+        {
+          "name": "communityShards",
+          "rows": 123,
+          "expectedDatabaseEquality": true,
+          "evenCommunity": true,
+          "oddCommunity": true,
+          "passed": true
+        },
+        {
+          "name": "ownerPasswordLogin",
+          "http": 200,
+          "fixtureOwner": true,
+          "passed": true
+        },
+        {
+          "name": "ownerHouses",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true,
+          "fixturePresent": true
+        },
+        {
+          "name": "ownerHousesAnonymousDenied",
+          "http": 401,
+          "passed": true
+        },
+        {
+          "name": "ownerFees",
+          "http": 200,
+          "code": null,
+          "rows": 1,
+          "passed": true,
+          "fixturePresent": true
+        },
+        {
+          "name": "ownerFeesAnonymousDenied",
+          "http": 401,
+          "passed": true
+        },
+        {
+          "name": "ownerOtherRoomDeniedDespiteForgedIdentity",
+          "http": 403,
+          "passed": true
+        },
+        {
+          "name": "ownerCannotUseManagementApi",
+          "http": 403,
+          "passed": true
+        },
+        {
+          "name": "ownerBindingListIgnoresForgedUser",
+          "http": 200,
+          "scopedToFixture": true,
+          "passed": true
+        }
+      ]
+    }
+  },
+  "review": {
+    "corrected": [
+      "Numeric zero amount skipped by legacy OGNL empty-string comparison",
+      "Extra mandatory columns missed by schema compatibility preflight"
+    ],
+    "reReviewPassed": true
+  },
+  "scheduledTasksDisabled": true,
+  "sideEffects": {
+    "wechatSent": false,
+    "paymentsInitiated": false,
+    "menusPublished": false,
+    "officialAccountSwitched": false,
+    "historicalBalancesInvented": false
+  },
+  "limitations": [
+    "Compatibility schema does not recover vendor constraints or historical financial data.",
+    "Atomicity test covers one explicit Spring transaction, not two independent HTTP requests.",
+    "Production recharge, refund, settlement and WeChat payment flows still require business acceptance.",
+    "H5 and temporary WeChat gateways were not started during this task."
+  ],
+  "passed": true
+}
