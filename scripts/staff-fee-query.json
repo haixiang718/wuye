@@ -1,0 +1,15 @@
+{
+  "code": "api.getStaffFee",
+  "name": "Staff payment details",
+  "queries": {
+    "param1": "SELECT pfd.detail_id detailId,co.user_id userId,COALESCE(uu.name,co.user_id) userName,DATE_FORMAT(pfd.create_time,'%Y-%m-%d %H:%i:%s') createTime,COALESCE(pfc.fee_name,pf.config_id) feeName,pfd.receivable_amount receivableAmount,pfd.received_amount receivedAmount,pfd.prime_rate primeRate,COALESCE(MIN(td.name),CONCAT(pfd.prime_rate,'')) primeRateName,\nCASE WHEN pf.payer_obj_type='3333' THEN CASE WHEN br.room_id IS NULL THEN pf.payer_obj_id ELSE CONCAT_WS('-',fl.floor_num,bu.unit_num,br.room_num) END WHEN pf.payer_obj_type='6666' THEN COALESCE(oc.car_num,pf.payer_obj_id) ELSE pf.payer_obj_id END payObjName\nFROM pay_fee_detail pfd JOIN c_business cb ON cb.b_id=pfd.b_id JOIN c_orders co ON co.o_id=cb.o_id JOIN pay_fee pf ON pf.fee_id=pfd.fee_id AND pf.community_id=pfd.community_id JOIN s_store_user su ON su.user_id=co.user_id AND su.store_id=#storeId#\nLEFT JOIN pay_fee_config pfc ON pfc.config_id=pf.config_id AND pfc.community_id=pfd.community_id LEFT JOIN u_user uu ON uu.user_id=co.user_id\nLEFT JOIN t_dict td ON td.table_name='pay_fee_detail' AND td.table_columns='prime_rate' AND td.status_cd=pfd.prime_rate\nLEFT JOIN building_room br ON pf.payer_obj_type='3333' AND br.room_id=pf.payer_obj_id AND br.community_id=pfd.community_id\nLEFT JOIN building_unit bu ON bu.unit_id=br.unit_id LEFT JOIN f_floor fl ON fl.floor_id=bu.floor_id\nLEFT JOIN owner_car oc ON pf.payer_obj_type='6666' AND oc.car_id=pf.payer_obj_id AND oc.community_id=pfd.community_id\nWHERE pfd.status_cd='0' AND pfd.state='1400' AND pf.status_cd='0' AND pfd.community_id=#communityId#\n<if test=\"userCode !=null and userCode !=''\">AND co.user_id=#userCode#</if>\n<if test=\"startTime !=null and startTime !=''\">AND pfd.create_time &gt;= #startTime#</if>\n<if test=\"endTime !=null and endTime !=''\">AND pfd.create_time &lt; DATE_ADD(#endTime#,INTERVAL 1 DAY)</if>\nGROUP BY pfd.detail_id,co.user_id,uu.name,pfd.create_time,pfc.fee_name,pf.config_id,pfd.receivable_amount,pfd.received_amount,pfd.prime_rate,pf.payer_obj_type,fl.floor_num,bu.unit_num,br.room_num,oc.car_num,pf.payer_obj_id,br.room_id\nORDER BY pfd.create_time DESC,pfd.detail_id DESC LIMIT #page#,#row#",
+    "param2": "SELECT COUNT(DISTINCT pfd.detail_id) total FROM pay_fee_detail pfd JOIN c_business cb ON cb.b_id=pfd.b_id JOIN c_orders co ON co.o_id=cb.o_id JOIN pay_fee pf ON pf.fee_id=pfd.fee_id AND pf.community_id=pfd.community_id JOIN s_store_user su ON su.user_id=co.user_id AND su.store_id=#storeId#\nWHERE pfd.status_cd='0' AND pfd.state='1400' AND pf.status_cd='0' AND pfd.community_id=#communityId#\n<if test=\"userCode !=null and userCode !=''\">AND co.user_id=#userCode#</if>\n<if test=\"startTime !=null and startTime !=''\">AND pfd.create_time &gt;= #startTime#</if>\n<if test=\"endTime !=null and endTime !=''\">AND pfd.create_time &lt; DATE_ADD(#endTime#,INTERVAL 1 DAY)</if>"
+  },
+  "template": {
+    "PARAM": {
+      "param1": "$.#staffFees#Array",
+      "param2": "$.##Object"
+    },
+    "TEMPLATE": {}
+  }
+}

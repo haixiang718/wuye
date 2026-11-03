@@ -42,38 +42,47 @@
         <div class="col-lg-12">
             <div class="ibox">
                 <div class="ibox-title">
-                    <h5>员工收费</h5>
+                    <h5>员工收费明细 <small class="text-muted">共 {{staffFeeManageInfo.total}} 条</small></h5>
                     <div class="ibox-tools" style="top:10px;">
                         <button type="button" class="btn btn-primary btn-sm" v-on:click="_exportExcel()">
-                            <i class="fa fa-plus"></i>
-                            导出
+                            <i class="fa fa-download"></i>
+                            导出本页
                         </button>
                     </div>
                 </div>
-                <div class="ibox-content">
-
+                <div class="ibox-content table-responsive">
+                    <p class="text-muted">每行是一项已登记的收费记录，按收费时间倒序显示；同次收取多个项目会分行列出，结束日期包含当天。</p>
                     <table class="footable table table-stripped toggle-arrow-tiny"
                            data-page-size="15"
                     >
                         <thead>
                         <tr>
+                            <th class="text-center">收费时间</th>
                             <th class="text-center">员工名称</th>
-                            <th class="text-center">员工编码</th>
+                            <th class="text-center">收费对象</th>
+                            <th class="text-center">收费项目</th>
+                            <th class="text-center">支付方式</th>
                             <th class="text-center">应收金额</th>
                             <th class="text-center">实收金额</th>
+                            <th class="text-center">收费流水</th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr v-for="staffFee in staffFeeManageInfo.staffFees">
-                            <td class="text-center">{{staffFee.userName}}</td>
-                            <td class="text-center">{{staffFee.userId}}</td>
+                        <tr v-for="staffFee in staffFeeManageInfo.staffFees" :key="staffFee.detailId">
+                            <td class="text-center text-nowrap">{{staffFee.createTime}}</td>
+                            <td class="text-center">{{staffFee.userName}}<small class="text-muted d-block">{{staffFee.userId}}</small></td>
+                            <td class="text-center text-nowrap">{{staffFee.payObjName}}</td>
+                            <td class="text-center">{{staffFee.feeName}}</td>
+                            <td class="text-center">{{staffFee.primeRateName}}</td>
                             <td class="text-center">{{staffFee.receivableAmount}}元</td>
                             <td class="text-center">{{staffFee.receivedAmount}}元</td>
+                            <td class="text-center">{{staffFee.detailId}}</td>
                         </tr>
+                        <tr v-if="staffFeeManageInfo.staffFees.length === 0"><td colspan="8" class="admin-empty">当前筛选条件下暂无收费记录</td></tr>
                         </tbody>
                         <tfoot>
                         <tr>
-                            <td colspan="7">
+                            <td colspan="8">
                                 <ul class="pagination float-right"></ul>
                             </td>
                         </tr>

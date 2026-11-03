@@ -48,7 +48,7 @@ public class ListStaffFeeSMOImpl extends AbstractComponentSMO implements IListSt
         int row = paramIn.getInteger("row");
         paramIn.put("storeId", result.getStoreId());
         paramIn.put("page", (page - 1) * row);
-        paramIn.put("row", page * row);
+        paramIn.put("row", row);
 
         String apiUrl = "";
 
