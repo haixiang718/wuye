@@ -93,7 +93,7 @@ def prepare():
 def register():
     record = load()
     payload={'communityName':record['communityName'],'areaCode':record['areaCode'],'appUserName':record['ownerName'],
-             'link':record['phone'],'msgCode':'LOCAL_ONLY_NO_SMS','password':record['password'],'remark':LABEL}
+             'link':record['phone'],'password':record['password'],'remark':LABEL}
     results=[]
     for endpoint in ['http://127.0.0.1:8012/app/owner.ownerRegister']:
         request=urllib.request.Request(endpoint,data=json.dumps(payload,ensure_ascii=False).encode('utf-8'),

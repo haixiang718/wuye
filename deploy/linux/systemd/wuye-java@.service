@@ -1,0 +1,32 @@
+[Unit]
+Description=Wuye non-payment Java service %i
+Wants=network-online.target
+After=network-online.target
+PartOf=wuye-nonpayment.target
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=wuye
+Group=wuye
+WorkingDirectory=/var/lib/wuye
+Environment=WUYE_CONFIG_DIR=/etc/wuye
+Environment=TZ=Asia/Shanghai
+Environment=JAVA_BIN=/usr/bin/java
+ExecStart=/usr/bin/python3 /opt/wuye/current/linux/bin/start_service.py %i
+Restart=on-failure
+RestartSec=20
+TimeoutStopSec=60
+KillSignal=SIGTERM
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/wuye /var/log/wuye
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=wuye-nonpayment.target

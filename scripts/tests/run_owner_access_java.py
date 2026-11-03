@@ -13,14 +13,15 @@ def main():
         str(repo/'junit/junit/4.13.1/junit-4.13.1.jar'),str(repo/'org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar')])
     base=local.BACK/'service-front/src/main/java/com/java110/front/smo/api/impl'
     sources=[Path(__file__).with_name('OwnerDataAccessTest.java'),Path(__file__).with_name('OwnerBindingApprovalTest.java'),
-        Path(__file__).with_name('OwnerVehicleSqlTest.java'),
+        Path(__file__).with_name('OwnerVehicleSqlTest.java'),Path(__file__).with_name('OwnerRegistrationSmsTest.java'),
+        local.BACK/'service-api/src/main/java/com/java110/api/listener/owner/OwnerRegisterListener.java',
         local.BACK/'service-api/src/main/java/com/java110/api/bmo/owner/impl/OwnerBMOImpl.java',
         local.BACK/'service-api/src/main/java/com/java110/api/listener/owner/AppUserBindingOwnerListener.java',base/'ApiSMOImpl.java']
     if (base/'OwnerDataAccessService.java').exists():sources.append(base/'OwnerDataAccessService.java')
     subprocess.run([str(java.with_name('javac.exe')),'-encoding','UTF-8','-cp',cp,'-d',str(output)]+list(map(str,sources)),check=True)
     mapper=local.BACK/'java110-db/src/main/resources/mapper/user/OwnerCarServiceDaoImplMapper.xml'
     return subprocess.run([str(java),'-Dlogback.configurationFile='+str(logging),'-Downer.car.mapper='+str(mapper),'-cp',cp,
-        'org.junit.runner.JUnitCore','OwnerDataAccessTest','OwnerBindingApprovalTest','OwnerVehicleSqlTest']).returncode
+        'org.junit.runner.JUnitCore','OwnerDataAccessTest','OwnerBindingApprovalTest','OwnerVehicleSqlTest','OwnerRegistrationSmsTest']).returncode
 
 if __name__=='__main__':
     try:raise SystemExit(main())

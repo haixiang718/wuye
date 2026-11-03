@@ -110,7 +110,7 @@ function createGateway(options) {
     if (url.pathname === '/wechat-test/config.js' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
       return res.end('window.__WUYE_WECHAT_TEST__=' + JSON.stringify({ appId: config.appId, communityId: config.communityId,
-        communityName: '丰仪家园', paymentEnabled: false }) + ';');
+        communityName: config.communityName || '丰仪家园', smsEnabled: config.smsEnabled === true, paymentEnabled: false }) + ';');
     }
     if (url.pathname.startsWith('/app/payment/')) return json(res, 503, { code: 'PAYMENT_NOT_CONFIGURED', msg: '微信支付尚未开通，当前仅联调账单查询' });
     const isBackend = url.pathname.startsWith('/app/');

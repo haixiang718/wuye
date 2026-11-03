@@ -44,8 +44,17 @@ test('test ingress restricts routes and sessions, hides credentials, and preserv
   assert.match(enter.headers.get('set-cookie'), /HttpOnly/);
   assert.match(enter.headers.get('set-cookie'), /SameSite=Lax/);
   const headers = { cookie };
-  const browserConfig = await (await fetch(base + '/wechat-test/config.js', { headers })).text();
+  const configResponse = await fetch(base + '/wechat-test/config.js', { headers });
+  assert.equal(configResponse.headers.get('cache-control'), 'no-store');
+  const browserConfig = await configResponse.text();
   assert.match(browserConfig, /paymentEnabled/);
+  let publicConfig = JSON.parse(browserConfig.slice(browserConfig.indexOf('=')+1).replace(/;$/, ''));
+  assert.equal(publicConfig.smsEnabled, false, 'SMS must be explicitly enabled');
+  config.communityName = 'Synthetic community'; config.smsEnabled = true;
+  const enabledConfig = await (await fetch(base + '/wechat-test/config.js', { headers })).text();
+  publicConfig = JSON.parse(enabledConfig.slice(enabledConfig.indexOf('=')+1).replace(/;$/, ''));
+  assert.equal(publicConfig.communityName, 'Synthetic community');
+  assert.equal(publicConfig.smsEnabled, true);
   assert.ok(!browserConfig.includes(config.appSecret));
   assert.ok(!browserConfig.includes(config.token));
   assert.ok(!browserConfig.includes(config.accessCode));

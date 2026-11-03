@@ -112,15 +112,16 @@ export function userLogin(_obj) {
 					uni.hideLoading();
 					//将用户信息携入缓存中
 					uni.hideLoading();
-					if (res.statusCode != 200) {
+					let _data = res.data || {};
+					if (res.statusCode != 200 || (_data.code != null && _data.code != 0) || !_data.owner || !_data.token) {
+						let _message = typeof res.data === 'string' ? res.data : _data.msg || '登录失败，请检查账号或稍后重试';
 						uni.showToast({
 							icon: 'none',
-							title: res.data
+							title: _message
 						});
-						reject();
+						reject(new Error(_message));
 						return;
 					}
-					let _data = res.data;
 
 					let _ownerInfo = _data.owner;
 					wx.setStorageSync(constant.mapping.OWNER_INFO, _ownerInfo);
@@ -158,7 +159,9 @@ export function userLogin(_obj) {
 				},
 				fail: function(e) {
 					uni.hideLoading();
-					reject();
+					const message = '网络连接失败，请稍后重试';
+					uni.showToast({icon:'none',title:message});
+					reject(new Error(message));
 				}
 			});
 		})

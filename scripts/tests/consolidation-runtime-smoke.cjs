@@ -185,8 +185,17 @@ async function main(config) {
         const response = await ownerContext.get(url,{params,headers:{...h5Headers,cookie:'_java110_token_='+auth.token},maxRedirects:0});
         const data = await json(response);
         const result = summary(response,data,key);
-        assert.ok(result.passed);assert.ok(data[key].some(row => row[idKey] === id));
-        return {...result,fixturePresent:true};
+        assert.ok(result.passed);
+        const present = data[key].some(row => row[idKey] === id);
+        if (name === 'ownerFees') {
+          // Legacy test bills now default to DRAFT; an owner must not see them until review.
+          const publication = JSON.parse(execFileSync('python',[path.join(__dirname,'consolidation-community-expected.py'),'--owner-fixture-publication'],
+            {cwd:root,encoding:'utf8',timeout:TIMEOUT,stdio:['ignore','pipe','pipe'],windowsHide:true}));
+          assert.equal(present, publication.published, 'Visibility must match the independently queried review state');
+          return {...result,fixturePresent:present,reviewStateChecked:true};
+        }
+        assert.ok(present);
+        return {...result,fixturePresent:present};
       });
       await check(name+'AnonymousDenied',async () => {
         const response = await anonymousContext.get(url,{params,headers:{...h5Headers,'X-Requested-With':'XMLHttpRequest'},maxRedirects:0});

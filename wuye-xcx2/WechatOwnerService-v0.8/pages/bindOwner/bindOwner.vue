@@ -27,12 +27,13 @@
 			<view class="title">手机号</view>
 			<input :value="link" @input="bindInput" data-name="link" required label="手机号" clearable placeholder="请输入手机号" name="link"></input>
 		</view>
-		<view class="cu-form-group">
+		<view class="cu-form-group" v-if="smsEnabled">
 			<view class="title">验证码</view>
 			<input :value="msgCode" @input="bindInput" data-name="msgCode" required label="验证码" clearable placeholder="请输入短信验证码"
 			 name="msgCode"></input>
 			<button class="cu-btn sm" slot="button" type="number" size="small" @tap.native.stop="sendMsgCode">发送验证码</button>
 		</view>
+		<view class="padding text-gray text-sm">请填写与物业登记一致的信息，提交后需由物业核验并审核绑定。</view>
 		<view class="button_up_blank">
 			<button class="cu-btn bg-green lg margin-top" @tap.native.stop="bindOwner">绑定业主</button>
 		</view>
@@ -43,6 +44,7 @@
 	// pages/enterCommunity/enterCommunity.js
 	const context = require("../../context/Java110Context.js");
 	import pickerAddress from "../../components/pickerAddress/pickerAddress.vue"
+	import {sendSmsCode} from '../../api/user/userApi.js';
 	const constant = context.constant;
 
 	export default {
@@ -72,7 +74,7 @@
 			};
 		},
 
-		components: {},
+		components: {pickerAddress},
 		props: {},
 
 		/**
@@ -84,9 +86,9 @@
 
 			let _location = context.getLocation();
 
-			let _currentLocation = context.getCurrentLocation();
+			let _currentLocation = context.getCurrentLocation() || {};
 			console.log(_currentLocation+"    444444");
-			let _areaName = _currentLocation.city + _currentLocation.district;
+			let _areaName = (_currentLocation.city || '') + (_currentLocation.district || '');
 			// console.log(_areaName);
 			// let _areaCode = _currentLocation.adcode; //加载省份
 
@@ -115,12 +117,12 @@
 		 */
 		onShow: function() {
 			if (this.areaCode == '' || this.areaCode == undefined) {
-				let _currentLocation = context.getCurrentLocation();
+				let _currentLocation = context.getCurrentLocation() || {};
 
 				let _areaName = _currentLocation.city + _currentLocation.district;
 
 				let _areaCode = _currentLocation.adcode;
-				this.areaCode = _areaCode;
+				this.areaCode = _areaCode || '';
 				//this.areaName = _areaName;
 				// this.setData({
 				//   areaCode: _areaCode,
@@ -162,9 +164,9 @@
 					city +=e.data[c].name;
 				}
 				this.$data.areaName = city;
+				this.areaCode = e.data[2].code;
 			},
 			bindInput: function(e) {
-				console.log('数据监听', e);
 
 				let _that = this;
 
@@ -173,9 +175,14 @@
 				let name = dataset.name;
 				_that[name] = value; //  
 
-				console.log(this);
 			},
-			sendMsgCode: function() {},
+			sendMsgCode: function() {
+				if (!this.smsEnabled) {
+					uni.showToast({icon:'none',title:'短信验证未开通，请提交资料由物业核验'});
+					return;
+				}
+				sendSmsCode(this.link, this).catch(() => {});
+			},
 			bindOwner: function(e) {
 				let obj = {
 					"areaCode": this.areaCode,
@@ -197,7 +204,7 @@
 					msg = "请填写身份证";
 				} else if (obj.link == "") {
 					msg = "请填写手机号";
-				} else if (obj.msgCode == "") {
+				} else if (this.smsEnabled && obj.msgCode == "") {
 					msg = "请填写验证码";
 				}
 
@@ -208,7 +215,6 @@
 						duration: 2000
 					});
 				} else {
-					console.log("提交数据", obj);
 					wx.showLoading({
 						title: '绑定中'
 					});
@@ -219,9 +225,8 @@
 						data: obj,
 						//动态数据
 						success: function(res) {
-							console.log(res); //成功情况下跳转
-
-							if (res.statusCode == 200) {
+							const data = res.data || {};
+							if (res.statusCode == 200 && data.code == 0) {
 								wx.hideLoading();
 								wx.redirectTo({
 									url: "/pages/viewBindOwner/viewBindOwner"
@@ -231,7 +236,7 @@
 
 							wx.hideLoading();
 							wx.showToast({
-								title: res.data,
+								title: typeof res.data === 'string' ? res.data : data.msg || '绑定失败，请核实资料或稍后重试',
 								icon: 'none',
 								duration: 2000
 							});

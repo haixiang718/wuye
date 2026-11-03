@@ -8,6 +8,7 @@ import {getDateYYYYMMDDHHMISS} from '../utils/DateUtil.js'
 import url from '../constant/url.js'
 
 import mapping from '../constant/MappingConstant.js'
+import returnTarget from '../auth/return-target.js';
 
 import {checkSession} from '../auth/Java110Auth.js'
 import {getWAppId} from './init/initApi.js'
@@ -59,8 +60,10 @@ export function request(_reqObj) {
 			title: '加载中',
 			mask: true
 		});
+		let _complete = _reqObj.complete;
 		_reqObj.complete = function() {
 			uni.hideLoading();
+			if (_complete) _complete.apply(this, arguments);
 		}
 	}
 
@@ -69,7 +72,7 @@ export function request(_reqObj) {
 	if (_reqObj.hasOwnProperty('header')) {
 		let _header = _reqObj.header;
 		for (let key in _headers) {
-			_header.key = _headers[key];
+			_header[key] = _headers[key];
 		}
 	} else {
 		_reqObj.header = _headers;
@@ -86,10 +89,29 @@ export function request(_reqObj) {
 		//有回话 跳转至相应页面
 		//重写token
 		_reqObj.header.cookie = '_java110_token_=' + wx.getStorageSync('token');
+		// #ifdef H5
+		const _requestToken = wx.getStorageSync(mapping.TOKEN);
+		const _success = _reqObj.success;
+		_reqObj.success = function(res) {
+			// A concurrent response for an old token must not invalidate a newly logged-in session.
+			if (res.statusCode === 401 && _requestToken && wx.getStorageSync(mapping.TOKEN) === _requestToken) {
+				returnTarget.remember(window.location.hash, uni);
+				[mapping.TOKEN, mapping.LOGIN_FLAG, mapping.OWNER_INFO, mapping.USER_INFO,
+					mapping.OWNER_KEY, mapping.CURRENT_COMMUNITY_INFO].filter(Boolean).forEach(key => uni.removeStorageSync(key));
+				uni.showToast({ icon: 'none', title: '登录已过期，请重新登录' });
+				wechatRefreshToken();
+			}
+			if (_success) _success.apply(this, arguments);
+		};
+		// #endif
 		uni.request(_reqObj);
 	}, function(error) { //回话过期
+		const _failure = {code:'LOGIN_REQUIRED',errMsg:'登录已过期，请重新登录'};
+		if (_reqObj.fail) _reqObj.fail(_failure);
+		if (_reqObj.complete) _reqObj.complete(_failure);
 		// #ifdef H5
 		//先微信登录
+		returnTarget.remember(window.location.hash, uni);
 		wechatRefreshToken();
 		// #endif
 
@@ -127,15 +149,17 @@ export function requestNoAuth(_reqObj) {
 			title: '加载中',
 			mask: true
 		});
+		let _complete = _reqObj.complete;
 		_reqObj.complete = function() {
 			uni.hideLoading();
+			if (_complete) _complete.apply(this, arguments);
 		}
 	}
 	let _headers = getHeaders();
 	if (_reqObj.hasOwnProperty('header')) {
 		let _header = _reqObj.header;
 		for (let key in _headers) {
-			_header.key = _headers[key];
+			_header[key] = _headers[key];
 		}
 	} else {
 		_reqObj.header = _headers;

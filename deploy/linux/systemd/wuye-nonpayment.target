@@ -1,0 +1,8 @@
+[Unit]
+Description=Wuye reviewed non-payment application stack
+Requires=wuye-java@eureka.service wuye-java@order.service wuye-java@api.service wuye-java@front.service wuye-java@job.service wuye-java@business.service
+Requires=wuye-node@admin.service wuye-node@owner-static.service wuye-node@gateway.service
+After=network-online.target
+
+[Install]
+WantedBy=multi-user.target

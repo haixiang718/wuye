@@ -29,12 +29,12 @@ export function getCurOwner() {
 					url: url.queryAppUserBindingOwner,
 					data: {},
 					success: function(res) {
-						let _json = res.data;
-						if (_json.code == 0) {
+						let _json = res.data || {};
+						if (res.statusCode === 200 && _json.code == 0 && Array.isArray(_json.data)) {
 							_ownerInfo = _json.data[0];
 							if (_ownerInfo == null || _ownerInfo == undefined) {
 								//没有业主信息
-								reject();
+								reject(new Error('尚未绑定业主，请先绑定并等待物业审核'));
 								return;
 							}
 							if (_ownerInfo.state == '12000') {
@@ -46,7 +46,9 @@ export function getCurOwner() {
 								wx.setStorageSync(mapping.CURRENT_COMMUNITY_INFO, _currentCommunityInfo);
 							}
 							resolve(_json.data[0]);
+							return;
 						}
+						reject(new Error(_json.msg || '业主信息加载失败，请稍后重试'));
 					},
 					fail: function(error) {
 						// 查询失败

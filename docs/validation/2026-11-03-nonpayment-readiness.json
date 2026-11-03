@@ -1,0 +1,204 @@
+{
+  "date": "2026-11-03",
+  "scope": "Non-payment readiness; cloud ingress with local business; no production payment or message delivery acceptance",
+  "h5": {
+    "testsPassed": 63,
+    "build": "passed",
+    "browserWidths": [
+      360,
+      390,
+      430
+    ],
+    "javascriptErrors": 0,
+    "realPhoneNewRegistrationAndMultipleProperties": "not verified in this session"
+  },
+  "backend": {
+    "javaChecks": [
+      {
+        "name": "run_owner_access_java.py",
+        "exitCode": 0,
+        "summary": [
+          "OK (44 tests), re-run after registration and binding SMS changes"
+        ],
+        "evidence": "Final fresh run: OK (44 tests) after both SMS guards, separate from original 36-test baseline"
+      },
+      {
+        "name": "run_owner_oauth_java.py",
+        "exitCode": 0,
+        "seconds": 9.0,
+        "summary": [
+          "OK (11 tests)"
+        ]
+      },
+      {
+        "name": "run_bill_publication_java.py",
+        "exitCode": 0,
+        "seconds": 8.8,
+        "summary": [
+          "OK (13 tests)"
+        ]
+      },
+      {
+        "name": "run_bill_review_database.py",
+        "exitCode": 0,
+        "seconds": 12.6,
+        "summary": [
+          "OK (8 tests)"
+        ]
+      },
+      {
+        "name": "run_bill_notify_java.py",
+        "exitCode": 0,
+        "seconds": 3.2,
+        "summary": [
+          "OK (24 tests)"
+        ]
+      },
+      {
+        "name": "run_job_notify_java.py",
+        "exitCode": 0,
+        "seconds": 7.7,
+        "summary": [
+          "OK (12 tests)"
+        ]
+      }
+    ],
+    "apiPackageBuild": "passed, service-api and dependencies",
+    "realRuntimeQueries": {
+      "passed": 24,
+      "failed": 0
+    },
+    "registrationSmsPolicy": "explicit OFF permits no code and property approval; ON or unknown requires SMS verification"
+  },
+  "localBusinessFlow": {
+    "steps": [
+      {
+        "step": "prepare",
+        "exitCode": 0,
+        "seconds": 9.4
+      },
+      {
+        "step": "approve",
+        "exitCode": 0,
+        "seconds": 2.1
+      },
+      {
+        "step": "before-bill",
+        "exitCode": 0,
+        "seconds": 2.2
+      },
+      {
+        "step": "generate",
+        "exitCode": 0,
+        "seconds": 7.9
+      },
+      {
+        "step": "after-bill",
+        "exitCode": 0,
+        "seconds": 2.3
+      },
+      {
+        "step": "draft-notice",
+        "exitCode": 0,
+        "seconds": 8.2
+      },
+      {
+        "step": "publish",
+        "exitCode": 0,
+        "seconds": 2.9
+      },
+      {
+        "step": "after-publish",
+        "exitCode": 0,
+        "seconds": 1.7
+      },
+      {
+        "step": "simulated-notice",
+        "exitCode": 0,
+        "seconds": 8.5
+      },
+      {
+        "step": "after-notice",
+        "exitCode": 0,
+        "seconds": 2.5
+      },
+      {
+        "step": "final-state",
+        "exitCode": 0,
+        "seconds": 5.2
+      },
+      {
+        "step": "cleanup",
+        "exitCode": 0
+      }
+    ],
+    "allStepsPassed": true,
+    "preservedBusinessTables": 15,
+    "cleanupUnchanged": true,
+    "notificationTransport": "synthetic, no WeChat send",
+    "paymentPostingVerified": false
+  },
+  "operations": {
+    "healthChecksPassed": 21,
+    "unitTestsPassed": 14,
+    "restoreTables": 392,
+    "restoreRows": 235072,
+    "allRestoreTargetsRemoved": true,
+    "scheduledBackupConfigured": false,
+    "offsiteEncryptedCopyConfigured": false
+  },
+  "wechat": {
+    "readOnlyChecksPassed": true,
+    "templateFeature": "user confirmed enabled; no bill template added yet",
+    "hasCompatibleBillTemplate": false,
+    "menusTargetH5": [
+      {
+        "name": "物业管理",
+        "type": "view",
+        "targetsFixedH5": true,
+        "children": []
+      }
+    ],
+    "messagesSent": 0,
+    "readinessTestsPassed": 7,
+    "gatewayRegressionPassed": true
+  },
+  "paymentEnabled": false,
+  "automaticBillingAndNotificationsEnabled": false,
+  "independentReview": {
+    "status": "reviewed; confirmed logging configuration issue fixed and tested",
+    "remainingBlockingFindings": 0
+  },
+  "externalPrerequisites": [
+    "Add an applicable official bill template and verify its fields/configuration plus delivery to designated testers.",
+    "Provide customer property/owner data, actual fee rules, billing dates and opening balances.",
+    "Validate new-owner approval, multiple properties and session recovery with real WeChat phones.",
+    "Select sufficient business-server resources; perform Linux deployment/runtime/restart/backup/monitoring acceptance.",
+    "Merchant onboarding required for subsequent real payment, reconciliation and refund work."
+  ],
+  "release": {
+    "sizeBytes": 566907064,
+    "sizeMiB": 540.6,
+    "sha256": "66d71bbb5f469318faefdea7e8cbd69ef8388264f70ed027a0cfe7ea1ab1bf67",
+    "files": 3632,
+    "sourceJarsUnchanged": true,
+    "nestedJarCrcAndStorage": "passed",
+    "credentialAssignments": "redacted",
+    "excludedPrivatePaths": "passed",
+    "safeBootLoggingOverride": true,
+    "finalH5ChunkPresent": true,
+    "linuxRuntimeValidated": false,
+    "deployed": false,
+    "paymentEnabled": false,
+    "releaseTests": {
+      "run": 16,
+      "passed": 15,
+      "skipped": 1,
+      "skipReason": "Windows symlink privilege unavailable"
+    },
+    "projectJars": 34,
+    "configResources": 117,
+    "nestedStored": 28,
+    "archive": ".runtime/releases/wuye-nonpayment-20261103T073744Z.tar.gz"
+  }
+}

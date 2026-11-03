@@ -86,20 +86,25 @@ public class AppUserBindingOwnerListener extends AbstractServiceApiPlusListener 
         Assert.hasKeyAndValue(reqJson, "appUserName", "未包含用户名称");
         Assert.hasKeyAndValue(reqJson, "idCard", "未包含身份证号");
         Assert.hasKeyAndValue(reqJson, "link", "未包含联系电话");
-        Assert.hasKeyAndValue(reqJson, "msgCode", "未包含联系电话验证码");
 
         //判断是否有用户ID
         Map<String, String> headers = event.getDataFlowContext().getRequestCurrentHeaders();
 
         Assert.hasKeyAndValue(headers, "user_id", "请求头中未包含用户信息");
-        SmsDto smsDto = new SmsDto();
-        smsDto.setTel(reqJson.getString("link"));
-        smsDto.setCode(reqJson.getString("msgCode"));
-        smsDto = smsInnerServiceSMOImpl.validateCode(smsDto);
-
-        if (!smsDto.isSuccess() && "ON".equals(MappingCache.getValue(SendSmsFactory.SMS_SEND_SWITCH))) {
-            throw new IllegalArgumentException(smsDto.getMsg());
+        if (!"OFF".equals(smsSwitch())) {
+            Assert.hasKeyAndValue(reqJson, "msgCode", "未包含联系电话验证码");
+            SmsDto smsDto = new SmsDto();
+            smsDto.setTel(reqJson.getString("link"));
+            smsDto.setCode(reqJson.getString("msgCode"));
+            smsDto = smsInnerServiceSMOImpl.validateCode(smsDto);
+            if (smsDto == null || !smsDto.isSuccess()) {
+                throw new IllegalArgumentException("短信验证码验证失败，请重新获取验证码");
+            }
         }
+    }
+
+    protected String smsSwitch() {
+        return MappingCache.getValue(SendSmsFactory.SMS_SEND_SWITCH);
     }
 
     @Override

@@ -24,9 +24,8 @@ import {
  * 查询业主房屋
  */
 export function getRooms() {
-	return new Promise((resolve, reject) => {
-		getCurOwner()
-			.then(function(_owner) {
+	return getCurOwner().then(function(_owner) {
+		return new Promise((resolve, reject) => {
 				request({
 					url: url.queryRoomsByOwner,
 					method: "GET",
@@ -35,7 +34,7 @@ export function getRooms() {
 						ownerId: _owner.ownerId
 					},
 					success: function(res) {
-						if (res.statusCode == 200) {
+						if (res.statusCode == 200 && res.data && Array.isArray(res.data.rooms)) {
 							//将业主信息和房屋信息一起返回
 							res.data['owner'] = _owner;
 							if (res.data.rooms.length == 0) {
@@ -44,14 +43,14 @@ export function getRooms() {
 							}
 							resolve(res.data);
 						} else {
-							reject("查询房屋失败");
+							reject(new Error(res.data && res.data.msg || "查询房屋失败，请稍后重试"));
 						}
 					},
 					fail: function(res) {
 						reject(res);
 					}
 				});
-			});
+		});
 	});
 };
 

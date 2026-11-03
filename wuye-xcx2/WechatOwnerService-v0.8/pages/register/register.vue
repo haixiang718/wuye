@@ -36,11 +36,12 @@
 			<view class="title">手机号</view>
 			<input v-model="link" required label="手机号" clearable placeholder="请输入手机号"></input>
 		</view>
-		<view class="cu-form-group">
+		<view class="cu-form-group" v-if="smsEnabled">
 			<view class="title">验证码</view>
 			<input v-model="msgCode" placeholder="请输入短信验证码" name="input"></input>
 			<button class='cu-btn bg-green shadow' :disabled="btnDisabled" @click="sendMsgCode()">{{btnValue}}</button>
 		</view>
+		<view class="padding text-gray text-sm">请填写与物业登记一致的姓名和手机号，提交后需由物业核验并审核绑定。</view>
 		<view class="padding flex flex-direction margin-top">
 			<button class="cu-btn bg-green   lg" @click="_doRegister()">绑定</button>
 		</view>
@@ -110,6 +111,10 @@
 		},
 		methods: {
 			sendMsgCode: function() {
+				if (!this.smsEnabled) {
+					uni.showToast({icon:'none',title:'短信验证未开通，请提交资料由物业核验'});
+					return;
+				}
 				var _that = this;
 				let obj = {
 					tel: this.link
@@ -187,7 +192,7 @@
 					msg = "请填写业主名称";
 				} else if (obj.link == "") {
 					msg = "请填写手机号";
-				} else if (obj.msgCode == "") {
+				} else if (this.smsEnabled && obj.msgCode == "") {
 					msg = "请填写验证码";
 				}
 				if (msg != "") {

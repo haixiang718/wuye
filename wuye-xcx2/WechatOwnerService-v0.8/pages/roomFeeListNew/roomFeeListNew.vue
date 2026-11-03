@@ -64,6 +64,7 @@
 				curRoom: {},
 				requestedRoomId: '',
 				moreRooms: [],
+				feeRequestId: 0,
 				needFefresh: true,
 				noData: false
 			};
@@ -89,7 +90,10 @@
 				return;
 			}
 			this.noData = false;
-			getRooms().then(data => {
+			this.moreRooms = [];
+			let _roomRequestId = ++this.feeRequestId;
+			return getRooms().then(data => {
+				if (_roomRequestId !== _that.feeRequestId) return;
 				let _rooms = data.rooms;
 				this.rooms = _rooms;
 				let _owner = data.owner;
@@ -109,7 +113,14 @@
 					return;
 				}
 				_that.curRoom = _selectedRoom;
-				_that._loadRoomFee();
+				return _that._loadRoomFee();
+			}).catch(() => {
+				if (_roomRequestId !== _that.feeRequestId) return;
+				_that.rooms = [];
+				_that.curRoom = {};
+				_that.moreRooms = [];
+				_that.noData = true;
+				uni.showToast({ icon: 'none', title: '房屋信息加载失败，请稍后重试' });
 			});
 		},
 		methods: {
@@ -121,6 +132,7 @@
 			_loadRoomFee: function() {
 				let _that = this;
 				let _room = this.curRoom;
+				let _requestId = ++this.feeRequestId;
 				let _objData = {
 					page: 1,
 					row: 30,
@@ -129,12 +141,15 @@
 					state: '2008001'
 				}
 				_that.moreRooms = [];
-				getRoomFees(_objData, _room)
+				return getRoomFees(_objData, _room)
 					.then((moreRooms) => {
-						_that.moreRooms = moreRooms;
-						_that.noData = false;
+						if (_requestId !== _that.feeRequestId || _room.roomId !== _that.curRoom.roomId) return;
+						_that.moreRooms = Array.isArray(moreRooms) ? moreRooms : [];
+						_that.noData = _that.moreRooms.length === 0;
 					}, () => {
+						if (_requestId !== _that.feeRequestId || _room.roomId !== _that.curRoom.roomId) return;
 						_that.noData = true;
+						uni.showToast({ icon: 'none', title: '费用加载失败，请稍后重试' });
 					})
 
 			},

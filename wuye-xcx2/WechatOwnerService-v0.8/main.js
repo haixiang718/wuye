@@ -4,10 +4,10 @@ import Vue from 'vue';
 // #ifdef H5
 import h5Runtime from './config/h5-runtime.js';
 h5Runtime.install(uni);
-Vue.mixin({computed:{paymentEnabled(){return h5Runtime.publicConfig().paymentEnabled === true;}}});
+Vue.mixin({computed:{paymentEnabled(){return h5Runtime.publicConfig().paymentEnabled === true;},smsEnabled(){return h5Runtime.publicConfig().smsEnabled === true;}}});
 // #endif
 // #ifndef H5
-Vue.mixin({computed:{paymentEnabled(){return true;}}});
+Vue.mixin({computed:{paymentEnabled(){return true;},smsEnabled(){return true;}}});
 // #endif
 import App from './App';
 

@@ -87,13 +87,19 @@ let browser,ownerClient,anonymous,server,gateway;
       const other=JSON.parse(fs.readFileSync(path.join(root,'.runtime/wechat-test-fixture.json'),'utf8'));
       const cross=await ownerClient.get('http://127.0.0.1:8012/app/fee.listFee',{headers:{...scoped,'user-id':other.createdUserId||'-1'},params:{...query,payerObjId:other.ids.room},maxRedirects:0});
       check('other_owner_room_denied_despite_spoofed_header',cross.status()===403,{http:cross.status()});
-      server=spawn(process.execPath,['scripts/owner-h5.cjs','serve'],{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});
-      await new Promise((resolve,reject)=>{
-        const timer=setTimeout(()=>reject(new Error('Preview startup timeout')),10000);
-        server.stdout.once('data',()=>{clearTimeout(timer);resolve();});
-        server.once('error',error=>{clearTimeout(timer);reject(error);});
-        server.once('exit',()=>{clearTimeout(timer);reject(new Error('Preview exited'));});
-      });
+      if(process.argv.includes('--reuse-h5')) {
+        const existing=await anonymous.get('http://127.0.0.1:8000/');
+        const expected=fs.readFileSync(path.join(root,'wuye-xcx2/WechatOwnerService-v0.8/unpackage/dist/build/h5/index.html'));
+        if(existing.status()!==200||!(await existing.body()).equals(expected))throw new Error('Running H5 does not match the current compiled index');
+      } else {
+        server=spawn(process.execPath,['scripts/owner-h5.cjs','serve'],{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});
+        await new Promise((resolve,reject)=>{
+          const timer=setTimeout(()=>reject(new Error('Preview startup timeout')),10000);
+          server.stdout.once('data',()=>{clearTimeout(timer);resolve();});
+          server.once('error',error=>{clearTimeout(timer);reject(error);});
+          server.once('exit',()=>{clearTimeout(timer);reject(new Error('Preview exited'));});
+        });
+      }
       const config={accessCode:'simulation-local-only',sessionSecret:require('node:crypto').randomBytes(32).toString('hex'),appId:'simulation-public-account',communityId:fixture.communityId,ownerH5Port:8000};
       gateway=createGateway({config:()=>config,owner:'http://127.0.0.1:8000',backend:'http://127.0.0.1:8012'});
       await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));

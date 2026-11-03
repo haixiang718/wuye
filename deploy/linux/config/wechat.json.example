@@ -1,0 +1,11 @@
+{
+  "publicBaseUrl": "https://h5.jiaanfuwu.cn",
+  "appId": "REPLACE_IN_PRODUCTION",
+  "communityId": "REPLACE_IN_PRODUCTION",
+  "communityName": "REPLACE_IN_PRODUCTION",
+  "smsEnabled": false,
+  "token": "REPLACE_IN_PRODUCTION",
+  "callbackPath": "REPLACE_IN_PRODUCTION",
+  "sessionSecret": "REPLACE_IN_PRODUCTION",
+  "accessCode": "REPLACE_IN_PRODUCTION"
+}

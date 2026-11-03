@@ -30,7 +30,7 @@
 			<button class="cu-btn bg-green lg" @click="_doLogin()">登录</button>
 			<button class="cu-btn line-orange  margin-tb-sm lg" @click="_doRegister()">绑定业主</button>
 			
-			<view class="text-center margin-top-sm text-green" @click="_doLoginPhone()">{{phoneLoginName}}</view>
+			<view v-if="smsEnabled" class="text-center margin-top-sm text-green" @click="_doLoginPhone()">{{phoneLoginName}}</view>
 		</view>
 
 	</view>
@@ -40,6 +40,7 @@
 	var _this;
 	import wInput from '../../components/watch-input.vue' //input
 	import wButton from '../../components/watch-button.vue' //button
+	import returnTarget from '../../auth/return-target.js';
 	import {
 		sendSmsCode,
 		userLogin
@@ -142,10 +143,17 @@
 				};
 				userLogin(_obj)
 				.then(()=>{
+					// #ifdef H5
+					const _returnUrl = returnTarget.consume(uni);
+					if (_returnUrl) {
+						wx.redirectTo({url:_returnUrl});
+						return;
+					}
+					// #endif
 					wx.switchTab({
 						url: "/pages/index/index?wAppId="+that.vc.getWAppId()
 					});
-				});
+				}).catch(() => {}); // The API displays the specific login failure.
 			},
 			_doRegister: function() {
 				//let _url = '/pages/registerByWechat/registerByWechat';
@@ -161,6 +169,10 @@
 				sendSmsCode(this.username, this);
 			},
 			_doLoginPhone:function(){
+				if (!this.smsEnabled) {
+					uni.showToast({icon:'none',title:'短信登录未开通，请使用账号密码登录'});
+					return;
+				}
 				this.loginByPhone = !this.loginByPhone;
 				if(this.loginByPhone){
 					this.phoneLoginName="密码登录"
