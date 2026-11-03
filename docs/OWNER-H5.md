@@ -1,6 +1,6 @@
 # 业主 H5 本地构建与验证
 
-2026-11-02 业务修复：自行注册和新增房产绑定统一进入待物业审核状态（10000）；审核通过（12000）后才能登录查看相应房产。既有已通过绑定不受影响。前端转发层根据真实会话、有效绑定及房屋/车辆归属校验费用访问，拒绝客户端伪造用户或业主标识。详见 [业务修复记录](BUSINESS-REPAIRS.md)。
+2026-11-03 登录流程更新：H5 在微信内直接授权登录，不再要求注册或填写账号密码。未绑定时无房产、账单权限；姓名、手机号、身份证号与后台同一条有效业主资料精确匹配后立即绑定。本轮公众号只关联一个小区，同一业主记录的多套房屋自动显示，独立业主记录分别验证后可切换。旧密码和小程序接口审批规则保留，历史待审记录不会仅凭微信登录自动通过。详见 [微信直接登录说明](WECHAT-DIRECT-LOGIN.md)。
 
 沿用 `wuye-xcx2/WechatOwnerService-v0.8` 的 Vue 2 / uni-app 页面，不需要 HBuilderX 或微信开发者工具。未重新注册已裁剪页面。CLI、Vue、Sass 等版本记录在 package.json / package-lock.json。
 
@@ -37,7 +37,7 @@ AppSecret、回调 Token、入口访问码不能放进这个响应。静态服�
 
 H5 使用 hash 路由。主要接口为 `/app/refreshToken`、`/app/loginOwnerWechatAuth`、`/app/loginOwnerByKey`、`/app/loginOwner`，以及房屋、业主绑定、小区、楼栋、单元和费用查询接口。入口应按实际保留业务接口开放，避免开放整个后端。
 
-OAuth 绑定用户返回 `#/pages/…?wAppId=…&authTicket=…`。H5 用 POST `/app/loginOwnerByKey` 的 `{authTicket}` 交换会话，等待交换结束后才查询业主和房屋；成功后移除地址中的票据。未绑定用户的 `code` 是后台短期 OpenID 票据，由原有账号登录接口完成绑定。没有真实微信授权时，不能把浏览器回归结果当成真实微信身份验证。
+OAuth 返回 `#/pages/…?wAppId=…&authTicket=…`。H5 用 POST `/app/loginOwnerByKey` 的 `{authTicket}` 交换会话，成功后移除地址中的票据。未绑定返回 `hasBinding:false` 和受限 `wechatSession`，不返回业主 token；三项资料通过 `/app/bindOwnerWechat` 核验成功后才取得房产会话。已绑定返回选中 `owner`、已核验 `owners` 列表和 token。没有真实微信授权时，不能把浏览器回归结果当成真实微信身份验证。
 
 浏览器禁止手动发送 Cookie 请求头，所以 H5 从原有会话存储读取 `token` 并发送同名请求头；专用入口通过访问校验后，将它转成后端现有的 `_java110_token_` Cookie。浏览器自动发送的入口访问 Cookie 仍由浏览器管理。生产静态服务器不提供这种转换。
 

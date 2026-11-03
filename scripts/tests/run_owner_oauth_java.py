@@ -21,7 +21,9 @@ def main():
         original=subprocess.check_output(['git','show','3313a67:wuye-b/MicroCommunity-v0.8/'+relative],cwd=local.ROOT)
         source.write_bytes(original)
     test=local.BACK/'service-front/src/test/java/com/java110/front/smo/login/impl/OwnerWechatOAuthTest.java'
-    subprocess.run([str(java.with_name('javac.exe')),'-encoding','UTF-8','-cp',cp,'-d',str(output),str(source),str(test)],check=True)
+    extra=[local.BACK/'java110-core/src/main/java/com/java110/core/factory/OwnerWechatSession.java',
+           local.BACK/'service-front/src/main/java/com/java110/front/smo/login/IOwnerAppLoginSMO.java']
+    subprocess.run([str(java.with_name('javac.exe')),'-encoding','UTF-8','-cp',cp,'-d',str(output)]+list(map(str,extra))+[str(source),str(test)],check=True)
     return subprocess.run([str(java),'-Dlogback.configurationFile='+str(logging),'-cp',cp,
         'org.junit.runner.JUnitCore','com.java110.front.smo.login.impl.OwnerWechatOAuthTest']).returncode
 

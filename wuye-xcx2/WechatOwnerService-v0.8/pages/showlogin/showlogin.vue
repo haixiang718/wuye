@@ -1,5 +1,7 @@
 <template>
 	<view class="">
+		<view v-if="wechatDirect"><wechat-binding-gate /></view>
+		<view v-else>
 		<view class="user-container">
 			<view class="userinfo">
 				<block>
@@ -19,12 +21,14 @@
 			<button @click="navToLogin" class="cu-btn bg-green shadow-blur round lg">我要登录</button>
 
 		</view>
+		</view>
 	</view>
 </template>
 
 <script>
 	const context = require("../../context/Java110Context.js");
 	const constant = context.constant;
+	import {finishLegacyEntry} from '../../auth/H5Login.js';
 	export default {
 		data() {
 			return {
@@ -33,6 +37,9 @@
 			}
 		},
 		onLoad: function(options) {
+			// #ifdef H5
+			context.onLoad(options,finishLegacyEntry);return;
+			// #endif
 			// #ifdef H5
 			if (options.code) {
 				this.code = options.code;

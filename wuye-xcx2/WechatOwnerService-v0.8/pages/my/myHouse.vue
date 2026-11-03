@@ -1,6 +1,13 @@
 <template>
 	<view class="tab-container bg-white">
-		<view class="cu-list menu">
+		<!-- #ifdef H5 -->
+		<wechat-binding-gate />
+		<!-- #endif -->
+		<view class="cu-list menu" v-if="!wechatPropertyLocked">
+			<view v-if="wechatDirect" class="padding"><button class="cu-btn line-green" @click="bindAdditional">继续绑定房产</button></view>
+			<picker v-if="wechatDirect && ownerOptions.length>1" :range="ownerOptions" range-key="label" :value="activeOwnerIndex" @change="changeOwner">
+				<view class="cu-item arrow"><view class="content">切换已绑定房产</view><view class="action text-gray">{{ownerOptions[activeOwnerIndex].label}}</view></view>
+			</picker>
 			<view class="cu-item arrow" v-if="rooms.length > 0" v-for="(item, key) in rooms" :key="key" :data-item="item" @click="myHouseDetail(item)">
 				<view class="content padding-tb-sm">
 					<view>
@@ -30,6 +37,7 @@
 	const context = require("../../context/Java110Context.js");
 	const constant = context.constant;
 	import {getRooms} from '../../api/room/roomApi.js';
+	import directWechat from '../../auth/wechat-session.js';
 
 	export default {
 		data() {
@@ -37,7 +45,8 @@
 				rooms: [],
 				loading: false,
 				loadError: '',
-				roomRequestId: 0
+				roomRequestId: 0,
+				ownerOptions:[],activeOwnerIndex:0
 			};
 		},
 
@@ -48,7 +57,10 @@
 		 * 生命周期函数--监听页面加载
 		 */
 		onLoad: function(options) {
-			context.onLoad(options);
+			context.onLoad(options,()=>this.loadOwnerHouse());
+			// #ifdef H5
+			return;
+			// #endif
 			return this.loadOwnerHouse();
 		},
 
@@ -89,6 +101,12 @@
 		 */
 		onShareAppMessage: function() {},
 		methods: {
+			bindAdditional(){uni.navigateTo({url:'/pages/bindOwner/bindOwner'});},
+			changeOwner(event){
+				const option=this.ownerOptions[Number(event.detail.value)];if(!option)return;
+				try{directWechat.selectOwner(option.key,uni,constant.mapping);return this.loadOwnerHouse();}
+				catch(error){uni.showToast({icon:'none',title:error.message});}
+			},
 			myHouseDetail: function(_item) {
 				this.vc.navigateTo({
 					url: '/pages/my/myHouseDetail?room=' + JSON.stringify(_item)
@@ -104,6 +122,14 @@
 				this.loading = true;
 				this.loadError = '';
 				this.rooms = [];
+				if(this.wechatDirect && this.wechatPropertyLocked){this.loading=false;return Promise.resolve();}
+				// #ifdef H5
+				if(this.wechatDirect){
+					const active=uni.getStorageSync(constant.mapping.OWNER_INFO)||{};
+					this.ownerOptions=directWechat.owners(uni,constant.mapping).map(owner=>({key:directWechat.ownerKey(owner),label:(owner.communityName||'已绑定小区')+' · '+(owner.appUserName||'业主')}));
+					this.activeOwnerIndex=Math.max(0,this.ownerOptions.findIndex(option=>option.key===directWechat.ownerKey(active)));
+				}
+				// #endif
 				return getRooms().then(res => {
 					if (requestId !== _that.roomRequestId) return;
 					_that.rooms = res && Array.isArray(res.rooms) ? res.rooms : [];
@@ -112,7 +138,7 @@
 					if (requestId !== _that.roomRequestId) return;
 					_that.rooms = [];
 					_that.loading = false;
-					_that.loadError = '房屋信息加载失败，请重试或核实绑定审核状态';
+					_that.loadError = '房屋信息加载失败，请重试或联系物业核实登记资料';
 				});
 			}
 		}

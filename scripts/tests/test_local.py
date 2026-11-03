@@ -157,6 +157,22 @@ class RuntimeProfileTests(IsolatedLauncherTest):
 
 
 class RouteCacheRefreshTests(unittest.TestCase):
+    def test_transactional_route_seed_preserves_order_type(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);(root/'scripts').mkdir()
+            (root/'scripts/local-schema.json').write_text('[]')
+            (root/'scripts/local-routes.json').write_text(json.dumps([
+                {'id':'test-data','code':'owner.testBinding','url':'','method':'POST','apps':['test-owner-app'],'instance':'Y','orderTypeCd':'D'},
+                {'id':'test-query','code':'owner.testQuery','url':'','method':'GET','apps':['test-owner-app']}
+            ]))
+            (root/'scripts/local-payments-query.json').write_text(json.dumps({'code':'test','name':'test','queries':[],'template':{}}))
+            with patch.object(local,'ROOT',root),patch.object(local,'mysql_run') as mysql,patch.object(local,'refresh_local_route_cache'):
+                local.migrate()
+            inserts=[call.args[0] for call in mysql.call_args_list if 'INSERT INTO TT.c_route' in call.args[0]]
+            self.assertEqual(len(inserts),2)
+            self.assertIn("s.service_id,'D',1000",inserts[0])
+            self.assertIn("s.service_id,'Q',1000",inserts[1])
+
     def test_stopped_order_never_calls_network(self):
         with patch.object(local, 'listening', return_value=False), patch.object(local.urllib.request, 'urlopen') as http:
             self.assertFalse(local.refresh_local_route_cache())

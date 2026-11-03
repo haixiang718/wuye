@@ -1,5 +1,9 @@
 <template>
 	<view>
+		<!-- #ifdef H5 -->
+		<wechat-binding-gate />
+		<!-- #endif -->
+		<view v-if="!wechatPropertyLocked">
 		<view class="header_fixed">
 			<scroll-view v-if="rooms.length <5 && rooms.length >1" class="bg-white nav">
 				<view class="flex text-center">
@@ -38,6 +42,7 @@
 				<button class="cu-btn bg-red shadow-blur lgplus sharp" @click="toRoomOweFee()">欠费缴费</button>
 				
 			</view>
+		</view>
 		</view>
 	</view>
 </template>
@@ -78,13 +83,16 @@
 		 */
 		onLoad: function(options) {
 			this.requestedRoomId = options.roomId || '';
-			context.onLoad(options);
+			context.onLoad(options,()=>{if(options.authTicket || options.key)this.loadRoomBills();});
 		},
 		/**
 		 * 生命周期函数--监听页面显示
 		 */
-		onShow: function() {
+		onShow: function() {return this.loadRoomBills();},
+		methods: {
+			loadRoomBills: function() {
 			let _that = this;
+			if(this.wechatDirect && this.wechatPropertyLocked){this.rooms=[];this.moreRooms=[];this.noData=true;return;}
 			if (!this.needFefresh) {
 				this.needFefresh = true;
 				return;
@@ -92,7 +100,7 @@
 			this.noData = false;
 			this.moreRooms = [];
 			let _roomRequestId = ++this.feeRequestId;
-			return getRooms().then(data => {
+			return getRooms(this.requestedRoomId).then(data => {
 				if (_roomRequestId !== _that.feeRequestId) return;
 				let _rooms = data.rooms;
 				this.rooms = _rooms;
@@ -123,7 +131,6 @@
 				uni.showToast({ icon: 'none', title: '房屋信息加载失败，请稍后重试' });
 			});
 		},
-		methods: {
 			payFee: function(_item) {
 				wx.navigateTo({
 					url: '/pages/roomFee/roomFee?fee=' + JSON.stringify(_item),

@@ -3,11 +3,26 @@ localFeatures.install(uni)
 import Vue from 'vue';
 // #ifdef H5
 import h5Runtime from './config/h5-runtime.js';
+import directWechat from './auth/wechat-session.js';
+import wechatBindingGate from './components/wechat-binding-gate.vue';
 h5Runtime.install(uni);
-Vue.mixin({computed:{paymentEnabled(){return h5Runtime.publicConfig().paymentEnabled === true;},smsEnabled(){return h5Runtime.publicConfig().smsEnabled === true;}}});
+Vue.component('wechat-binding-gate',wechatBindingGate);
+Vue.mixin({
+  data(){return {wechatIdentityRevision:0};},
+  created(){this._refreshWechatIdentity=()=>{this.wechatIdentityRevision++;};uni.$on('owner-wechat-session-changed',this._refreshWechatIdentity);},
+  onShow(){this.wechatIdentityRevision++;},
+  beforeDestroy(){uni.$off('owner-wechat-session-changed',this._refreshWechatIdentity);},
+  computed:{
+    paymentEnabled(){return h5Runtime.publicConfig().paymentEnabled === true;},smsEnabled(){return h5Runtime.publicConfig().smsEnabled === true;},
+    wechatDirect(){return true;},
+    wechatNeedsBinding(){this.wechatIdentityRevision;return directWechat.isGuest(uni);},
+    wechatIdentityReady(){this.wechatIdentityRevision;return directWechat.hasIdentity(uni);},
+    wechatPropertyLocked(){return this.wechatNeedsBinding || !this.wechatIdentityReady;}
+  }
+});
 // #endif
 // #ifndef H5
-Vue.mixin({computed:{paymentEnabled(){return true;},smsEnabled(){return true;}}});
+Vue.mixin({computed:{paymentEnabled(){return true;},smsEnabled(){return true;},wechatDirect(){return false;},wechatNeedsBinding(){return false;},wechatIdentityReady(){return false;},wechatPropertyLocked(){return false;}}});
 // #endif
 import App from './App';
 

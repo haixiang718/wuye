@@ -45,6 +45,12 @@ public class LoginOwnerController extends BaseController {
     @Autowired
     private IOwnerAppLoginSMO ownerAppLoginSMOImpl;
 
+    @RequestMapping(path="/bindOwnerWechat",method=RequestMethod.POST)
+    public ResponseEntity<String> bindOwnerWechat(@RequestBody String postInfo,HttpServletRequest request) {
+        IPageData pd=PageData.newInstance().builder("","","",postInfo,"login","","","",com.java110.dto.app.AppDto.WECHAT_OWNER_APP_ID);
+        return ownerAppLoginSMOImpl.bindOwnerWechat(pd);
+    }
+
 
     /**
      * 微信登录接口

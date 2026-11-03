@@ -8,6 +8,7 @@ const routes = new Map([
   ['/app/refreshToken', 'GET'], ['/app/loginOwnerWechatAuth', 'GET'],
   ['/app/wechat/gateway', 'GET,POST'], ['/app/loginOwner', 'POST'],
   ['/app/loginOwnerByKey', 'POST'], ['/app/owner/ownerLoginByKey', 'POST'],
+  ['/app/bindOwnerWechat', 'POST'],
   ['/app/area.listAreas', 'GET'], ['/app/community.listCommunitys', 'GET'],
   ['/app/communitys/queryCommunityMenu', 'GET'],
   ['/app/room.queryRoomsByOwner', 'GET'], ['/app/floor.queryFloors', 'GET'],

@@ -32,6 +32,8 @@ public interface IOwnerAppLoginSMO {
      */
     ResponseEntity<String> doLoginByKey(IPageData pd) throws SMOException;
 
+    ResponseEntity<String> bindOwnerWechat(IPageData pd) throws SMOException;
+
     /**
      * 获取access_token
      *

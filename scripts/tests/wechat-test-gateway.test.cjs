@@ -44,6 +44,10 @@ test('test ingress restricts routes and sessions, hides credentials, and preserv
   assert.match(enter.headers.get('set-cookie'), /HttpOnly/);
   assert.match(enter.headers.get('set-cookie'), /SameSite=Lax/);
   const headers = { cookie };
+  assert.equal((await fetch(base + '/app/bindOwnerWechat', {method:'POST',headers,
+    body:JSON.stringify({wechatSession:'synthetic-identity',name:'Synthetic',phone:'19900000000',idCard:'SYNTHETIC'})})).status,200);
+  assert.equal((await fetch(base + '/app/bindOwnerWechat', {headers})).status,405);
+  assert.equal((await fetch(base + '/app/bindOwnerWechat', {method:'POST'})).status,403);
   const configResponse = await fetch(base + '/wechat-test/config.js', { headers });
   assert.equal(configResponse.headers.get('cache-control'), 'no-store');
   const browserConfig = await configResponse.text();
@@ -58,12 +62,14 @@ test('test ingress restricts routes and sessions, hides credentials, and preserv
   assert.ok(!browserConfig.includes(config.appSecret));
   assert.ok(!browserConfig.includes(config.token));
   assert.ok(!browserConfig.includes(config.accessCode));
+  assert.equal(received.length,1,'Only the explicitly allowed binding POST reaches upstream');
+  const beforeForbidden=received.length;
   for (const path of ['/admin.html', '/api/fee.listFee', '/app/smallWeChat.listSmallWeChats',
     '/callComponent/menu/getMenus', '/.runtime/wechat-test.json', '/app/repair.listRepairSettings',
     '/app%2ffoo', '/app;x/fee.listFee', '/app/fee.listFee/extra']) {
     assert.equal((await fetch(base + path, { headers })).status, 404, path);
   }
-  assert.equal(received.length, 0, 'Forbidden operations must never reach upstream');
+  assert.equal(received.length, beforeForbidden, 'Forbidden operations must never reach upstream');
   assert.equal((await fetch(base + '/static/js/pages-index-index~pages-location-location.1974b4b3.js', { headers })).status, 200);
   assert.equal((await fetch(base + '/app/payment/toOweFeePay', { method: 'POST', headers })).status, 503);
   assert.equal((await fetch(base + '/app/fee.listFee', { headers: { ...headers, token: 'test-owner-token' } })).status, 200);

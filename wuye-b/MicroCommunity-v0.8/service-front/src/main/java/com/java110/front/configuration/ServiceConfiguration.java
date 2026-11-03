@@ -33,6 +33,7 @@ public class ServiceConfiguration {
         exclusions.append("/app/loginProperty,");// 物业APP登录跳过
         exclusions.append("/app/loginOwner,");// 业主APP登录跳过
         exclusions.append("/app/loginOwnerByKey,");// 根据key登录业主
+        exclusions.append("/app/bindOwnerWechat,");// OAuth identity checked independently; does not open generic APIs
         exclusions.append("/app/area.listAreas,");// 加载地区
         exclusions.append("/app/community.listCommunitys,");// 加载小区
         exclusions.append("/app/user.userSendSms,");// 发送短信验证码

@@ -13,6 +13,7 @@ import {doLoginOwnerByKey} from '../../auth/AppLogin.js';
 import {isNull,isNotNull} from '../../utils/StringUtil.js';
 
 import conf from '../../conf/config.js'
+import {ensureWechatEntry} from '../../auth/H5Login.js';
 
 /**
  * 获取WAppId
@@ -70,7 +71,7 @@ export function onLoad(_option = {}, callback = () => {}){
 	} else if (isNotNull(_key)) {
 		//根据key 去做登录
 		doLoginOwnerByKey(_key, callback);
-	}
+	} else ensureWechatEntry(_option, callback);
 	// #endif
 	//初始化wAppId
 	getWAppId();

@@ -19,7 +19,7 @@ function load(file, names, dependencies) {
     }
     return active.at(-1);
   }).join('\n').replace(/import\s[\s\S]*?from\s*['"][^'"]+['"];?/g, '').replace(/export function/g, 'function');
-  const sandbox = {module:{exports:{}}, console, ...dependencies};
+  const sandbox = {module:{exports:{}}, console, directWechat:require('../auth/wechat-session.js'), uni:{}, ...dependencies};
   vm.runInNewContext(source + '\nmodule.exports={' + names.join(',') + '};', sandbox);
   return sandbox.module.exports;
 }

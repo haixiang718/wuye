@@ -325,10 +325,13 @@ def migrate():
     for route in routes:
         code, service_id = route['code'], route['id']
         instance = route.get('instance', 'T')
+        order_type = route.get('orderTypeCd', 'Q')
+        if order_type not in ('Q', 'D'):
+            raise ValueError('Unsupported local route order type')
         mysql_run(f"INSERT INTO TT.c_service(service_id,service_code,name,business_type_cd,messageQueueName,is_instance,url,method) SELECT '{service_id}','{code}','Local compatibility route','API','','{instance}','{route['url']}','{route['method']}' WHERE NOT EXISTS (SELECT 1 FROM TT.c_service WHERE service_code='{code}');")
         mysql_run(f"UPDATE TT.c_service SET business_type_cd='API',messageQueueName='' WHERE service_id='{service_id}';")
         for app in route['apps']:
-            mysql_run(f"INSERT INTO TT.c_route(app_id,service_id,order_type_cd,invoke_limit_times,invoke_model,status_cd) SELECT '{app}',s.service_id,'Q',1000,'S','0' FROM TT.c_service s WHERE s.service_code='{code}' AND NOT EXISTS(SELECT 1 FROM TT.c_route r WHERE r.app_id='{app}' AND r.service_id=s.service_id AND r.status_cd='0');")
+            mysql_run(f"INSERT INTO TT.c_route(app_id,service_id,order_type_cd,invoke_limit_times,invoke_model,status_cd) SELECT '{app}',s.service_id,'{order_type}',1000,'S','0' FROM TT.c_service s WHERE s.service_code='{code}' AND NOT EXISTS(SELECT 1 FROM TT.c_route r WHERE r.app_id='{app}' AND r.service_id=s.service_id AND r.status_cd='0');")
     query = json.loads((ROOT / 'scripts/local-payments-query.json').read_text(encoding='utf-8'))
     # Hex literals avoid SQL string-escaping differences in the legacy XML/JSON templates.
     literal = lambda value: "CONVERT(0x" + value.encode('utf-8').hex() + " USING utf8mb4)"

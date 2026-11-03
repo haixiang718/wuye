@@ -1,5 +1,9 @@
 <template>
 	<view>
+		<!-- #ifdef H5 -->
+		<wechat-binding-gate />
+		<!-- #endif -->
+		<view v-if="!wechatPropertyLocked">
 		<scroll-view scroll-y>
 			<view class="block__title">房屋信息</view>
 			<view class="cu-list menu">
@@ -57,6 +61,7 @@
 				<button class="cu-btn bg-red shadow-blur lgplus sharp" :disabled="!paymentEnabled" @click="_payWxApp()">{{ paymentEnabled ? '提交订单' : '微信支付未开通' }}</button>
 				<!-- #endif -->
 			</view>
+		</view>
 		</view>
 	</view>
 
@@ -127,8 +132,8 @@
 			this.fees = [];
 			this.receivableAmount = '0.00';
 
-			return Promise.all([getCurCommunity(), getRooms()]).then(function(results) {
-				let _curCommunity = results[0];
+			return Promise.all([getCurCommunity(), getRooms(this.roomId)]).then(function(results) {
+				let _curCommunity = results[1].owner || results[0];
 				_that.communityId = _curCommunity.communityId;
 				_that.communityName = _curCommunity.communityName;
 				_that.rooms = Array.isArray(results[1].rooms) ? results[1].rooms : [];
@@ -146,9 +151,10 @@
 				_that.roomNum = _room.roomNum;
 				_that.builtUpArea = _room.builtUpArea;
 				return _that._loadRoomOweFee();
-			}).catch(function() {
+			}).catch(function(error) {
 				_that.fees = [];
 				_that.receivableAmount = '0.00';
+				if(error && error.code==='BINDING_REQUIRED')return;
 				uni.showToast({ icon: 'none', title: '房屋信息加载失败，请稍后重试' });
 			});
 		},

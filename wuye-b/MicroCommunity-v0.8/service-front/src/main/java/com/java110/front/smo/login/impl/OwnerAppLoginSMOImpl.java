@@ -2,11 +2,13 @@ package com.java110.front.smo.login.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.java110.core.base.smo.front.AbstractFrontServiceSMO;
 import com.java110.core.context.IPageData;
 import com.java110.core.context.PageData;
 import com.java110.core.factory.AuthenticationFactory;
 import com.java110.core.factory.WechatFactory;
+import com.java110.core.factory.OwnerWechatSession;
 import com.java110.dto.owner.OwnerAppUserDto;
 import com.java110.dto.app.AppDto;
 import com.java110.dto.smallWeChat.SmallWeChatDto;
@@ -130,6 +132,9 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
     @Override
     public ResponseEntity<String> doLoginByKey(IPageData pd) throws SMOException {
         JSONObject paramIn = JSONObject.parseObject(pd.getReqData());
+        String wechatSession = null;
+        String preferredMemberId = null;
+        JSONObject wechatIdentity = null;
         if (paramIn.containsKey("authTicket")) {
             String ticket = CommonCache.getAndRemoveValue("owner-wechat-login:" + paramIn.getString("authTicket"));
             if (StringUtil.isEmpty(ticket)) {
@@ -138,6 +143,17 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
             JSONObject loginTicket = JSONObject.parseObject(ticket);
             if (!pd.getAppId().equals(loginTicket.getString("appId"))) {
                 return new ResponseEntity<>("登录票据与应用不匹配", HttpStatus.UNAUTHORIZED);
+            }
+            wechatSession = loginTicket.getString("wechatSession");
+            preferredMemberId = loginTicket.getString("preferredMemberId");
+            if (!StringUtil.isEmpty(wechatSession)) {
+                try { wechatIdentity=OwnerWechatSession.read(wechatSession); }
+                catch (IllegalArgumentException expired) { return new ResponseEntity<>(expired.getMessage(),HttpStatus.UNAUTHORIZED); }
+                if (StringUtil.isEmpty(loginTicket.getString("key"))) {
+                    JSONObject guest=new JSONObject();guest.put("code",0);guest.put("hasBinding",false);
+                    guest.put("owner",null);guest.put("wechatSession",wechatSession);guest.put("expiresIn",Math.max(1,(wechatIdentity.getLongValue("expiresAt")-System.currentTimeMillis())/1000));
+                    return new ResponseEntity<>(guest.toJSONString(),HttpStatus.OK);
+                }
             }
             paramIn.put("key", loginTicket.getString("key"));
         }
@@ -162,24 +178,41 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
         ownerAppUserDto.setUserId(userId);
         List<OwnerAppUserDto> ownerAppUserDtos = approvedBindings(super.getForApis(pd, ownerAppUserDto, ServiceCodeConstant.LIST_APPUSERBINDINGOWNERS, OwnerAppUserDto.class));
 
+        if(wechatIdentity!=null)ownerAppUserDtos=wechatBindings(ownerAppUserDtos,wechatIdentity.getString("openId"),wechatIdentity.getString("communityId"));
+
 
         if (ownerAppUserDtos == null || ownerAppUserDtos.size() < 1) {
             responseEntity = new ResponseEntity<>("尚无审核通过的房产绑定，请联系物业审核", HttpStatus.FORBIDDEN);
             return responseEntity;
         }
 
-        JSONObject appUser = JSONObject.parseObject(JSONObject.toJSONString(ownerAppUserDtos.get(0)));
-        appUser.put("userId", userId);
-        appUser.put("userName", paramIn.getString("username"));
+        JSONArray owners = new JSONArray();
+        JSONObject appUser = null;
+        for (OwnerAppUserDto binding : ownerAppUserDtos) {
+            JSONObject owner = JSONObject.parseObject(JSONObject.toJSONString(binding));
+            owner.put("userId", userId);
+            owner.put("userName", paramIn.getString("username"));
+            owner.remove("openId");owner.remove("idCard");
+            owners.add(owner);
+            // Preference comes only from the consumed server ticket and must match a verified binding.
+            if (!StringUtil.isEmpty(preferredMemberId) && preferredMemberId.equals(binding.getMemberId())) appUser = owner;
+        }
+        if (appUser == null) appUser = owners.getJSONObject(0);
         JSONObject paramOut = new JSONObject();
         paramOut.put("code", 0);
         paramOut.put("msg", "成功");
         paramOut.put("owner", appUser);
+        paramOut.put("owners", owners);
         paramOut.put("token", userDto.getToken());
+        paramOut.put("hasBinding",true);
+        if (!StringUtil.isEmpty(wechatSession)) {
+            paramOut.put("wechatSession",wechatSession);paramOut.put("expiresIn",Math.max(1,(wechatIdentity.getLongValue("expiresAt")-System.currentTimeMillis())/1000));
+        }
         if (!paramIn.containsKey("authTicket")) {
             paramOut.put("key", userDto.getKey());
         }
-        return new ResponseEntity<>(paramOut.toJSONString(), HttpStatus.OK);
+        // The selected owner also appears in owners; browsers require complete JSON objects.
+        return new ResponseEntity<>(JSONObject.toJSONString(paramOut, SerializerFeature.DisableCircularReferenceDetect), HttpStatus.OK);
 
     }
 
@@ -245,16 +278,7 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
 
         int loginFlag = param.getIntValue("loginFlag");
 
-        //说明是登录页面，下发code 就可以，不需要下发key 之类
-        if (loginFlag == LOGIN_PAGE) {
-            //将openId放到redis 缓存，给前段下发临时票据
-            String code = UUID.randomUUID().toString();
-            CommonCache.setValue(code, openId, expireTime);
-            CommonCache.setValue(code + "-nickname", userinfo_paramObj.getString("nickname"), expireTime);
-            CommonCache.setValue(code + "-headimgurl", userinfo_paramObj.getString("headimgurl"), expireTime);
-            errorUrl = appendOAuthParameter(errorUrl, "code", code);
-            return ResultVo.redirectPage(errorUrl);
-        }
+        String identitySession=OwnerWechatSession.issue(smallWeChatDto.getAppId(),openId,smallWeChatDto.getObjId());
 
         //判断当前openId 是否绑定了业主
         pd = PageData.newInstance().builder("-1", "", "", pd.getReqData(),
@@ -263,16 +287,11 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
         OwnerAppUserDto ownerAppUserDto = new OwnerAppUserDto();
         ownerAppUserDto.setOpenId(openId);
         ownerAppUserDto.setAppType(OwnerAppUserDto.APP_TYPE_WECHAT);
-        List<OwnerAppUserDto> ownerAppUserDtos = approvedBindings(super.getForApis(pd, ownerAppUserDto, ServiceCodeConstant.LIST_APPUSERBINDINGOWNERS, OwnerAppUserDto.class));
+        if(!StringUtil.isEmpty(smallWeChatDto.getObjId()))ownerAppUserDto.setCommunityId(smallWeChatDto.getObjId());
+        List<OwnerAppUserDto> ownerAppUserDtos = wechatBindings(super.getForApis(pd, ownerAppUserDto, ServiceCodeConstant.LIST_APPUSERBINDINGOWNERS, OwnerAppUserDto.class),openId,smallWeChatDto.getObjId());
 
         if (ownerAppUserDtos == null || ownerAppUserDtos.size() < 1) {
-            //将openId放到redis 缓存，给前段下发临时票据
-            String code = UUID.randomUUID().toString();
-            CommonCache.setValue(code, openId, expireTime);
-            CommonCache.setValue(code + "-nickname", userinfo_paramObj.getString("nickname"), expireTime);
-            CommonCache.setValue(code + "-headimgurl", userinfo_paramObj.getString("headimgurl"), expireTime);
-            errorUrl = appendOAuthParameter(errorUrl, "code", code);
-            return ResultVo.redirectPage(errorUrl);
+            return identityRedirect(redirectUrl,pd.getAppId(),identitySession,null);
         }
 
         // String accessToken = paramObj.getString("access_token");//暂时不用
@@ -292,22 +311,72 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
         UserDto tmpUserDto = super.getForApi(pd, userDto, ServiceCodeConstant.QUERY_USER_SECRET, UserDto.class);
 
         if (tmpUserDto == null || StringUtil.isEmpty(tmpUserDto.getKey())) {
-            String code = UUID.randomUUID().toString();
-            CommonCache.setValue(code, openId, expireTime);
-            CommonCache.setValue(code + "-nickname", userinfo_paramObj.getString("nickname"), expireTime);
-            CommonCache.setValue(code + "-headimgurl", userinfo_paramObj.getString("headimgurl"), expireTime);
-            errorUrl = appendOAuthParameter(errorUrl, "code", code);
-            return ResultVo.redirectPage(errorUrl);
+            return identityRedirect(redirectUrl,pd.getAppId(),identitySession,null);
         }
         // Only a short-lived ticket crosses the browser redirect; the user key stays in Redis.
         String authTicket = UUID.randomUUID().toString();
         JSONObject loginTicket = new JSONObject();
         loginTicket.put("key", tmpUserDto.getKey());
         loginTicket.put("appId", pd.getAppId());
+        loginTicket.put("wechatSession",identitySession);
         CommonCache.setValue("owner-wechat-login:" + authTicket, loginTicket.toJSONString(), 300);
         redirectUrl = appendOAuthParameter(redirectUrl, "authTicket", authTicket);
         return ResultVo.redirectPage(redirectUrl);
 
+    }
+
+    private ResponseEntity<String> identityRedirect(String redirectUrl,String appId,String identitySession,String key) {
+        String ticket=UUID.randomUUID().toString();JSONObject value=new JSONObject();
+        value.put("appId",appId);value.put("wechatSession",identitySession);if(key!=null)value.put("key",key);
+        CommonCache.setValue("owner-wechat-login:"+ticket,value.toJSONString(),300);
+        return ResultVo.redirectPage(appendOAuthParameter(redirectUrl,"authTicket",ticket));
+    }
+
+    private List<OwnerAppUserDto> wechatBindings(List<OwnerAppUserDto> rows,String openId,String communityId) {
+        List<OwnerAppUserDto> result=new java.util.ArrayList<>();
+        if(rows!=null)for(OwnerAppUserDto row:rows)if("12000".equals(row.getState())&&OwnerAppUserDto.APP_TYPE_WECHAT.equals(row.getAppType())
+                &&openId.equals(row.getOpenId())&&(StringUtil.isEmpty(communityId)||communityId.equals(row.getCommunityId())))result.add(row);
+        return result;
+    }
+
+    @Override
+    public ResponseEntity<String> bindOwnerWechat(IPageData pd) {
+        try {
+            JSONObject input=JSONObject.parseObject(pd.getReqData());
+            try { OwnerWechatSession.read(input.getString("wechatSession")); }
+            catch(IllegalArgumentException expired){return new ResponseEntity<>(expired.getMessage(),HttpStatus.UNAUTHORIZED);}
+            JSONObject command=new JSONObject();
+            for(String name:new String[]{"wechatSession","name","phone","idCard","communityId"})
+                if(input.containsKey(name))command.put(name,input.get(name));
+            ResponseEntity<String> api=callCenterService(restTemplate,pd,command.toJSONString(),ServiceConstant.SERVICE_API_URL+"/api/owner.bindWechatIdentity",HttpMethod.POST);
+            if(api.getStatusCode()!=HttpStatus.OK)return new ResponseEntity<>("绑定暂未完成，请稍后重试",HttpStatus.BAD_REQUEST);
+            JSONObject reply=JSONObject.parseObject(api.getBody());
+            if(reply==null||reply.getInteger("code")==null)return new ResponseEntity<>("绑定暂未完成，请稍后重试",HttpStatus.BAD_REQUEST);
+            if(reply.getIntValue("code")!=0){
+                int code=reply.getIntValue("code");
+                String message=code==429?"尝试次数过多，请十五分钟后再试":code==409?"正在处理房产绑定，请稍后重试":code==400?"资料不匹配或登记信息不完整，请核对后联系物业":"绑定暂未完成，请稍后重试或联系物业";
+                return ResultVo.createResponseEntity(code,message);
+            }
+            JSONObject bound=reply.getJSONObject("data");
+            if(bound==null||StringUtil.isEmpty(bound.getString("userId")))
+                return new ResponseEntity<>("绑定暂未完成，请稍后重试",HttpStatus.BAD_REQUEST);
+            IPageData ownerPd=PageData.newInstance().builder(bound.getString("userId"),"","",pd.getReqData(),"","","","",AppDto.WECHAT_OWNER_APP_ID);
+            UserDto query=new UserDto();query.setUserId(bound.getString("userId"));
+            UserDto user=super.getForApi(ownerPd,query,ServiceCodeConstant.QUERY_USER_SECRET,UserDto.class);
+            if(user==null||StringUtil.isEmpty(user.getKey())) {
+                return new ResponseEntity<>("绑定已保存，登录信息暂未同步，请稍后重新微信授权",HttpStatus.CONFLICT);
+            }
+            JSONObject ticket=new JSONObject();ticket.put("appId",AppDto.WECHAT_OWNER_APP_ID);
+            ticket.put("key",user.getKey());ticket.put("wechatSession",input.getString("wechatSession"));
+            ticket.put("preferredMemberId",bound.getString("memberId"));
+            String authTicket=UUID.randomUUID().toString();CommonCache.setValue("owner-wechat-login:"+authTicket,ticket.toJSONString(),300);
+            JSONObject exchange=new JSONObject();exchange.put("authTicket",authTicket);
+            return doLoginByKey(PageData.newInstance().builder("","","",exchange.toJSONString(),"","","","",AppDto.WECHAT_OWNER_APP_ID));
+        } catch(IllegalArgumentException failure) {
+            return new ResponseEntity<>(failure.getMessage(),HttpStatus.BAD_REQUEST);
+        } catch(Exception failure) {
+            return new ResponseEntity<>("绑定暂未完成，请核对资料或稍后重试",HttpStatus.BAD_REQUEST);
+        }
     }
 
     /**
@@ -362,21 +431,17 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
     }
 
     private SmallWeChatDto getPublicWechat(IPageData pd, String appId) {
-        SmallWeChatDto config;
-        if (!StringUtil.isEmpty(appId)) {
-            JSONObject lookup = new JSONObject();
-            lookup.put("appId", appId);
-            config = getSmallWechat(pd, lookup);
-            if (config == null || !SmallWeChatDto.WECHAT_TYPE_PUBLIC.equals(config.getWeChatType())) {
-                throw new IllegalArgumentException("Public WeChat account is not configured");
-            }
-        } else {
-            config = new SmallWeChatDto();
-            config.setAppId(wechatAuthProperties.getWechatAppId());
-            config.setAppSecret(wechatAuthProperties.getWechatAppSecret());
+        if(StringUtil.isEmpty(appId)) {
+            appId=wechatAuthProperties.getWechatAppId();
+            if(StringUtil.isEmpty(appId)||StringUtil.isEmpty(wechatAuthProperties.getWechatAppSecret()))
+                throw new IllegalArgumentException("Public WeChat AppID and AppSecret are required");
         }
-        if (StringUtil.isEmpty(config.getAppId()) || StringUtil.isEmpty(config.getAppSecret())) {
-            throw new IllegalArgumentException("Public WeChat AppID and AppSecret are required");
+        JSONObject lookup=new JSONObject();lookup.put("appId",appId);
+        SmallWeChatDto config=getSmallWechat(pd,lookup);
+        if(config==null||!appId.equals(config.getAppId())||!SmallWeChatDto.WECHAT_TYPE_PUBLIC.equals(config.getWeChatType())
+                || !SmallWeChatDto.OBJ_TYPE_COMMUNITY.equals(config.getObjType())||StringUtil.isEmpty(config.getObjId())
+                ||StringUtil.isEmpty(config.getAppSecret())) {
+            throw new IllegalArgumentException("Public WeChat community account is not configured");
         }
         return config;
     }
@@ -592,7 +657,7 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
                 pd.getAppId());
         responseEntity = this.callCenterService(restTemplate, pd, "",
                 ServiceConstant.SERVICE_API_URL + "/api/smallWeChat.listSmallWeChats?appId="
-                        + paramIn.getString("appId") + "&page=1&row=1", HttpMethod.GET);
+                        + paramIn.getString("appId") + "&page=1&row=2", HttpMethod.GET);
 
         if (responseEntity.getStatusCode() != HttpStatus.OK) {
             return null;
@@ -600,7 +665,7 @@ public class OwnerAppLoginSMOImpl extends AbstractFrontServiceSMO implements IOw
         JSONObject smallWechatObj = JSONObject.parseObject(responseEntity.getBody().toString());
         JSONArray smallWeChats = smallWechatObj.getJSONArray("smallWeChats");
 
-        if (smallWeChats == null || smallWeChats.size() < 1) {
+        if (smallWeChats == null || smallWeChats.size() != 1) {
             return null;
         }
 

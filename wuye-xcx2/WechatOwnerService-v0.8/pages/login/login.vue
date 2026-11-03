@@ -1,5 +1,7 @@
 <template>
 	<view class="">
+		<view v-if="wechatDirect"><wechat-binding-gate /></view>
+		<view v-else>
 		<view class="flex justify-center logo">
 			<view class="cu-avatar xl round margin-left logo-lage" :style="{backgroundImage: 'url(' + logoUrl + ')' }"></view>
 		</view>
@@ -33,6 +35,7 @@
 			<view v-if="smsEnabled" class="text-center margin-top-sm text-green" @click="_doLoginPhone()">{{phoneLoginName}}</view>
 		</view>
 
+		</view>
 	</view>
 </template>
 
@@ -41,6 +44,7 @@
 	import wInput from '../../components/watch-input.vue' //input
 	import wButton from '../../components/watch-button.vue' //button
 	import returnTarget from '../../auth/return-target.js';
+	import {finishLegacyEntry} from '../../auth/H5Login.js';
 	import {
 		sendSmsCode,
 		userLogin
@@ -68,6 +72,10 @@
 			};
 		},
 		onLoad(option) {
+			// #ifdef H5
+			context.onLoad(option,finishLegacyEntry);
+			return;
+			// #endif
 			// #ifdef H5
 			this.code = option.code;
 			let _key = option.authTicket || option.key;

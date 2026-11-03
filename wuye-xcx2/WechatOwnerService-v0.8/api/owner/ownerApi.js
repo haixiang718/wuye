@@ -14,6 +14,7 @@ import
 
 import mapping from '../../constant/MappingConstant.js'
 import ownerSession from '../../auth/owner-session.js';
+import directWechat from '../../auth/wechat-session.js';
 
 /**
  * 查询当前业主信息
@@ -21,6 +22,11 @@ import ownerSession from '../../auth/owner-session.js';
 export function getCurOwner() {
 	return ownerSession.ready().then(() => new Promise(
 		(resolve, reject) => {
+			// #ifdef H5
+			if (directWechat.isGuest(uni)) {
+				const error = new Error('请先绑定房产后查看');error.code='BINDING_REQUIRED';reject(error);return;
+			}
+			// #endif
 			let _ownerInfo = wx.getStorageSync(mapping.OWNER_INFO);
 			if (_ownerInfo) {
 				resolve(_ownerInfo);

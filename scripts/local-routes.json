@@ -1,5 +1,15 @@
 [
   {
+    "id": "local_20261103_002",
+    "code": "owner.bindWechatIdentity",
+    "url": "http://order-service/orderApi/service",
+    "method": "POST",
+    "apps": ["992020061452450002"],
+    "instance": "Y",
+    "orderTypeCd": "D",
+    "reason": "Verified official-account identity and exact owner name, phone and ID match; technical user and binding commit together."
+  },
+  {
     "id": "local_20261103_001",
     "code": "fee.payOweFee",
     "url": "http://order-service/orderApi/service",

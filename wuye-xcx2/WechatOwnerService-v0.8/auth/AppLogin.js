@@ -5,6 +5,7 @@ import {
 import mapping from '../constant/MappingConstant.js'
 import {getWAppId} from '../api/init/initApi.js'
 import ownerSession from './owner-session.js';
+import directWechat from './wechat-session.js';
 
 /**
  * 
@@ -19,14 +20,28 @@ export function doLoginOwnerByKey(_key, callback = () => {}) {
 		method: 'post',
 		data: typeof _key === 'object' ? {authTicket:_key.authTicket} : {key:_key},
 		success: function(res) {
-			let _param = res.data;
-			if (_param.code != 0) {
+			let _param = res.data || {};
+			if (res.statusCode != 200 || _param.code != 0) {
 				complete();
 				uni.navigateTo({
 					url: '/pages/showlogin/showlogin?wAppId=' + getWAppId()
 				});
 				return;
 			}
+			// #ifdef H5
+			try {
+				directWechat.apply(_param, uni, mapping);
+				const cleanUrl = window.location.href.replace(/([?&])(?:authTicket|key|code)=[^&#]*&?/g, '$1').replace(/[?&](?=#|$)/g, '');
+				window.history.replaceState(null, '', cleanUrl);
+				complete();
+				callback(_param);
+				return;
+			} catch (failure) {
+				complete();
+				uni.showToast({icon:'none',title:failure.message});
+				return;
+			}
+			// #endif
 
 			let _ownerInfo = _param.owner;
 			wx.setStorageSync(mapping.OWNER_INFO, _ownerInfo);

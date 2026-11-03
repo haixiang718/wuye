@@ -1,5 +1,7 @@
 <template>
 	<view>
+		<view v-if="wechatDirect"><wechat-binding-gate /></view>
+		<view v-else>
 		<view class="block__title">选择小区</view>
 
 		<view class="cu-form-group arrow">
@@ -45,6 +47,7 @@
 		<view class="padding flex flex-direction margin-top">
 			<button class="cu-btn bg-green   lg" @click="_doRegister()">绑定</button>
 		</view>
+		</view>
 	</view>
 </template>
 
@@ -52,6 +55,7 @@
 	const context = require("../../context/Java110Context.js");
 	const constant = context.constant;
 	import pickerAddress from '../../components/pickerAddress/pickerAddress.vue'
+	import {finishLegacyEntry} from '../../auth/H5Login.js';
 
 	export default {
 		components: {
@@ -91,6 +95,9 @@
 		 * 生命周期函数--监听页面加载
 		 */
 		onLoad: function(options) {
+			// #ifdef H5
+			context.onLoad(options,finishLegacyEntry);return;
+			// #endif
 			let _that = this;
 		},
 

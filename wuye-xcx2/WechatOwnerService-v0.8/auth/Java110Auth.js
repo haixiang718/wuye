@@ -1,5 +1,6 @@
 import mapping from '../constant/MappingConstant.js'
 import ownerSession from './owner-session.js';
+import directWechat from './wechat-session.js';
 
 /**
  * 检查会话是否 存在
@@ -7,6 +8,9 @@ import ownerSession from './owner-session.js';
  */
 export function checkSession() {
 	return ownerSession.ready().then(() => new Promise((resolve, reject) => {
+		// #ifdef H5
+		if(!directWechat.hasIdentity(uni) || directWechat.isGuest(uni)){reject();return;}
+		// #endif
 		let _that = this;
 		let loginFlag = wx.getStorageSync(mapping.LOGIN_FLAG);
 		let nowDate = new Date();
@@ -58,6 +62,9 @@ export function checkSession() {
  * add by 吴学文 QQ:928255095
  */
 export function hasLogin() {
+	// #ifdef H5
+	if(!directWechat.hasIdentity(uni) || directWechat.isGuest(uni))return false;
+	// #endif
 	//判断当前登录状态，不调跳转登录界面
 	let loginFlag = uni.getStorageSync(mapping.LOGIN_FLAG);
 	let nowDate = new Date();

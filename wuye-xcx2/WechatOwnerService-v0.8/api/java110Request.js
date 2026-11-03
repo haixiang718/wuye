@@ -9,6 +9,7 @@ import url from '../constant/url.js'
 
 import mapping from '../constant/MappingConstant.js'
 import returnTarget from '../auth/return-target.js';
+import directWechat from '../auth/wechat-session.js';
 
 import {checkSession} from '../auth/Java110Auth.js'
 import {getWAppId} from './init/initApi.js'
@@ -52,7 +53,7 @@ export function getHeaders() {
 export function request(_reqObj) {
 	if (localFeatures.blockRequest(_reqObj)) return;
 	
-	debug('java110Request','request',_reqObj);
+	debug('java110Request','request',{url:_reqObj.url,method:_reqObj.method});
 	
 	//这里判断只有在 post 方式时 放加载框
 	if (_reqObj.hasOwnProperty("method") && "POST" == _reqObj.method) {
@@ -95,6 +96,8 @@ export function request(_reqObj) {
 		_reqObj.success = function(res) {
 			// A concurrent response for an old token must not invalidate a newly logged-in session.
 			if (res.statusCode === 401 && _requestToken && wx.getStorageSync(mapping.TOKEN) === _requestToken) {
+				directWechat.clear(uni);
+				if(uni.$emit)uni.$emit('owner-wechat-session-changed');
 				returnTarget.remember(window.location.hash, uni);
 				[mapping.TOKEN, mapping.LOGIN_FLAG, mapping.OWNER_INFO, mapping.USER_INFO,
 					mapping.OWNER_KEY, mapping.CURRENT_COMMUNITY_INFO].filter(Boolean).forEach(key => uni.removeStorageSync(key));
@@ -106,6 +109,14 @@ export function request(_reqObj) {
 		// #endif
 		uni.request(_reqObj);
 	}, function(error) { //回话过期
+		// #ifdef H5
+		if (directWechat.isGuest(uni)) {
+			const required = {code:'BINDING_REQUIRED',errMsg:'请先绑定房产后查看'};
+			if (_reqObj.fail) _reqObj.fail(required);
+			if (_reqObj.complete) _reqObj.complete(required);
+			return;
+		}
+		// #endif
 		const _failure = {code:'LOGIN_REQUIRED',errMsg:'登录已过期，请重新登录'};
 		if (_reqObj.fail) _reqObj.fail(_failure);
 		if (_reqObj.complete) _reqObj.complete(_failure);
@@ -142,7 +153,7 @@ export function request(_reqObj) {
  */
 export function requestNoAuth(_reqObj) {
 	if (localFeatures.blockRequest(_reqObj)) return;
-	debug('java110Request','requestNoAuth',_reqObj);
+	debug('java110Request','requestNoAuth',{url:_reqObj.url,method:_reqObj.method});
 	//这里判断只有在 post 方式时 放加载框
 	if (_reqObj.hasOwnProperty("method") && "POST" == _reqObj.method) {
 		uni.showLoading({

@@ -29,6 +29,8 @@ import {
 from '../auth/AppLogin.js'
 
 import mapping from '../constant/MappingConstant.js'
+import directWechat from '../auth/wechat-session.js';
+import returnTarget from '../auth/return-target.js';
 
 import {
 	getStorageSync
@@ -75,6 +77,15 @@ export function navigateTo(_param, callback = () => {}) {
 		return ;
 	}
 	debug('vcRoute', 'navigateTo', _param);
+	// #ifdef H5
+	if (directWechat.isGuest(uni)) {
+		returnTarget.remember(_param.url, uni);
+		const visible = ['/pages/my/myHouse','/pages/roomFeeListNew/roomFeeListNew','/pages/roomOweFee/roomOweFee','/pages/bindOwner/bindOwner'];
+		if (visible.includes(_tempUrl)) uni.navigateTo(_param);
+		else uni.navigateTo({url:'/pages/bindOwner/bindOwner?wAppId='+getWAppId()});
+		return;
+	}
+	// #endif
 	//校验是否登录，如果没有登录跳转至温馨提示页面
 	checkSession().then(function() {
 		//有回话 跳转至相应页面

@@ -1,5 +1,10 @@
 <template>
 	<view>
+		<!-- #ifdef H5 -->
+		<wechat-binding-gate />
+		<!-- #endif -->
+		<view v-if="!wechatPropertyLocked">
+			<view v-if="wechatDirect" class="padding bg-white"><button class="cu-btn line-green" @click="bindingOwner">继续绑定房产</button></view>
 		<!--index.wxml-->
 		<view class="user-container bg-white ">
 
@@ -72,6 +77,7 @@
 			</view>
 
 		</view>
+		</view>
 	</view>
 </template>
 
@@ -101,6 +107,9 @@
 			context.onLoad(options, () => {
 				this.refreshPageLoginInfo();
 			});
+			// #ifdef H5
+			return;
+			// #endif
 			let _that = this;
 			let login = context.checkLoginStatus();
 			if (login) {
@@ -118,6 +127,7 @@
 			// 自动登录后 刷新页面登录信息
 			refreshPageLoginInfo: function() {
 				let _that = this; //查询用户信息
+				if(this.wechatDirect && this.wechatPropertyLocked){this.login=false;this.ownerFlag=false;this.userInfo={};this.userName='';return;}
 				if (!_that.ckeckUserInfo()) {
 					_that.login = false;
 					return;
@@ -128,6 +138,9 @@
 				this.loadOwnerHeaderImg();
 			},
 			bindingOwner: function() {
+				// #ifdef H5
+				uni.navigateTo({url:'/pages/bindOwner/bindOwner'});return;
+				// #endif
 				if (!this.ckeckUserInfo()) {
 					this.vc.navigateTo({
 						url: '../showlogin/showlogin'
@@ -157,7 +170,6 @@
 				let _that = this;
 
 				context.getOwner(function(_ownerInfo) {
-					console.log(_ownerInfo);
 
 					if (_ownerInfo) {
 						_that.ownerFlag = true;
@@ -254,6 +266,7 @@
 				});
 			},
 			ckeckUserInfo: function() {
+				if(this.wechatDirect && this.wechatPropertyLocked)return false;
 				return context.checkLoginStatus();
 			},
 			myParking: function() {

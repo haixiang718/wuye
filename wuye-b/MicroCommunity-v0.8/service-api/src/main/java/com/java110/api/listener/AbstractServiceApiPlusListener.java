@@ -46,7 +46,7 @@ public abstract class AbstractServiceApiPlusListener extends AbstractServiceApiD
         //获取请求数据
         JSONObject reqJson = dataFlowContext.getReqJson();
 
-        logger.debug("API服务 --- 请求参数为：{}", reqJson.toJSONString());
+        logger.debug("API服务请求 serviceCode={}", getServiceCode());
         dataFlowContext.setResponseEntity(null);
 
         validate(event, reqJson);
@@ -63,7 +63,8 @@ public abstract class AbstractServiceApiPlusListener extends AbstractServiceApiD
         //提交事务
         commit(dataFlowContext);
 
-        logger.debug("API服务 --- 返回报文信息：{}", dataFlowContext.getResponseEntity());
+        logger.debug("API服务返回 serviceCode={} status={}", getServiceCode(),
+                dataFlowContext.getResponseEntity() == null ? null : dataFlowContext.getResponseEntity().getStatusCode());
 
     }
 
