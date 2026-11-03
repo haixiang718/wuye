@@ -28,6 +28,9 @@ import redis.clients.jedis.*;
 import java.math.BigDecimal;
 import java.net.*;
 import java.util.*;
+import java.util.regex.*;
+import java.text.SimpleDateFormat;
+import java.nio.charset.StandardCharsets;
 
 /** Sends only a selected current bill; never starts the community-wide scheduled task. */
 @Service
@@ -118,6 +121,11 @@ public class BillNotificationService {
             }
             String token = accessToken(account);
             if (StringUtil.isEmpty(token)) return result(400,"无法获取公众号访问凭证，请核对 AppID、密钥和微信接口权限",0,false);
+            JSONObject templateData;
+            try {
+                templateData = templateData(bill,templateContent(token,attrs.get(0).getValue()));
+            } catch (IllegalArgumentException e) { throw e; }
+            catch (Exception e) { return result(400,"无法核对公众号模板，请检查模板 ID、接口权限和网络后重试",0,false); }
             int rejected = 0;
             for (String openId : recipients) {
                 String recipient = DigestUtils.sha256Hex(openId);
@@ -127,7 +135,7 @@ public class BillNotificationService {
                 remember(progressKey,progress.toJSONString(),0);
                 JSONObject reply;
                 try {
-                    ResponseEntity<String> response = deliver(token,message(bill,openId,attrs.get(0).getValue(),link));
+                    ResponseEntity<String> response = deliver(token,message(openId,attrs.get(0).getValue(),link,templateData));
                     reply = JSONObject.parseObject(response.getBody());
                     if (!response.getStatusCode().is2xxSuccessful() || reply == null || reply.getInteger("errcode") == null) throw new IllegalStateException("Uncertain WeChat response");
                     if (reply.getIntValue("errcode") != 0) { delivered.remove(recipient); rejected++; }
@@ -173,12 +181,54 @@ public class BillNotificationService {
         if (FeeDto.PAYER_OBJ_TYPE_ROOM.equals(bill.getPayerObjType())) page = new URI(uri.getScheme(),null,uri.getHost(),uri.getPort(),"/",null,null).toString()+"#/pages/roomFeeListNew/roomFeeListNew?roomId=";
         return page + URLEncoder.encode(bill.getPayObjId(),"UTF-8") + "&wAppId=" + URLEncoder.encode(account.getAppId(),"UTF-8");
     }
-    private String message(BillOweFeeDto bill,String openId,String template,String link) {
-        PropertyFeeTemplateMessage message=new PropertyFeeTemplateMessage(); message.setTouser(openId); message.setTemplate_id(template); message.setUrl(link);
+    private JSONObject templateData(BillOweFeeDto bill,String content) {
+        required(content,"未找到当前公众号的欠费通知模板，请检查模板 ID");
+        Set<String> fields=new HashSet<String>();
+        Matcher matcher=Pattern.compile("\\{\\{([A-Za-z0-9_]+)\\.DATA\\}\\}").matcher(content);
+        while(matcher.find())fields.add(matcher.group(1));
+        Set<String> modern=new HashSet<String>(Arrays.asList("thing2","amount4","thing9","thing10","time12"));
+        if(fields.equals(modern)) {
+            String normalized=content.replaceAll("\\s+", "").replace('：',':');
+            String[] meanings={"业主姓名:{{thing2.DATA}}","账单金额:{{amount4.DATA}}","缴费类型:{{thing9.DATA}}","账单名称:{{thing10.DATA}}","提醒时间:{{time12.DATA}}"};
+            for(String meaning:meanings)if(!normalized.contains(meaning))throw new IllegalArgumentException("欠费模板字段含义不匹配，请联系管理员适配");
+            JSONObject data=new JSONObject();
+            data.put("thing2",new Content(thing(bill.getOwnerName(),"账单缺少业主姓名，请核对业主资料")));
+            data.put("amount4",new Content(new BigDecimal(bill.getBillAmountOwed()).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()));
+            data.put("thing9",new Content(thing(bill.getFeeTypeName(),"账单缺少缴费类型")));
+            String name=StringUtil.isEmpty(bill.getFeeName())?bill.getFeeTypeName()+"账单":bill.getFeeName();
+            data.put("thing10",new Content(thing(name,"账单缺少名称")));
+            SimpleDateFormat time=new SimpleDateFormat("yyyy-MM-dd HH:mm");time.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
+            data.put("time12",new Content(time.format(new Date())));
+            return data;
+        }
+        if(!fields.containsAll(Arrays.asList("keyword1","keyword2","keyword3"))
+                || !new HashSet<String>(Arrays.asList("first","keyword1","keyword2","keyword3","remark")).containsAll(fields))
+            throw new IllegalArgumentException("当前欠费通知模板格式尚未适配，请联系管理员");
         Data data=new Data(); data.setFirst(new Content(bill.getFeeTypeName()+"提醒")); data.setKeyword1(new Content(bill.getPayerObjName()));
         data.setKeyword2(new Content(new BigDecimal(bill.getBillAmountOwed()).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()));
-        data.setKeyword3(new Content(bill.getFeeEndTime()+"至"+bill.getDeadlineTime())); data.setRemark(new Content("请核对账单详情，如有疑问请联系物业")); message.setData(data);
+        data.setKeyword3(new Content(bill.getFeeEndTime()+"至"+bill.getDeadlineTime())); data.setRemark(new Content("请核对账单详情，如有疑问请联系物业"));
+        JSONObject result=(JSONObject)JSON.toJSON(data);result.keySet().retainAll(fields);return result;
+    }
+    private String thing(String value,String missing) {
+        required(value,missing);value=value.trim();required(value,missing);
+        int length=value.codePointCount(0,value.length());
+        return length>20?value.substring(0,value.offsetByCodePoints(0,20)):value;
+    }
+    private String message(String openId,String template,String link,JSONObject data) {
+        JSONObject message=new JSONObject();message.put("touser",openId);message.put("template_id",template);message.put("url",link);message.put("data",data);
         return JSON.toJSONString(message);
+    }
+    protected String templateContent(String token,String templateId) {
+        // WeChat may omit charset; StringHttpMessageConverter otherwise defaults to ISO-8859-1.
+        ResponseEntity<byte[]> response=notificationClient().getForEntity("https://api.weixin.qq.com/cgi-bin/template/get_all_private_template?access_token="+token,byte[].class);
+        JSONObject body=response.getBody()==null?null:JSON.parseObject(new String(response.getBody(),StandardCharsets.UTF_8));
+        if(!response.getStatusCode().is2xxSuccessful()||body==null||body.getIntValue("errcode")!=0||body.getJSONArray("template_list")==null)
+            throw new IllegalStateException("Template lookup failed");
+        for(Object item:body.getJSONArray("template_list")) {
+            JSONObject template=(JSONObject)item;
+            if(templateId.equals(template.getString("template_id")))return template.getString("content");
+        }
+        return null;
     }
     protected String feePage() { return MappingCache.getValue("WECHAT","OWE_FEE_PAGE"); }
     protected String accessToken(SmallWeChatDto account) { return WechatFactory.getAccessToken(account.getAppId(),account.getAppSecret()); }

@@ -28,6 +28,7 @@ public class LinkedNotificationAudit {
         @Override protected boolean acquire(String key,String token){return locks.add(key);}
         @Override protected void release(String key,String token){locks.remove(key);}
         @Override protected String accessToken(SmallWeChatDto ignored){return "simulation-token";}
+        @Override protected String templateContent(String token,String templateId){return "{{first.DATA}}{{keyword1.DATA}}{{keyword2.DATA}}{{keyword3.DATA}}{{remark.DATA}}";}
         @Override protected String feePage(){return "https://simulation.invalid/#/pages/roomFeeListNew/roomFeeListNew?roomId=";}
         @Override protected ResponseEntity<String> deliver(String token,String payload){
             JSONObject message=JSON.parseObject(payload);

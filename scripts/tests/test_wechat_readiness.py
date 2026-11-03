@@ -10,6 +10,12 @@ import wechat_readiness as readiness
 
 
 class WechatReadinessTests(unittest.TestCase):
+    def test_current_property_template_is_supported_by_meaning_and_fields(self):
+        content = '\u4e1a\u4e3b\u59d3\u540d:{{thing2.DATA}}\n\u8d26\u5355\u91d1\u989d:{{amount4.DATA}}\n\u7f34\u8d39\u7c7b\u578b:{{thing9.DATA}}\n\u8d26\u5355\u540d\u79f0:{{thing10.DATA}}\n\u63d0\u9192\u65f6\u95f4:{{time12.DATA}}'
+        self.assertTrue(readiness.template_summary({'content': content})['compatibleWithCurrentBillSender'])
+        self.assertFalse(readiness.template_summary({'content': content.replace('\u4e1a\u4e3b\u59d3\u540d', 'Phone')})['compatibleWithCurrentBillSender'])
+        self.assertFalse(readiness.template_summary({'content': content + '{{thing99.DATA}}'})['compatibleWithCurrentBillSender'])
+
     def test_only_current_legacy_bill_fields_are_compatible(self):
         report = readiness.template_summary({'title': 'Bill', 'content': '{{keyword1.DATA}} {{keyword2.DATA}} {{keyword3.DATA}}'})
         self.assertTrue(report['compatibleWithCurrentBillSender'])

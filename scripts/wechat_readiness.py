@@ -31,10 +31,17 @@ def transport(endpoint, token=None, data=None):
 
 
 def template_summary(template):
-    fields = sorted(set(re.findall(r'\{\{([A-Za-z0-9_]+)\.DATA\}\}', template.get('content', ''))))
+    content = template.get('content', '')
+    fields = sorted(set(re.findall(r'\{\{([A-Za-z0-9_]+)\.DATA\}\}', content)))
+    normalized = re.sub(r'\s+', '', content).replace('：', ':')
+    modern = (set(fields) == {'thing2', 'amount4', 'thing9', 'thing10', 'time12'}
+              and all(label + ':{{' + field + '.DATA}}' in normalized for label, field in [
+                  ('业主姓名', 'thing2'), ('账单金额', 'amount4'), ('缴费类型', 'thing9'),
+                  ('账单名称', 'thing10'), ('提醒时间', 'time12')]))
+    legacy = ({'keyword1', 'keyword2', 'keyword3'}.issubset(fields)
+              and set(fields).issubset({'first', 'keyword1', 'keyword2', 'keyword3', 'remark'}))
     return {'title': template.get('title', ''), 'fields': fields,
-            'compatibleWithCurrentBillSender': {'keyword1', 'keyword2', 'keyword3'}.issubset(fields)
-            and set(fields).issubset({'first', 'keyword1', 'keyword2', 'keyword3', 'remark'})}
+            'compatibleWithCurrentBillSender': legacy or modern}
 
 
 def menu_summary(button):

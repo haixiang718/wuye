@@ -1,0 +1,15 @@
+{
+  "date": "2026-11-03",
+  "scope": "Manual bill notification template adaptation; payment and scheduled tasks remain disabled",
+  "javaRegressionTests": 32,
+  "pythonReadinessTests": 8,
+  "targetedMavenPackage": "passed",
+  "finalPackagedJavaActualTemplateLookupAndPayload": "passed",
+  "officialTemplateConfigured": true,
+  "previousConfigurationBackedUpPrivately": true,
+  "messagesSent": 0,
+  "phoneDeliveryVerified": false,
+  "scheduledSenderAdapted": false,
+  "previousLinuxReleaseArchiveIncludesThisChange": false,
+  "credentialsOrOwnerIdentifiersIncludedInReport": false
+}

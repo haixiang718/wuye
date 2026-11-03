@@ -24,7 +24,9 @@ public class BillNotificationServiceTest {
     private boolean authorized, template, account;
     private int sends, updates;
     private String response;
-    private boolean timeout, updateFailure, secondOwnerFailure;
+    private boolean timeout, updateFailure, secondOwnerFailure, templateLookupFailure;
+    private String selectedContent, sentPayload;
+    private static final String MODERN_CONTENT = "业主姓名:{{thing2.DATA}}\n账单金额:{{amount4.DATA}}\n缴费类型:{{thing9.DATA}}\n账单名称:{{thing10.DATA}}\n提醒时间:{{time12.DATA}}\n";
     private final List<OwnerAppUserDto> owners = new ArrayList<OwnerAppUserDto>();
     private final String request = "request-0000000001";
 
@@ -43,18 +45,29 @@ public class BillNotificationServiceTest {
         service = new Fake() {
             @Override protected ResponseEntity<String> deliver(String token,String payload) {
                 sends++;
+                sentPayload=payload;
                 JSONObject message=JSON.parseObject(payload);
-                assertEquals("0.01",message.getJSONObject("data").getJSONObject("keyword2").getString("value"));
+                JSONObject amount=message.getJSONObject("data").getJSONObject("keyword2");
+                if(amount==null)amount=message.getJSONObject("data").getJSONObject("amount4");
+                assertEquals("0.01",amount.getString("value"));
                 assertTrue(message.getString("url").contains("roomId=room"));
                 if(timeout) throw new IllegalStateException("synthetic network failure");
                 if(secondOwnerFailure && sends==2) return ResponseEntity.ok("{\"errcode\":43004}");
                 return ResponseEntity.ok(response);
             }
+            @Override protected String templateContent(String token,String templateId) {
+                if(templateLookupFailure)throw new IllegalStateException("synthetic lookup failure");
+                return selectedContent;
+            }
         };
+        selectedContent="{{first.DATA}}{{keyword1.DATA}}{{keyword2.DATA}}{{keyword3.DATA}}{{remark.DATA}}";
+        sentPayload=null;
+        templateLookupFailure=false;
         authorized=true;template=true;account=true;timeout=false;updateFailure=false;secondOwnerFailure=false;sends=0;updates=0;
         response="{\"errcode\":0,\"msgid\":123}";
         bill=new BillOweFeeDto();bill.setOweId("owe");bill.setBillId("bill");bill.setFeeId("fee");bill.setCommunityId("community");bill.setOwnerId("owner");bill.setState("1000");bill.setBillAmountOwed("0.01");bill.setAmountOwed("0.01");bill.setPayerObjType("3333");bill.setPayObjId("room");bill.setPayerObjName("TEST101");bill.setFeeEndTime("2026-10-01 00:00:00");bill.setDeadlineTime("2026-11-01 00:00:00");bill.setFeeTypeName("物业费");
         bill.setReviewState("PUBLISHED");
+        bill.setOwnerName("测试业主乙");bill.setFeeName("十一月物业费");
         owner=new OwnerAppUserDto();owner.setOwnerId("owner");owner.setMemberId("different-member");owner.setOpenId("synthetic-openid");owner.setState("12000");owner.setAppType("WECHAT");owners.clear();owners.add(owner);
         inject("communityInnerServiceSMOImpl");inject("feeInnerServiceSMOImpl");inject("smallWeChatInnerServiceSMOImpl");inject("smallWechatAttrInnerServiceSMOImpl");inject("ownerAppUserInnerServiceSMOImpl");
     }
@@ -76,6 +89,65 @@ public class BillNotificationServiceTest {
         }));
     }
     private JSONObject run(){return service.send("community","owe",request,"store","staff");}
+    @Test public void modernBillTemplateUsesActualOwnerAndFrozenAmount(){
+        selectedContent=MODERN_CONTENT;
+        assertEquals(0,run().getIntValue("code"));
+        JSONObject data=JSON.parseObject(sentPayload).getJSONObject("data");
+        assertEquals(5,data.size());
+        assertEquals("测试业主乙",data.getJSONObject("thing2").getString("value"));
+        assertEquals("物业费",data.getJSONObject("thing9").getString("value"));
+        assertTrue(data.getJSONObject("thing10").getString("value").contains("十一月物业费"));
+        assertTrue(data.getJSONObject("time12").getString("value").matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}"));
+        try {
+            java.text.SimpleDateFormat format=new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm");format.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
+            assertTrue(Math.abs(System.currentTimeMillis()-format.parse(data.getJSONObject("time12").getString("value")).getTime())<65000);
+        }catch(java.text.ParseException e){throw new AssertionError(e);}
+        assertEquals("3000",bill.getState());
+    }
+    @Test public void modernTemplateLimitsThingsByUnicodeCharacters(){
+        selectedContent=MODERN_CONTENT;bill.setOwnerName("业主姓名很长业主姓名很长业主姓名很长业主姓名很长");
+        bill.setFeeName("abcdefghijklmnopqrstuvwxyz");
+        assertEquals(0,run().getIntValue("code"));
+        JSONObject data=JSON.parseObject(sentPayload).getJSONObject("data");
+        for(String field:Arrays.asList("thing2","thing9","thing10")){
+            String value=data.getJSONObject(field).getString("value");assertTrue(value.codePointCount(0,value.length())<=20);
+        }
+    }
+    @Test public void missingOwnerNameDoesNotBecomeRoomName(){selectedContent=MODERN_CONTENT;bill.setOwnerName(null);assertEquals(400,run().getIntValue("code"));assertEquals(0,sends);assertEquals(0,updates);}
+    @Test public void unknownTemplateRejectedBeforeTransport(){selectedContent="{{thing99.DATA}}";assertEquals(400,run().getIntValue("code"));assertEquals(0,sends);assertEquals(0,updates);assertFalse(service.cache.containsKey("BILL_NOTIFY_PROGRESS:community:owe"));}
+    @Test public void sameKeysWithDifferentMeaningRejected(){selectedContent=MODERN_CONTENT.replace("业主姓名","手机号码");assertEquals(400,run().getIntValue("code"));assertEquals(0,sends);}
+    @Test public void missingTemplateContentDoesNotLeaveUncertainDelivery(){selectedContent=null;assertEquals(400,run().getIntValue("code"));assertEquals(0,sends);assertFalse(service.cache.containsKey("BILL_NOTIFY_PROGRESS:community:owe"));}
+    @Test public void templateLookupFailureDoesNotBecomeUncertainSend(){templateLookupFailure=true;assertEquals(400,run().getIntValue("code"));assertEquals(0,sends);assertEquals(0,updates);assertFalse(service.cache.containsKey("BILL_NOTIFY_PROGRESS:community:owe"));}
+    private RestTemplate templateClient(final String body) {
+        return new RestTemplate(new ClientHttpRequestFactory() {
+            public ClientHttpRequest createRequest(final URI uri,final HttpMethod method) {
+                assertEquals(HttpMethod.GET,method);
+                return new ClientHttpRequest(){
+                    public URI getURI(){return uri;}
+                    public HttpMethod getMethod(){return method;}
+                    public String getMethodValue(){return method.name();}
+                    public HttpHeaders getHeaders(){return new HttpHeaders();}
+                    public OutputStream getBody(){return new ByteArrayOutputStream();}
+                    public ClientHttpResponse execute(){return new ClientHttpResponse(){
+                        public HttpStatus getStatusCode(){return HttpStatus.OK;}
+                        public int getRawStatusCode(){return 200;}
+                        public String getStatusText(){return "OK";}
+                        public void close(){}
+                        public HttpHeaders getHeaders(){HttpHeaders headers=new HttpHeaders();headers.setContentType(MediaType.APPLICATION_JSON);return headers;}
+                        public InputStream getBody(){return new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8));}
+                    };}
+                };
+            }
+        });
+    }
+    @Test public void officialTemplateLookupDecodesUtf8WithoutCharsetHeader(){
+        JSONObject templateRow=new JSONObject();templateRow.put("template_id","selected-template");templateRow.put("content",MODERN_CONTENT);
+        JSONObject reply=new JSONObject();reply.put("template_list",Arrays.asList(templateRow));
+        final RestTemplate client=templateClient(reply.toJSONString());
+        BillNotificationService sender=new BillNotificationService(){@Override protected RestTemplate notificationClient(){return client;}};
+        assertEquals(MODERN_CONTENT,sender.templateContent("synthetic-token","selected-template"));
+        assertNull(sender.templateContent("synthetic-token","different-template"));
+    }
     @Test public void unreviewedBillCannotSend(){
         // Old DTOs lack the review field; that must never be treated as approval.
         try { bill.getClass().getMethod("setReviewState",String.class).invoke(bill,"DRAFT"); }
