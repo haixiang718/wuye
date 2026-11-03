@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-03",
+  "architecture": "cloud HTTPS ingress, loopback-only SSH reverse forward, local application services",
+  "server": "118.31.186.6",
+  "dnsA": {
+    "h5.jiaanfuwu.cn": "118.31.186.6",
+    "wx.jiaanfuwu.cn": "118.31.186.6",
+    "admin.jiaanfuwu.cn": "118.31.186.6"
+  },
+  "certificate": {
+    "trusted": true,
+    "subjectAlternativeNames": ["h5.jiaanfuwu.cn", "wx.jiaanfuwu.cn", "admin.jiaanfuwu.cn"],
+    "validUntil": "2027-02-01",
+    "renewalTimerEnabled": true,
+    "renewalDryRun": "passed",
+    "reloadHookInstalled": true
+  },
+  "checks": {
+    "nginxConfig": "passed",
+    "sshConfig": "passed",
+    "tunnelListener": "127.0.0.1:18080",
+    "tunnelSupervisor": "running, retries after disconnect",
+    "httpsGate": "passed",
+    "authenticatedH5Html": "passed",
+    "mobileViewportRender": "passed, actual WeChat OAuth is a separate check",
+    "browserJavascriptErrors": 0,
+    "publicConfigHidesSecrets": "passed",
+    "signedWechatCallback": "passed, local signature probe only",
+    "invalidWechatSignature": "rejected",
+    "managementAndPrivatePaths": "blocked",
+    "adminHttpsStatus": 403,
+    "verificationFile": "HTTPS response matches local file bytes on h5 and wx",
+    "mappingCache": "both fixed-domain mappings verified in Redis",
+    "gatewayRegression": "1 comprehensive test passed",
+    "wechatSetupRegression": "5 tests passed",
+    "shellAndPythonAndNodeSyntax": "passed"
+  },
+  "wechat": {
+    "officialAccountCredentials": "validated after current local egress IP was whitelisted",
+    "webAuthorizationDomain": "user confirmed saved",
+    "jsApiDomain": "user confirmed saved",
+    "serverConfiguration": "user confirmed submitted successfully and enabled on 2026-11-03",
+    "mobileWechatOAuth": "user confirmed successful existing-owner login in mobile WeChat under the official account on 2026-11-03",
+    "ownerBindingAndBillQuery": "user confirmed existing-owner login, associated properties and bills are visible under the official account on 2026-11-03",
+    "newOwnerRegistrationAndBinding": "not verified in this fixed-domain acceptance session",
+    "privateTemplateTitles": ["订阅模板消息"],
+    "monthlyBillNotificationTemplate": "not available in current API response",
+    "realMessagesSent": 0,
+    "menuPublished": true,
+    "menuAcceptance": "user confirmed opening H5 from the service-account menu and logging in successfully on 2026-11-03",
+    "paymentEnabled": false
+  },
+  "limits": [
+    "The local computer and tunnel must remain online.",
+    "Browser verification used an explicit DNS mapping to bypass local negative DNS caching; DNS was checked separately.",
+    "Existing-owner login and property/bill visibility are user-confirmed. New-owner registration/binding, official-account bill notification receipt and real payment remain unverified in this session."
+  ]
+}
