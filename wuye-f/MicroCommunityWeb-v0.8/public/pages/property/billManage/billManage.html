@@ -1,4 +1,11 @@
-<div class=" animated fadeInRight ecommerce">
+<div class="animated fadeInRight ecommerce admin-bills">
+    <div class="admin-bill-flow" aria-label="账单处理流程">
+        <strong>账单流程</strong>
+        <span>生成账单</span><i class="fa fa-angle-right" aria-hidden="true"></i>
+        <span>审核发布</span><i class="fa fa-angle-right" aria-hidden="true"></i>
+        <span>通知业主</span><i class="fa fa-angle-right" aria-hidden="true"></i>
+        <span>支付入账</span>
+    </div>
     <div class="row">
         <div class="col-lg-12">
             <div class="ibox ">
@@ -11,30 +18,28 @@
                     </div>
                 </div>
                 <div class="ibox-content">
-                    <div class="row">
-                        <div class="col-sm-4">
-                            <div class="form-group">
-                                <input type="text" placeholder="请输入账单编号" v-model="billManageInfo.conditions.title"
-                                       class=" form-control">
-                            </div>
+                    <div class="admin-bill-query">
+                        <div class="form-group">
+                            <label class="admin-filter-label" for="bill-query-id">账单编号</label>
+                            <input id="bill-query-id" type="text" placeholder="请输入账单编号" v-model="billManageInfo.conditions.title"
+                                   class="form-control">
                         </div>
-                        <div class="col-sm-4">
-                            <select class="custom-select" v-model="billManageInfo.conditions.curBill">
-                                <option selected value="">请选择账单类型</option>
+                        <div class="form-group">
+                            <label class="admin-filter-label" for="bill-query-type">账单类型</label>
+                            <select id="bill-query-type" class="custom-select" v-model="billManageInfo.conditions.curBill">
+                                <option selected value="">全部账单类型</option>
                                 <option value="T">当期账单</option>
                                 <option value="F">往期账单</option>
-                            </select></div>
-                        <div class="col-sm-3">
-                            <div class="form-group">
-                                <input type="text" placeholder="请输入账单名称"
-                                       v-model="billManageInfo.conditions.billName" class=" form-control">
-                            </div>
+                            </select>
                         </div>
-                        <div class="col-sm-1">
-                            <button type="button" class="btn btn-primary btn-sm" v-on:click="_querybillMethod()">
-                                <i class="fa fa-search"></i> 查询
-                            </button>
+                        <div class="form-group">
+                            <label class="admin-filter-label" for="bill-query-name">账单名称</label>
+                            <input id="bill-query-name" type="text" placeholder="请输入账单名称"
+                                   v-model="billManageInfo.conditions.billName" class="form-control">
                         </div>
+                        <button type="button" class="btn btn-primary btn-sm" v-on:click="_querybillMethod()">
+                            <i class="fa fa-search" aria-hidden="true"></i> 查询
+                        </button>
                     </div>
                     <div class="row">
                         <div class="col-sm-4" v-if="billManageInfo.moreCondition == true">
@@ -54,19 +59,20 @@
                 <div class="ibox-title">
                     <h5>账单信息</h5>
                     <div class="ibox-tools" style="top:10px;">
+                        <span class="admin-table-unit">金额单位：元</span>
                     </div>
                 </div>
                 <div class="ibox-content">
+                    <div class="admin-table-scroll" role="region" aria-label="账单列表，可横向滚动" tabindex="0">
                     <table class="footable table table-stripped toggle-arrow-tiny" data-page-size="15">
                         <thead>
                         <tr>
                             <!-- <th class="text-center">信息ID</th> -->
-                            <th class="text-center">账单编号</th>
+                            <th class="text-center">账单名称 / 编号</th>
                             <th class="text-center">收费项目</th>
-                            <th class="text-center">账单名称</th>
-                            <th class="text-center">累计应收</th>
-                            <th class="text-center">当期应收</th>
-                            <th class="text-center">实收金额</th>
+                            <th class="admin-amount">累计应收</th>
+                            <th class="admin-amount">当期应收</th>
+                            <th class="admin-amount">实收金额</th>
                             <th class="text-center">账单日期</th>
                             <th class="text-center">账单类型</th>
                             <th class="text-center">审核状态</th>
@@ -75,15 +81,21 @@
                         </thead>
                         <tbody>
                         <tr v-for="bill in billManageInfo.bills">
-                            <td class="text-center">{{bill.billId}}</td>
+                            <td class="admin-bill-name">
+                                <span>{{bill.billName}}</span>
+                                <small>{{bill.billId}}</small>
+                            </td>
                             <td class="text-center">{{bill.feeName}}</td>
-                            <td class="text-center">{{bill.billName}}</td>
-                            <td class="text-center">{{bill.receivable}}元</td>
-                            <td class="text-center">{{bill.curReceivable}}元</td>
-                            <td class="text-center">{{bill.receipts}}元</td>
+                            <td class="admin-amount">{{bill.receivable}}</td>
+                            <td class="admin-amount">{{bill.curReceivable}}</td>
+                            <td class="admin-amount">{{bill.receipts}}</td>
                             <td class="text-center">{{bill.billTime}}</td>
                             <td class="text-center">{{bill.curBill == 'T'?'当期账单':'往期账单'}}</td>
-                            <td class="text-center">{{bill.reviewState == 'PUBLISHED'?'已审核发布':'待审核'}}</td>
+                            <td class="text-center">
+                                <span class="admin-status" :class="bill.reviewState == 'PUBLISHED'?'is-published':'is-draft'">
+                                    {{bill.reviewState == 'PUBLISHED'?'已审核发布':'待审核'}}
+                                </span>
+                            </td>
                             <td class="text-center">
                                 <div class="btn-group">
                                     <button v-if="bill.reviewState == 'DRAFT' && bill.curBill == 'T'" class="btn-primary btn btn-xs"
@@ -96,15 +108,19 @@
                                 </div>
                             </td>
                         </tr>
+                        <tr v-if="billManageInfo.bills.length == 0">
+                            <td colspan="9" class="admin-empty">暂无符合条件的账单，请调整查询条件。</td>
+                        </tr>
                         </tbody>
                         <tfoot>
                         <tr>
-                            <td colspan="10">
+                            <td colspan="9">
                                 <ul class="pagination float-right"></ul>
                             </td>
                         </tr>
                         </tfoot>
                     </table>
+                    </div>
                     <!-- 分页 -->
                     <vc:create path="frame/pagination"></vc:create>
                 </div>

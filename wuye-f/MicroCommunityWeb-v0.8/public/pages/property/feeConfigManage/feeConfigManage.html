@@ -101,13 +101,14 @@
                     </div>
                 </div>
                 <div class="ibox-content">
+                    <div class="admin-table-scroll" role="region" aria-label="费用项列表，可横向滚动" tabindex="0">
                     <table class="footable table table-stripped toggle-arrow-tiny" data-page-size="15">
                         <thead>
                         <tr>
                             <th class="text-center">费用类型</th>
                             <th class="text-center">收费项目</th>
                             <th class="text-center">费用标识</th>
-                            <th class="text-center">催缴类型</th>
+                            <th class="text-center">出账规则</th>
                             <th class="text-center">付费类型</th>
                             <th class="text-center">缴费周期(单位:月)</th>
                             <th class="text-center">计费起始时间</th>
@@ -148,6 +149,9 @@
                                 </div>
                             </td>
                         </tr>
+                        <tr v-if="feeConfigManageInfo.feeConfigs.length == 0">
+                            <td colspan="11" class="admin-empty">暂无符合条件的费用项，请调整查询条件。</td>
+                        </tr>
                         </tbody>
                         <tfoot>
                         <tr>
@@ -157,6 +161,7 @@
                         </tr>
                         </tfoot>
                     </table>
+                    </div>
                     <!-- 分页 -->
                     <vc:create path="frame/pagination"></vc:create>
                 </div>
