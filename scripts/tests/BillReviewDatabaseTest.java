@@ -10,6 +10,14 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import static org.junit.Assert.*;
+import com.java110.core.smo.impl.ComputeFeeSMOImpl;
+import com.java110.dto.fee.BillDto;
+import com.java110.dto.fee.BillOweFeeDto;
+import com.java110.dto.fee.FeeDto;
+import com.java110.intf.fee.IFeeInnerServiceSMO;
+import com.java110.utils.util.BeanConvertUtil;
+import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
 
 /** Production bill mapper against an exact random database; never touches TT rows. */
 public class BillReviewDatabaseTest {
@@ -77,5 +85,38 @@ public class BillReviewDatabaseTest {
         Map<String,Object> foreign=review();foreign.put("communityId","other");assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",foreign));
         sql.update("UPDATE bill SET cur_bill='F',bill_time=bill_time");assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",review()));
         sql.update("UPDATE bill SET cur_bill='T',bill_time=bill_time");sql.update("DELETE FROM bill_owe_fee");assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",review()));
+    }
+    private FeeDto computeCollectionFee() throws Exception {
+        ComputeFeeSMOImpl compute=new ComputeFeeSMOImpl();
+        IFeeInnerServiceSMO service=(IFeeInnerServiceSMO)Proxy.newProxyInstance(
+            IFeeInnerServiceSMO.class.getClassLoader(),new Class[]{IFeeInnerServiceSMO.class},(proxy,method,args)->{
+                Map<String,Object> params=BeanConvertUtil.beanCovertMap(args[0]);
+                if(method.getName().equals("queryBills")) {
+                    return BeanConvertUtil.covertBeanList(mapper.selectList("feeServiceDaoImpl.queryBills",params),BillDto.class);
+                }
+                if(method.getName().equals("queryBillOweFees")) {
+                    return BeanConvertUtil.covertBeanList(mapper.selectList("feeServiceDaoImpl.queryBillOweFees",params),BillOweFeeDto.class);
+                }
+                throw new UnsupportedOperationException(method.getName());
+            });
+        Field field=ComputeFeeSMOImpl.class.getDeclaredField("feeInnerServiceSMOImpl");
+        field.setAccessible(true);field.set(compute,service);
+        FeeDto fee=new FeeDto();fee.setFeeId("fee");fee.setConfigId("config");
+        fee.setCommunityId("community");fee.setBillType("002");
+        compute.computeOweFee(fee);return fee;
+    }
+    @Test public void collectionIncludesNotifiedButUnpaidBills() throws Exception {
+        mapper.update("feeServiceDaoImpl.reviewBill",review());
+        sql.update("UPDATE bill_owe_fee SET state='3000',fee_end_time=fee_end_time");
+        assertEquals(0.01,computeCollectionFee().getFeePrice(),0.000001);
+    }
+    @Test public void collectionIncludesUnnotifiedUnpaidBillsAndExcludesPaidBills() throws Exception {
+        assertEquals(0.01,computeCollectionFee().getFeePrice(),0.000001);
+        sql.update("UPDATE bill_owe_fee SET state='2000',fee_end_time=fee_end_time");
+        assertEquals(0.0,computeCollectionFee().getFeePrice(),0.000001);
+    }
+    @Test public void collectionExcludesZeroBalanceBills() throws Exception {
+        sql.update("UPDATE bill_owe_fee SET bill_amount_owed=0,amount_owed=0,fee_end_time=fee_end_time");
+        assertEquals(0.0,computeCollectionFee().getFeePrice(),0.000001);
     }
 }

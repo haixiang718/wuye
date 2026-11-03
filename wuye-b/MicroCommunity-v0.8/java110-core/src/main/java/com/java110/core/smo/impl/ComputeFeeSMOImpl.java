@@ -118,7 +118,8 @@ public class ComputeFeeSMOImpl implements IComputeFeeSMO {
         BillOweFeeDto billOweFeeDto = new BillOweFeeDto();
         billOweFeeDto.setCommunityId(tmpFeeDto.getCommunityId());
         billOweFeeDto.setFeeId(tmpFeeDto.getFeeId());
-        billOweFeeDto.setState(BillOweFeeDto.STATE_WILL_FEE);
+        // A notification does not settle a bill: both 1000 and 3000 remain collectible.
+        billOweFeeDto.setOutstandingOnly("T");
         billOweFeeDto.setBillId(billDtos.get(0).getBillId());
         List<BillOweFeeDto> billOweFeeDtos = feeInnerServiceSMOImpl.queryBillOweFees(billOweFeeDto);
         if (billOweFeeDtos == null || billOweFeeDtos.size() < 1) {
