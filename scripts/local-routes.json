@@ -1,5 +1,14 @@
 [
   {
+    "id": "local_20261103_001",
+    "code": "fee.payOweFee",
+    "url": "http://order-service/orderApi/service",
+    "method": "POST",
+    "apps": ["8000418004"],
+    "instance": "Y",
+    "reason": "0.8 property-admin arrears collection listener is absent from the 0.6 dump; it submits fee detail and fee updates through the order transaction service."
+  },
+  {
     "id": "local_20261102_001",
     "code": "fee.reviewBill",
     "url": "",
