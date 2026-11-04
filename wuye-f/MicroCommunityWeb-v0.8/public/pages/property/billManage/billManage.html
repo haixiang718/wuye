@@ -2,8 +2,7 @@
     <div class="admin-bill-flow" aria-label="账单处理流程">
         <strong>账单流程</strong>
         <span>生成账单</span><i class="fa fa-angle-right" aria-hidden="true"></i>
-        <span>审核发布</span><i class="fa fa-angle-right" aria-hidden="true"></i>
-        <span>通知业主</span><i class="fa fa-angle-right" aria-hidden="true"></i>
+        <span>审核并推送</span><i class="fa fa-angle-right" aria-hidden="true"></i>
         <span>支付入账</span>
     </div>
     <div class="row">
@@ -68,7 +67,7 @@
                 </div>
                 <div class="ibox-content">
                     <div v-if="billManageInfo.generation.show" class="p-md border-bottom" role="region" aria-label="生成待审核账单">
-                        <p>按收费项目整批汇总符合条件的费用，仅生成待审核账单（DRAFT），不自动通知业主；审核与推送需要分别操作。</p>
+                        <p>按收费项目整批汇总符合条件的费用，先生成待审核账单。核对后点击“审核并推送”，H5 立即可查，并在后台发送公众号缴费通知。</p>
                         <div class="row">
                             <div class="col-md-4 form-group">
                                 <label for="bill-generation-name">收费项目名称</label>
@@ -121,6 +120,22 @@
                                 :disabled="billManageInfo.generation.generating || billManageInfo.generation.loading">收起</button>
                         <p v-if="billManageInfo.generation.result" class="m-t-sm" role="status" aria-live="polite">{{billManageInfo.generation.result}}</p>
                     </div>
+                    <div v-if="billManageInfo.notificationSelection" class="p-md border-bottom" role="region" aria-label="账单通知状态">
+                        <h5>通知状态 <small>账单 {{billManageInfo.notificationSelection}}</small></h5>
+                        <p role="status" aria-live="polite">{{_billNotificationSummary(billManageInfo.notificationSelection)}}</p>
+                        <p v-if="billManageInfo.notificationErrors[billManageInfo.notificationSelection]" class="text-warning">
+                            {{billManageInfo.notificationErrors[billManageInfo.notificationSelection]}}
+                        </p>
+                        <ul v-if="billManageInfo.notifications[billManageInfo.notificationSelection]" class="list-unstyled text-warning">
+                            <li v-for="error in billManageInfo.notifications[billManageInfo.notificationSelection].errors" :key="error.oweId" style="overflow-wrap:anywhere;">
+                                明细 {{error.oweId}}：{{error.msg}} {{error.retryable?'（可重试）':'（请先核对处理，不会自动重发）'}}
+                            </li>
+                        </ul>
+                        <p v-if="billManageInfo.notifications[billManageInfo.notificationSelection] && billManageInfo.notifications[billManageInfo.notificationSelection].errors.length == 50" class="text-muted">
+                            仅显示前 50 条失败明细；全部明细可在“欠费清单”核对。
+                        </p>
+                        <p class="text-muted">关闭页面不会中断后台通知。未绑定微信的业主需要先绑定房产，再重试失败通知；个别业主也可在“欠费清单”中补发。</p>
+                    </div>
                     <div class="admin-table-scroll" role="region" aria-label="账单列表，可横向滚动" tabindex="0">
                     <table class="footable table table-stripped toggle-arrow-tiny" data-page-size="15">
                         <thead>
@@ -133,7 +148,7 @@
                             <th class="admin-amount">实收金额</th>
                             <th class="text-center">账单日期</th>
                             <th class="text-center">账单类型</th>
-                            <th class="text-center">审核状态</th>
+                            <th class="text-center">审核 / 通知</th>
                             <th class="text-center">操作</th>
                         </tr>
                         </thead>
@@ -153,12 +168,19 @@
                                 <span class="admin-status" :class="bill.reviewState == 'PUBLISHED'?'is-published':'is-draft'">
                                     {{bill.reviewState == 'PUBLISHED'?'已审核发布':'待审核'}}
                                 </span>
+                                <small v-if="bill.reviewState == 'PUBLISHED'" class="d-block m-t-xs">{{_billNotificationLabel(bill.billId)}}</small>
                             </td>
                             <td class="text-center">
                                 <div class="btn-group">
                                     <button v-if="bill.reviewState == 'DRAFT' && bill.curBill == 'T'" class="btn-primary btn btn-xs"
                                             :disabled="billManageInfo.reviewing[bill.billId]" v-on:click="_reviewBill(bill)">
-                                        {{billManageInfo.reviewing[bill.billId]?'审核中':'审核发布'}}
+                                        {{billManageInfo.reviewing[bill.billId]?'处理中':'审核并推送'}}
+                                    </button>
+                                    <button v-if="bill.reviewState == 'PUBLISHED'" class="btn-white btn btn-xs"
+                                            :disabled="billManageInfo.notificationLoading[bill.billId]" v-on:click="_showBillNotification(bill)">通知状态</button>
+                                    <button v-if="_canRetryBillNotifications(bill)" class="btn-primary btn btn-xs"
+                                            :disabled="billManageInfo.reviewing[bill.billId]" v-on:click="_retryBillNotifications(bill)">
+                                        {{billManageInfo.notifications[bill.billId].state == 'NONE'?'通知业主':'重试失败通知'}}
                                     </button>
                                     <button class="btn-white btn btn-xs"
                                             v-on:click="_openBillDetail(bill)">欠费清单

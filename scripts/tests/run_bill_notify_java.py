@@ -14,11 +14,16 @@ def main():
     project = local.BACK
     output = local.RUN / 'bill-notify-tests'
     libs = output / 'lib'
+    application = output / 'application'
     libs.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(project / 'service-api/target/service-api.jar') as archive:
         for name in archive.namelist():
             if name.startswith('BOOT-INF/lib/') and name.endswith('.jar'):
                 (libs / Path(name).name).write_bytes(archive.read(name))
+            elif name.startswith('BOOT-INF/classes/') and not name.endswith('/'):
+                target = application / Path(name).relative_to('BOOT-INF/classes')
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(archive.read(name))
     repository = Path.home() / '.m2/repository'
     test_jars = [repository / 'junit/junit/4.13.1/junit-4.13.1.jar',
                  repository / 'org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar']
@@ -27,7 +32,7 @@ def main():
     # Prefer the application's Logback binding; the legacy Log4j SLF4J binding
     # conflicts with log4j-to-slf4j when a test exercises the real HTTP client.
     runtime_jars = [path for path in libs.glob('*.jar') if not path.name.startswith('log4j-slf4j-impl-')]
-    cp = os.pathsep.join(map(str, [output, project / 'service-api/target/classes'] + runtime_jars + test_jars))
+    cp = os.pathsep.join(map(str, [output, application] + runtime_jars + test_jars))
     java = Path(local.java())
     sources = [project / 'java110-bean/src/main/java/com/java110/dto/fee/BillOweFeeDto.java'] + [project / ('service-api/src/' + name) for name in [
         'main/java/com/java110/api/bmo/fee/impl/BillNotificationService.java',

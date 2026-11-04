@@ -34,9 +34,10 @@ public class BillNotificationServiceTest {
         final Map<String,String> cache = new HashMap<String,String>();
         final Set<String> locks = new HashSet<String>();
         final Map<String,Integer> ttls = new HashMap<String,Integer>();
+        Runnable onAcquire;
         @Override protected String cached(String key) { return cache.get(key); }
         @Override protected void remember(String key, String value, int seconds) { cache.put(key,value); ttls.put(key,seconds); }
-        @Override protected boolean acquire(String key,String token) { return locks.add(key); }
+        @Override protected boolean acquire(String key,String token) { boolean acquired=locks.add(key);if(acquired&&onAcquire!=null)onAcquire.run();return acquired; }
         @Override protected void release(String key,String token) { locks.remove(key); }
         @Override protected String accessToken(SmallWeChatDto account) { return "synthetic-token"; }
         @Override protected String feePage() { return "https://example.test/#/pages/roomFeeListNew/roomFeeListNew?roomId="; }
@@ -210,4 +211,28 @@ public class BillNotificationServiceTest {
     @Test public void unfinishedProgressDoesNotExpire(){timeout=true;run();assertEquals(Integer.valueOf(0),service.ttls.get("BILL_NOTIFY_PROGRESS:community:owe"));}
     @Test public void duplicateBindingsSendOnce(){owners.add(owner);assertEquals(0,run().getIntValue("code"));assertEquals(1,sends);}
     @Test public void explicitResendAfterCooldown(){run();service.cache.remove("BILL_NOTIFY_COOLDOWN:community:owe");assertEquals(0,service.send("community","owe","request-0000000002","store","staff").getIntValue("code"));assertEquals(2,sends);}
+    @Test public void firstPublicationSkipsAlreadyNotifiedWithoutSending(){
+        bill.setState("3000");JSONObject result=service.sendInitial("community","owe",request,"store","staff");assertEquals(0,result.getIntValue("code"));assertTrue(result.getJSONObject("data").getBooleanValue("skipped"));assertEquals(0,sends);assertEquals(0,updates);
+    }
+    @Test public void firstPublicationRechecksManualPushInsideSameLock(){
+        service.onAcquire=new Runnable(){public void run(){bill.setState("3000");}};
+        JSONObject result=service.sendInitial("community","owe",request,"store","staff");assertEquals(0,result.getIntValue("code"));assertTrue(result.getJSONObject("data").getBooleanValue("skipped"));assertEquals(0,sends);
+    }
+    @Test public void firstPublicationSkipsPaymentThatRacedQueue(){
+        service.onAcquire=new Runnable(){public void run(){bill.setState("2000");}};
+        JSONObject result=service.sendInitial("community","owe",request,"store","staff");assertEquals(0,result.getIntValue("code"));assertTrue(result.getJSONObject("data").getBooleanValue("skipped"));assertEquals(0,sends);
+    }
+    @Test public void firstPublicationSendsOnlyOnceAcrossDifferentTaskRequests(){
+        assertEquals(0,service.sendInitial("community","owe",request,"store","staff").getIntValue("code"));
+        JSONObject repeated=service.sendInitial("community","owe","request-0000000002","store","staff");assertEquals(0,repeated.getIntValue("code"));assertTrue(repeated.getJSONObject("data").getBooleanValue("skipped"));assertEquals(1,sends);
+    }
+    @Test public void firstPublicationPartialRetryPreservesAcceptedRecipient(){
+        OwnerAppUserDto second=new OwnerAppUserDto();second.setOwnerId("owner");second.setState("12000");second.setOpenId("second-openid");second.setAppType("WECHAT");owners.add(second);secondOwnerFailure=true;
+        JSONObject partial=service.sendInitial("community","owe",request,"store","staff");assertEquals(202,partial.getIntValue("code"));assertTrue(partial.getJSONObject("data").getBooleanValue("retryable"));
+        secondOwnerFailure=false;assertEquals(0,service.sendInitial("community","owe","request-0000000002","store","staff").getIntValue("code"));assertEquals(3,sends);
+    }
+    @Test public void firstPublicationRetryOnlySynchronizesStateAfterDatabaseFailure(){
+        updateFailure=true;assertEquals(202,service.sendInitial("community","owe",request,"store","staff").getIntValue("code"));updateFailure=false;
+        assertEquals(0,service.sendInitial("community","owe","request-0000000002","store","staff").getIntValue("code"));assertEquals(1,sends);assertEquals("3000",bill.getState());
+    }
 }

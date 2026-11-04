@@ -1,0 +1,166 @@
+{
+  "checkedAtUtc": "2026-11-04T05:14:38.872639+00:00",
+  "feature": "combined-bill-review-and-official-account-notification",
+  "mavenBuild": "SUCCESS",
+  "deployedServices": [
+    "api"
+  ],
+  "javaTests": {
+    "workflow": 19,
+    "notification": 38,
+    "publicationRegression": 13
+  },
+  "adminNodeTests": 47,
+  "actualAdminBrowserChecks": [
+    {
+      "name": "expected_community",
+      "passed": true
+    },
+    {
+      "name": "combined_button_requests_notification",
+      "passed": true
+    },
+    {
+      "name": "review_publishes_and_queues",
+      "passed": true
+    },
+    {
+      "name": "unbound_failure_is_actionable",
+      "passed": true
+    },
+    {
+      "name": "repeat_publish_does_not_requeue",
+      "passed": true
+    },
+    {
+      "name": "retry_is_explicit_and_scoped",
+      "passed": true
+    },
+    {
+      "name": "retry_preserves_published_bill_and_failure",
+      "passed": true
+    },
+    {
+      "name": "page_poll_shows_terminal_failure_reason",
+      "passed": true
+    },
+    {
+      "name": "invalid_community_returns_no_status_data",
+      "passed": true
+    },
+    {
+      "name": "no_page_errors",
+      "passed": true
+    }
+  ],
+  "syntheticIdentityH5Checks": [
+    {
+      "name": "fresh_identity_has_no_technical_user",
+      "passed": true
+    },
+    {
+      "name": "synthetic_verified_guest_ticket_exchanges_without_property_permission",
+      "passed": true
+    },
+    {
+      "name": "guest_ticket_cannot_be_replayed",
+      "passed": true
+    },
+    {
+      "name": "unbound_identity_cannot_read_room_data",
+      "passed": true
+    },
+    {
+      "name": "wrong_name_cannot_bind",
+      "passed": true
+    },
+    {
+      "name": "wrong_name_creates_no_user",
+      "passed": true
+    },
+    {
+      "name": "wrong_name_creates_no_binding",
+      "passed": true
+    },
+    {
+      "name": "wrong_phone_cannot_bind",
+      "passed": true
+    },
+    {
+      "name": "wrong_phone_creates_no_user",
+      "passed": true
+    },
+    {
+      "name": "wrong_phone_creates_no_binding",
+      "passed": true
+    },
+    {
+      "name": "wrong_idCard_cannot_bind",
+      "passed": true
+    },
+    {
+      "name": "wrong_idCard_creates_no_user",
+      "passed": true
+    },
+    {
+      "name": "wrong_idCard_creates_no_binding",
+      "passed": true
+    },
+    {
+      "name": "exact_triple_binds_without_registration_or_review",
+      "passed": true
+    },
+    {
+      "name": "browser_receives_complete_owner_descriptors",
+      "passed": true
+    },
+    {
+      "name": "only_expected_technical_identity_created",
+      "passed": true
+    },
+    {
+      "name": "new_binding_immediately_approved",
+      "passed": true
+    },
+    {
+      "name": "repeat_binding_is_idempotent",
+      "passed": true
+    },
+    {
+      "name": "both_own_rooms_visible",
+      "passed": true
+    },
+    {
+      "name": "other_owner_room_denied",
+      "passed": true
+    },
+    {
+      "name": "published_bill_visible_after_binding",
+      "passed": true
+    },
+    {
+      "name": "bill_remains_unpaid",
+      "passed": true
+    }
+  ],
+  "businessPreservation": {
+    "tables": 16,
+    "unchanged": true,
+    "orderAuditRetained": true
+  },
+  "localHealth": {
+    "passed": true,
+    "checks": 21
+  },
+  "publicEntryChecks": {
+    "passed": true,
+    "checks": 7,
+    "checkedEarlierThisRun": true
+  },
+  "redisAofEnabled": true,
+  "fixtureTasksRemoved": true,
+  "existingNotifiedBillUnchanged": true,
+  "messagesSent": 0,
+  "payments": 0,
+  "scope": "Real local admin combined action and failure/retry; accepted sends and restart recovery use deterministic fake-WeChat tests. No fresh real mobile OAuth or real notification delivery acceptance in this run."
+}

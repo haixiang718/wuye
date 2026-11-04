@@ -1,5 +1,14 @@
 [
   {
+    "id": "local_20261104_002",
+    "code": "fee.billNotificationStatus",
+    "url": "",
+    "method": "GET",
+    "apps": ["8000418004"],
+    "instance": "N",
+    "reason": "Read-only notification task progress scoped to an authenticated property's community and bill."
+  },
+  {
     "id": "local_20261104_001",
     "code": "fee.generateBill",
     "url": "",

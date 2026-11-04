@@ -33,7 +33,7 @@ function check(name,passed){report.checks.push({name,passed:!!passed});if(!passe
    check(round?'repeat_preserves_bill_id':'server_bill_identifier_present',round?data.data.billId===report.billId:!!data.data.billId);
    if(!round)report.billId=data.data.billId;
    await page.locator('tbody tr').filter({hasText:report.billId}).getByText('待审核',{exact:true}).waitFor();
-   check(round?'repeat_keeps_review_button':'new_bill_is_visible_for_review',await page.locator('tbody tr').filter({hasText:report.billId}).getByRole('button',{name:'审核发布',exact:true}).count()===1);
+   check(round?'repeat_keeps_review_button':'new_bill_is_visible_for_review',await page.locator('tbody tr').filter({hasText:report.billId}).getByRole('button',{name:'审核并推送',exact:true}).count()===1);
   }
   check('no_page_errors',report.errors.length===0);
   check('no_horizontal_overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1));

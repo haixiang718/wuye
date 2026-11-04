@@ -43,6 +43,13 @@ public class BillNotificationService {
     private static final int RECEIPT_TTL = 86400;
 
     public JSONObject send(String communityId, String oweId, String requestId, String storeId, String userId) {
+        return send(communityId,oweId,requestId,storeId,userId,false);
+    }
+    /** First publication skips notified/paid details; manual reminders keep their existing semantics. */
+    public JSONObject sendInitial(String communityId,String oweId,String requestId,String storeId,String userId) {
+        return send(communityId,oweId,requestId,storeId,userId,true);
+    }
+    private JSONObject send(String communityId,String oweId,String requestId,String storeId,String userId,boolean initial) {
         try {
             required(communityId,"缺少小区信息"); required(oweId,"缺少账单明细");
             required(storeId,"请先使用物业员工账号登录"); required(userId,"请先使用物业员工账号登录");
@@ -58,9 +65,9 @@ public class BillNotificationService {
             BillOweFeeDto bill = bills.get(0);
             if (!communityId.equals(bill.getCommunityId()) || !oweId.equals(bill.getOweId())) return result(403,"账单不属于当前小区",0,false);
             if (!"PUBLISHED".equals(bill.getReviewState())) return result(400,"账单尚未审核发布，请先在账单管理中审核",0,false);
-            if (!("1000".equals(bill.getState()) || "3000".equals(bill.getState()))) return result(400,"该账单已支付或不允许推送",0,false);
-            if (new BigDecimal(bill.getBillAmountOwed()).signum() <= 0) return result(400,"账单没有待缴金额",0,false);
-            return sendLocked(bill, query, requestId);
+            if (!initial&&!("1000".equals(bill.getState()) || "3000".equals(bill.getState()))) return result(400,"该账单已支付或不允许推送",0,false);
+            if (!initial&&new BigDecimal(bill.getBillAmountOwed()).signum() <= 0) return result(400,"账单没有待缴金额",0,false);
+            return sendLocked(bill, query, requestId,initial);
         } catch (IllegalArgumentException e) {
             return result(400,e.getMessage(),0,false);
         } catch (Exception e) {
@@ -69,7 +76,7 @@ public class BillNotificationService {
         }
     }
 
-    private JSONObject sendLocked(BillOweFeeDto bill, BillOweFeeDto query, String requestId) throws Exception {
+    private JSONObject sendLocked(BillOweFeeDto bill, BillOweFeeDto query, String requestId,boolean initial) throws Exception {
         String suffix = bill.getCommunityId() + ":" + bill.getOweId();
         String receiptKey = "BILL_NOTIFY_REQUEST:" + suffix + ":" + requestId;
         String previous = cached(receiptKey);
@@ -86,6 +93,15 @@ public class BillNotificationService {
             if (!StringUtil.isEmpty(previous)) {
                 JSONObject receipt = JSON.parseObject(previous);
                 if (receipt.getIntValue("code") != 202 || !receipt.getJSONObject("data").getBooleanValue("retryable")) return receipt;
+            }
+            if(initial){
+                List<BillOweFeeDto> current=feeInnerServiceSMOImpl.queryBillOweFees(query);
+                if(current==null||current.size()!=1||!bill.getCommunityId().equals(current.get(0).getCommunityId())||!bill.getBillId().equals(current.get(0).getBillId())||!bill.getOweId().equals(current.get(0).getOweId()))return result(400,"账单明细已变化，请刷新核对",0,false);
+                bill=current.get(0);
+                if(!"PUBLISHED".equals(bill.getReviewState()))return result(400,"账单尚未审核发布",0,false);
+                if(!"1000".equals(bill.getState())||new BigDecimal(bill.getBillAmountOwed()).signum()<=0){
+                    JSONObject skipped=result(0,"已通知、已支付或没有待缴金额，已跳过首次通知",0,false);skipped.getJSONObject("data").put("skipped",true);return persist(receiptKey,skipped);
+                }
             }
             if (!StringUtil.isEmpty(cached("BILL_NOTIFY_COOLDOWN:" + suffix))) return result(429,"刚刚已推送该账单，请至少间隔一分钟再操作",0,false);
             SmallWeChatDto accountQuery = new SmallWeChatDto(); accountQuery.setObjId(bill.getCommunityId());

@@ -16,6 +16,9 @@ def main():
         'java110-bean/src/main/java/com/java110/dto/fee/BillDto.java',
         'java110-bean/src/main/java/com/java110/dto/fee/BillOweFeeDto.java',
         'service-api/src/main/java/com/java110/api/bmo/fee/impl/BillReviewService.java',
+        'service-api/src/main/java/com/java110/api/bmo/fee/impl/BillPublicationService.java',
+        'service-api/src/main/java/com/java110/api/bmo/fee/impl/BillNotificationTaskStore.java',
+        'service-api/src/main/java/com/java110/api/bmo/fee/impl/BillNotificationService.java',
         'service-api/src/main/java/com/java110/api/listener/fee/ReviewBillListener.java',
         'service-front/src/main/java/com/java110/front/smo/api/impl/OwnerDataAccessService.java',
         'service-front/src/main/java/com/java110/front/controller/app/PaymentController.java']]

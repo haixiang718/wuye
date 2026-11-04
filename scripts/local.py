@@ -254,7 +254,8 @@ def infra(profile='property'):
                    '--character-set-server=utf8mb4', '--collation-server=utf8mb4_general_ci',
                    '--innodb-buffer-pool-size=256M', '--console'], 13306)
     spawn('redis', [str(TOOLS / 'redis/tools/redis-server.exe'), '--bind', '127.0.0.1',
-                   '--port', '16379', '--dir', str(RUN), '--appendonly', 'no'], 16379)
+                   '--port', '16379', '--dir', str(RUN), '--appendonly', 'yes',
+                   '--appendfsync', 'everysec'], 16379)
     libs = str(TOOLS / 'kafka_2.13-2.8.2/libs/*')
     spawn('zookeeper', [java(), '-Xms32m', '-Xmx128m', '-cp', libs,
                        'org.apache.zookeeper.server.quorum.QuorumPeerMain', str(RUN / 'config/zookeeper.properties')], 12181)

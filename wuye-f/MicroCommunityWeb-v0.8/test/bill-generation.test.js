@@ -187,7 +187,7 @@ test('template explains batch drafts, exposes searchable paged selection, and pr
     assert.match(html, /上一页/);
     assert.match(html, /下一页/);
     assert.match(html, /按收费项目整批/);
-    assert.match(html, /审核与推送需要分别操作/);
+    assert.match(html, /核对后点击“审核并推送”/);
     assert.match(html, /v-on:click="_generateBill\(\)"/);
     assert.match(html, /:disabled="[^"]*generation\.generating/);
     assert.match(html, /v-on:click="_reviewBill\(bill\)"/);

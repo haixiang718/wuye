@@ -2,6 +2,7 @@ package com.java110.api.listener.fee;
 
 import com.alibaba.fastjson.JSONObject;
 import com.java110.api.bmo.fee.impl.BillReviewService;
+import com.java110.api.bmo.fee.impl.BillPublicationService;
 import com.java110.api.listener.AbstractServiceApiListener;
 import com.java110.core.annotation.Java110Listener;
 import com.java110.core.context.DataFlowContext;
@@ -14,16 +15,19 @@ import java.util.Map;
 @Java110Listener("reviewBillListener")
 public class ReviewBillListener extends AbstractServiceApiListener {
     @Autowired private BillReviewService billReviewService;
+    @Autowired private BillPublicationService billPublicationService;
     @Override public String getServiceCode() { return "fee.reviewBill"; }
     @Override public HttpMethod getHttpMethod() { return HttpMethod.POST; }
     @Override protected void validate(ServiceDataFlowEvent event,JSONObject request) {
+        if(request.getBooleanValue("notify")&&!"8000418004".equals(event.getDataFlowContext().getAppId()))throw new IllegalArgumentException("此功能仅供物业后台使用");
         Assert.hasKeyAndValue(request,"communityId","缺少小区信息");
         Assert.hasKeyAndValue(request,"billId","缺少账单编号");
     }
     @Override protected void doSoService(ServiceDataFlowEvent event,DataFlowContext context,JSONObject request) {
         Map<String,String> headers = context.getRequestCurrentHeaders();
-        JSONObject result = billReviewService.publish(request.getString("communityId"),request.getString("billId"),
-            request.getString("remark"),headers.get("store-id"),headers.get("user-id"));
+        JSONObject result = request.getBooleanValue("notify")
+            ? billPublicationService.publishAndNotify(request.getString("communityId"),request.getString("billId"),request.getString("remark"),headers.get("store-id"),headers.get("user-id"),request.getBooleanValue("retryNotifications"))
+            : billReviewService.publish(request.getString("communityId"),request.getString("billId"),request.getString("remark"),headers.get("store-id"),headers.get("user-id"));
         context.setResponseEntity(new ResponseEntity<String>(result.toJSONString(),HttpStatus.OK));
     }
 }
