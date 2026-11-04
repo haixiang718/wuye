@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-04",
+  "scope": "Owner creation with multiple room bindings",
+  "frontendTests": {"passed": 64, "failed": 0, "newOwnerTests": 17},
+  "ownerRoomJavaTests": {"passed": 13, "failed": 0},
+  "ownerAccessJavaTests": {"passed": 44, "failed": 0},
+  "publicBrowser": {
+    "passed": true,
+    "checks": 13,
+    "ownerCount": 1,
+    "selectedRooms": 2,
+    "invalidAndDuplicateRequestsRejected": true,
+    "orderStagingFailureThenSuccessfulRetry": true,
+    "pageErrors": 0
+  },
+  "database": {
+    "ownerCount": 1,
+    "boundRooms": 2,
+    "validityDatesPresent": true,
+    "roomStatesUpdated": true,
+    "unselectedRoomUnbound": true,
+    "invalidRequestsCreatedNoOwner": true
+  },
+  "cleanup": {
+    "passed": true,
+    "tablesCompared": 15,
+    "originalBusinessDataUnchanged": true,
+    "orderAuditRecordsRetained": true,
+    "temporarySessionMetadataNotRestored": true
+  },
+  "messagesSent": 0,
+  "payments": 0,
+  "limits": [
+    "No process-crash injection after instance conversion",
+    "User reported transient empty pages, then confirmed recovery; underlying cause not established",
+    "Existing-cycle snapshots do not include fees created after generation; supplementary billing remains outstanding"
+  ]
+}

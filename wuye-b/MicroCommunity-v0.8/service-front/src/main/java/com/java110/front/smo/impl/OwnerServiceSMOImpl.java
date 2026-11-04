@@ -128,7 +128,8 @@ public class OwnerServiceSMOImpl extends BaseComponentSMO implements IOwnerServi
         super.checkUserHasPrivilege(pd, restTemplate, PrivilegeCodeConstant.PRIVILEGE_FLOOR);
 
         JSONObject paramIn = JSONObject.parseObject(pd.getReqData());
-        if (paramIn.containsKey("ownerId") && !paramIn.getString("ownerId").startsWith("-")) {
+        if (paramIn.containsKey("ownerId") && paramIn.getString("ownerId") != null
+                && paramIn.getString("ownerId").length() > 0 && !paramIn.getString("ownerId").startsWith("-")) {
             //paramIn.put("ownerTypeCd", "1002");
         } else {
             paramIn.put("ownerTypeCd", "1001");
@@ -146,6 +147,10 @@ public class OwnerServiceSMOImpl extends BaseComponentSMO implements IOwnerServi
         //数据校验是否 商户是否入驻该小区
         super.checkStoreEnterCommunity(pd, storeId, storeTypeCd, communityId, restTemplate);
         paramIn.put("userId", pd.getUserId());
+        if (paramIn.containsKey("roomIds")) {
+            super.checkUserHasPrivilege(pd, restTemplate, PrivilegeCodeConstant.ADD_OWNER_ROOM);
+            paramIn.put("storeId", storeId);
+        }
         responseEntity = this.callCenterService(restTemplate, pd, paramIn.toJSONString(),
                 ServiceConstant.SERVICE_API_URL + "/api/owner.saveOwner",
                 HttpMethod.POST);

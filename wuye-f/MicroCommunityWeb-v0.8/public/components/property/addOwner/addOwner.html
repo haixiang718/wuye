@@ -4,6 +4,7 @@
         <div class="modal-content">
             <div class="modal-body">
                 <h3 class="m-t-none m-b ">添加{{addOwnerInfo.componentTitle}}</h3>
+                <fieldset :disabled="addOwnerInfo.saving" class="border-0 p-0 m-0" style="min-width:0;">
                 <div class="ibox-content">
                     <div class="row">
                         <div class="col-sm-6">
@@ -40,7 +41,7 @@
                             <div class="form-group row">
                                 <label class="col-sm-2 col-form-label">身份证</label>
                                 <div class="col-sm-10"><input v-model="addOwnerInfo.idCard" type="text"
-                                        placeholder="可选，请填写身份证" class="form-control"></div>
+                                        :placeholder="addOwnerInfo.selectedRooms.length ? '绑定房屋必填，请填写身份证' : '可选，请填写身份证'" class="form-control"></div>
                             </div>
                         </div>
                         <div class="col-sm-6" style="text-align:center">
@@ -147,15 +148,74 @@
                             </div>
                         </div>
                     </div>
+                    <div v-if="addOwnerInfo.componentTitle == '业主'" class="m-t-md border-top p-t-sm">
+                        <h4>绑定房屋（可选）</h4>
+                        <p class="text-muted">可选择本小区已建档且未绑定的房屋，最多50套。也可不选房屋，仅保存业主资料。</p>
+                        <p class="text-info">绑定房屋须填写姓名、手机号和身份证；微信端认领时仍需这三项资料一致。同小区已有业主请在业主列表中追加绑定。</p>
+                        <div class="row m-b-sm">
+                            <div class="col-sm-4 m-b-xs">
+                                <label class="sr-only" for="addOwnerRoomFloor">楼栋编号</label>
+                                <input id="addOwnerRoomFloor" v-model="addOwnerInfo.roomFloorNum" type="text"
+                                    placeholder="楼栋编号" class="form-control" @keyup.enter="loadOwnerRooms(1)">
+                            </div>
+                            <div class="col-sm-4 m-b-xs">
+                                <label class="sr-only" for="addOwnerRoomNumber">房屋编号</label>
+                                <input id="addOwnerRoomNumber" v-model="addOwnerInfo.roomNum" type="text"
+                                    placeholder="房屋编号" class="form-control" @keyup.enter="loadOwnerRooms(1)">
+                            </div>
+                            <div class="col-sm-4">
+                                <button class="btn btn-primary" type="button" @click="loadOwnerRooms(1)"
+                                    :disabled="addOwnerInfo.roomLoading || addOwnerInfo.saving">
+                                    {{addOwnerInfo.roomLoading ? '查询中…' : '查询可绑定房屋'}}
+                                </button>
+                            </div>
+                        </div>
+                        <div class="table-responsive" aria-live="polite">
+                            <table class="table table-bordered table-hover">
+                                <thead><tr><th scope="col">选择</th><th scope="col">楼栋</th><th scope="col">单元</th><th scope="col">房屋</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="room in addOwnerInfo.roomOptions" :key="room.roomId">
+                                        <td><input type="checkbox" :checked="isOwnerRoomSelected(room.roomId)"
+                                            :disabled="addOwnerInfo.saving || (addOwnerInfo.selectedRooms.length >= 50 && !isOwnerRoomSelected(room.roomId))"
+                                            :aria-label="'选择' + room.floorNum + '栋' + room.unitNum + '单元' + room.roomNum"
+                                            @change="toggleOwnerRoom(room)"></td>
+                                        <td>{{room.floorNum}}</td><td>{{room.unitNum}}</td><td>{{room.roomNum}}</td>
+                                    </tr>
+                                    <tr v-if="!addOwnerInfo.roomOptions.length">
+                                        <td colspan="4" class="text-center text-muted">
+                                            {{addOwnerInfo.roomLoading ? '正在查询房屋…' : '暂无房屋，请查询或调整楼栋、房屋编号'}}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-right m-b-sm" v-if="addOwnerInfo.roomPages > 0">
+                            <span>共{{addOwnerInfo.roomRecords}}套，第{{addOwnerInfo.roomPage}} / {{addOwnerInfo.roomPages}}页</span>
+                            <button class="btn btn-white btn-sm" type="button" @click="loadOwnerRooms(addOwnerInfo.roomPage - 1)"
+                                :disabled="addOwnerInfo.roomPage <= 1 || addOwnerInfo.roomLoading || addOwnerInfo.saving">上一页</button>
+                            <button class="btn btn-white btn-sm" type="button" @click="loadOwnerRooms(addOwnerInfo.roomPage + 1)"
+                                :disabled="addOwnerInfo.roomPage >= addOwnerInfo.roomPages || addOwnerInfo.roomLoading || addOwnerInfo.saving">下一页</button>
+                        </div>
+                        <p><strong>已选{{addOwnerInfo.selectedRooms.length}}套</strong><span class="text-muted">（翻页保留已选房屋）</span></p>
+                        <ul class="list-unstyled" v-if="addOwnerInfo.selectedRooms.length">
+                            <li v-for="room in addOwnerInfo.selectedRooms" :key="room.roomId" class="m-b-xs">
+                                {{room.floorNum}}栋 / {{room.unitNum}}单元 / {{room.roomNum}}
+                                <button class="btn btn-link btn-sm" type="button" @click="removeOwnerRoom(room.roomId)"
+                                    :disabled="addOwnerInfo.saving">移除</button>
+                            </li>
+                        </ul>
+                    </div>
                     <div class="ibox-content">
-                        <button class="btn btn-primary float-right" type="button" v-on:click="saveOwnerInfo()">
-                            <i class="fa fa-check"></i>&nbsp;保存
+                        <button class="btn btn-primary float-right" type="button" v-on:click="saveOwnerInfo()"
+                            :disabled="addOwnerInfo.saving" :aria-busy="addOwnerInfo.saving">
+                            <i class="fa fa-check"></i>&nbsp;{{addOwnerInfo.saving ? '保存中…' : '保存'}}
                         </button>
                         <button type="button" class="btn btn-warning float-right" style="margin-right:20px;"
-                            data-dismiss="modal">取消
+                            data-dismiss="modal" :disabled="addOwnerInfo.saving">取消
                         </button>
                     </div>
                 </div>
+                </fieldset>
             </div>
         </div>
     </div>

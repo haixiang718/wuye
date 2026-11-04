@@ -3,6 +3,7 @@ package com.java110.api.listener.owner;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.java110.api.bmo.owner.IOwnerBMO;
+import com.java110.api.bmo.owner.impl.OwnerRoomCreationService;
 import com.java110.api.bmo.ownerAttr.IOwnerAttrBMO;
 import com.java110.api.listener.AbstractServiceApiPlusListener;
 import com.java110.core.annotation.Java110Listener;
@@ -38,6 +39,9 @@ public class SaveOwnerListener extends AbstractServiceApiPlusListener {
 
     @Autowired
     private IOwnerBMO ownerBMOImpl;
+
+    @Autowired
+    private OwnerRoomCreationService ownerRoomCreationService;
 
     @Autowired
     private IOwnerAttrBMO ownerAttrBMOImpl;
@@ -98,6 +102,7 @@ public class SaveOwnerListener extends AbstractServiceApiPlusListener {
         }
         //属性校验
         Assert.judgeAttrValue(reqJson);
+        ownerRoomCreationService.validate(reqJson);
     }
 
     @Override
@@ -108,6 +113,7 @@ public class SaveOwnerListener extends AbstractServiceApiPlusListener {
 
         //添加小区楼
         ownerBMOImpl.addOwner(reqJson, context);
+        ownerRoomCreationService.append(reqJson, context, ownerBMOImpl);
 
 //        if ("1001".equals(reqJson.getString("ownerTypeCd"))) {
 //            //小区楼添加到小区中
@@ -138,6 +144,15 @@ public class SaveOwnerListener extends AbstractServiceApiPlusListener {
 
         dealOwnerAttr(reqJson, context);
 
+    }
+
+    @Override
+    public void commit(final DataFlowContext context) {
+        ownerRoomCreationService.commit(context.getReqJson(), new Runnable() {
+            @Override public void run() {
+                SaveOwnerListener.super.commit(context);
+            }
+        });
     }
 
     /**

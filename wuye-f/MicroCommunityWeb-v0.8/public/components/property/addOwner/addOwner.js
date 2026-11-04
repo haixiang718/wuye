@@ -19,6 +19,17 @@
                 idCard: '',
                 videoPlaying: true,
                 mediaStreamTrack: null,
+                saving: false,
+                selectedRooms: [],
+                roomOptions: [],
+                roomFloorNum: '',
+                roomNum: '',
+                roomPage: 1,
+                roomPages: 0,
+                roomRecords: 0,
+                roomLoading: false,
+                roomRequestId: 0,
+                roomCommunityId: vc.getCurrentCommunity().communityId,
                 attrs: []
             }
         },
@@ -27,14 +38,137 @@
         },
         _initEvent: function () {
             vc.on('addOwner', 'openAddOwnerModal', function (_ownerId) {
-                if (_ownerId != null || _ownerId != -1) {
+                if (vc.component.addOwnerInfo.saving) {
+                    return;
+                }
+                vc.component.clearAddOwnerInfo();
+                if (_ownerId != null) {
                     vc.component.addOwnerInfo.ownerId = _ownerId;
                 }
                 $('#addOwnerModel').modal('show');
                 vc.component._initAddOwnerMedia();
             });
+            $('#addOwnerModel').on('hide.bs.modal', function (event) {
+                if (vc.component.addOwnerInfo.saving) {
+                    event.preventDefault();
+                    return;
+                }
+                vc.component._closeVedio();
+                // A dismissed modal must not accept an in-flight room lookup.
+                vc.component.addOwnerInfo.roomRequestId++;
+                vc.component.addOwnerInfo.roomLoading = false;
+            });
         },
         methods: {
+            _syncOwnerRoomCommunity: function () {
+                let info = vc.component.addOwnerInfo;
+                let communityId = vc.getCurrentCommunity().communityId;
+                if (info.roomCommunityId == communityId) {
+                    return true;
+                }
+                info.roomCommunityId = communityId;
+                info.selectedRooms = [];
+                info.roomOptions = [];
+                info.roomFloorNum = '';
+                info.roomNum = '';
+                info.roomPage = 1;
+                info.roomPages = 0;
+                info.roomRecords = 0;
+                info.roomLoading = false;
+                info.roomRequestId++;
+                return false;
+            },
+            isOwnerRoomSelected: function (roomId) {
+                return vc.component.addOwnerInfo.selectedRooms.some(function (room) {
+                    return room.roomId === roomId;
+                });
+            },
+            toggleOwnerRoom: function (room) {
+                let info = vc.component.addOwnerInfo;
+                if (info.saving || info.componentTitle !== '业主' || !room || !room.roomId) {
+                    return;
+                }
+                if (!vc.component._syncOwnerRoomCommunity()) {
+                    vc.toast('小区已切换，请重新查询并选择房屋');
+                    return;
+                }
+                if (vc.component.isOwnerRoomSelected(room.roomId)) {
+                    vc.component.removeOwnerRoom(room.roomId);
+                    return;
+                }
+                if (info.selectedRooms.length >= 50) {
+                    vc.toast('一次最多选择50套房屋');
+                    return;
+                }
+                info.selectedRooms.push(room);
+            },
+            removeOwnerRoom: function (roomId) {
+                let info = vc.component.addOwnerInfo;
+                if (!info.saving) {
+                    info.selectedRooms = info.selectedRooms.filter(function (room) {
+                        return room.roomId !== roomId;
+                    });
+                }
+            },
+            loadOwnerRooms: function (page) {
+                let info = vc.component.addOwnerInfo;
+                if (info.saving || info.componentTitle !== '业主') {
+                    return;
+                }
+                vc.component._syncOwnerRoomCommunity();
+                let requestId = ++info.roomRequestId;
+                let communityId = info.roomCommunityId;
+                info.roomLoading = true;
+                info.roomOptions = [];
+                info.roomPage = page;
+                function isCurrentRequest() {
+                    if (vc.component.addOwnerInfo !== info) {
+                        return false;
+                    }
+                    if (vc.getCurrentCommunity().communityId !== communityId) {
+                        vc.component._syncOwnerRoomCommunity();
+                        return false;
+                    }
+                    return info.roomRequestId === requestId;
+                }
+                vc.http.get('searchRoom', 'listRoom', {
+                    params: {
+                        communityId: communityId,
+                        page: page,
+                        row: 10,
+                        roomFlag: '2',
+                        floorNum: info.roomFloorNum,
+                        roomNum: info.roomNum
+                    }
+                }, function (json) {
+                    if (!isCurrentRequest()) {
+                        return;
+                    }
+                    info.roomLoading = false;
+                    try {
+                        let result = JSON.parse(json);
+                        // The legacy room endpoint omits rooms when no matches exist.
+                        if (result.rooms == null && Number(result.total) === 0 && Number(result.records) === 0) {
+                            result.rooms = [];
+                        }
+                        if (!Array.isArray(result.rooms)) {
+                            vc.toast(result.msg || '查询房屋失败，请重试');
+                            return;
+                        }
+                        info.roomOptions = result.rooms;
+                        // This endpoint names the row count total and the page count records.
+                        info.roomRecords = Number(result.total) || 0;
+                        info.roomPages = Number(result.records) || Math.ceil(info.roomRecords / 10);
+                    } catch (error) {
+                        vc.toast('查询房屋失败，请重试');
+                    }
+                }, function () {
+                    if (isCurrentRequest()) {
+                        info.roomLoading = false;
+                        vc.toast('查询房屋失败，请重试');
+                    }
+                });
+            },
             addOwnerValidate: function () {
                 return vc.validate.validate({
                     addOwnerInfo: vc.component.addOwnerInfo
@@ -104,23 +238,52 @@
                 });
             },
             saveOwnerInfo: function () {
+                let info = vc.component.addOwnerInfo;
+                if (info.saving) {
+                    return;
+                }
+                if (info.componentTitle === '业主' && !vc.component._syncOwnerRoomCommunity()) {
+                    vc.toast('小区已切换，请确认资料并重新选择房屋');
+                    return;
+                }
+                if (info.componentTitle === '业主' && info.selectedRooms.length && !String(info.idCard || '').trim()) {
+                    vc.toast('绑定房屋时必须填写身份证，供微信端身份核验');
+                    return;
+                }
                 if (!vc.component.addOwnerValidate()) {
                     vc.toast(vc.validate.errInfo);
 
                     return;
                 }
 
-                vc.component.addOwnerInfo.communityId = vc.getCurrentCommunity().communityId;
+                // Project business fields explicitly: camera objects and picker state stay local.
+                let payload = {};
+                ['componentTitle', 'name', 'age', 'link', 'sex', 'ownerTypeCd', 'remark',
+                    'ownerId', 'ownerPhoto', 'idCard', 'attrs'].forEach(function (field) {
+                    payload[field] = info[field];
+                });
+                payload.communityId = vc.getCurrentCommunity().communityId;
+                if (info.componentTitle === '业主' && info.selectedRooms.length) {
+                    payload.roomIds = info.selectedRooms.map(function (room) { return room.roomId; });
+                }
+                let body = JSON.stringify(payload);
+                info.saving = true;
                 vc.http.post(
                     'addOwner',
                     'saveOwner',
-                    JSON.stringify(vc.component.addOwnerInfo),
+                    body,
                     {
                         emulateJSON: true
                     },
                     function (json, res) {
-                        //vm.menus = vm.refreshMenuActive(JSON.parse(json),0);
-                        let _json = JSON.parse(json);
+                        info.saving = false;
+                        let _json;
+                        try {
+                            _json = JSON.parse(json);
+                        } catch (error) {
+                            vc.toast('保存失败，请重试');
+                            return;
+                        }
                         if (_json.code == 0) {
                             //关闭model
                             $('#addOwnerModel').modal('hide');
@@ -133,6 +296,7 @@
 
                     },
                     function (errInfo, error) {
+                        info.saving = false;
                         console.log('请求失败处理');
 
                         vc.toast(errInfo);
@@ -140,6 +304,10 @@
                     });
             },
             clearAddOwnerInfo: function () {
+                if (vc.component.addOwnerInfo.saving) {
+                    return;
+                }
+                vc.component._closeVedio();
                 let _componentTitle = $that.addOwnerInfo.componentTitle;
                 vc.component.addOwnerInfo = {
                     componentTitle: _componentTitle,
@@ -154,6 +322,17 @@
                     idCard: '',
                     videoPlaying: true,
                     mediaStreamTrack: null,
+                    saving: false,
+                    selectedRooms: [],
+                    roomOptions: [],
+                    roomFloorNum: '',
+                    roomNum: '',
+                    roomPage: 1,
+                    roomPages: 0,
+                    roomRecords: 0,
+                    roomLoading: false,
+                    roomRequestId: 0,
+                    roomCommunityId: vc.getCurrentCommunity().communityId,
                     attrs:[]
                 };
                 this._loadOwnerAttrSpec();
@@ -235,6 +414,7 @@
             _closeVedio: function () {
                 if (vc.component.addOwnerInfo.mediaStreamTrack != null) {
                     vc.component.addOwnerInfo.mediaStreamTrack.stop();
+                    vc.component.addOwnerInfo.mediaStreamTrack = null;
                 }
             },
             _loadOwnerAttrSpec: function () {

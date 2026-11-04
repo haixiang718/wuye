@@ -2,6 +2,7 @@ package com.java110.api.listener.room;
 
 import com.alibaba.fastjson.JSONObject;
 import com.java110.api.bmo.room.IRoomBMO;
+import com.java110.api.bmo.owner.impl.OwnerRoomCreationService;
 import com.java110.api.listener.AbstractServiceApiPlusListener;
 import com.java110.core.annotation.Java110Listener;
 import com.java110.core.context.DataFlowContext;
@@ -32,6 +33,9 @@ public class SellRoomListener extends AbstractServiceApiPlusListener {
     private IRoomBMO roomBMOImpl;
 
     @Autowired
+    private OwnerRoomCreationService ownerRoomCreationService;
+
+    @Autowired
     private IUnitInnerServiceSMO unitInnerServiceSMOImpl;
 
     @Autowired
@@ -40,6 +44,15 @@ public class SellRoomListener extends AbstractServiceApiPlusListener {
     @Override
     public String getServiceCode() {
         return ServiceCodeConstant.SERVICE_CODE_SELL_ROOM;
+    }
+
+    @Override
+    public void commit(final DataFlowContext context) {
+        ownerRoomCreationService.commit(context.getReqJson(), new Runnable() {
+            @Override public void run() {
+                SellRoomListener.super.commit(context);
+            }
+        });
     }
 
     @Override
