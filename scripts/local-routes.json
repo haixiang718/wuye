@@ -1,5 +1,14 @@
 [
   {
+    "id": "local_20261104_001",
+    "code": "fee.generateBill",
+    "url": "",
+    "method": "POST",
+    "apps": ["8000418004"],
+    "instance": "N",
+    "reason": "Property staff generate a draft for one authorized community charge item through the existing job billing logic; no scheduling or notification."
+  },
+  {
     "id": "local_20261103_002",
     "code": "owner.bindWechatIdentity",
     "url": "http://order-service/orderApi/service",

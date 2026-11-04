@@ -116,13 +116,18 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
 
     }
 
+    /** Called only after the internal service has loaded and validated the trusted configuration. */
+    public BillDto generateByFeeConfig(FeeConfigDto feeConfigDto) throws Exception {
+        return GenerateBillByFeeConfig(null, feeConfigDto);
+    }
+
     /**
      * 按费用项来出账
      *
      * @param taskDto
      * @param feeConfigDto
      */
-    private void GenerateBillByFeeConfig(TaskDto taskDto, FeeConfigDto feeConfigDto) throws Exception {
+    private BillDto GenerateBillByFeeConfig(TaskDto taskDto, FeeConfigDto feeConfigDto) throws Exception {
 
         //当前费用项是否
         BillDto tmpBillDto = new BillDto();
@@ -146,6 +151,7 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         billDto.setCommunityId(feeConfigDto.getCommunityId());
         billDto.setConfigId(feeConfigDto.getConfigId());
         billDto.setCurBill("T");
+        billDto.setReviewState(BillDto.REVIEW_DRAFT);
         //查询历史有效账单
         tmpBillDto = new BillDto();
         tmpBillDto.setCurBill("T");
@@ -164,7 +170,7 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
 
         //没有关联费用不做出账
         if (feeDtos == null || feeDtos.isEmpty()) {
-            return;
+            return null;
         }
         billDto.setReceivable("0");
         billDto.setReceipts("0");
@@ -172,6 +178,11 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         List<BillOweFeeDto> details = new ArrayList<>();
         for (FeeDto tmpFeeDto : feeDtos) {
             generateFee(startTime, tmpFeeDto, billDto, feeConfigDto, details);
+        }
+
+        // Finished, prepaid and zero-price fees must not produce a reviewable empty header.
+        if (details.isEmpty()) {
+            return null;
         }
 
 
@@ -187,7 +198,7 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         if (feeInnerServiceSMOImpl.saveBillSnapshot(snapshot) != 1) {
             throw new IllegalStateException("账单整批保存失败");
         }
-
+        return billDto;
     }
 
     /**
