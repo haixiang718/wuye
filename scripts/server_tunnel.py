@@ -33,7 +33,7 @@ def start():
     with LOG.open('ab') as output:
         process=subprocess.Popen([sys.executable,str(Path(__file__).resolve()),'watch'],stdin=subprocess.DEVNULL,
             stdout=output,stderr=output,creationflags=subprocess.CREATE_NEW_PROCESS_GROUP|subprocess.DETACHED_PROCESS)
-    STATE.write_text(json.dumps({'pid':process.pid,'host':'118.31.186.6','remotePort':18080}),encoding='utf-8')
+    STATE.write_text(json.dumps({'pid':process.pid,'host':'118.31.186.6','remotePort':18080,'remotePorts':[18080,18081]}),encoding='utf-8')
     print('Tunnel supervisor started; verify remote listener and HTTPS separately.')
 
 
@@ -43,7 +43,8 @@ def watch():
     command=[ssh,'-N','-T','-o','BatchMode=yes','-o','StrictHostKeyChecking=yes',
         '-o','UserKnownHostsFile='+str(KNOWN),'-o','IdentitiesOnly=yes','-o','ExitOnForwardFailure=yes',
         '-o','ConnectTimeout=15','-o','ServerAliveInterval=20','-o','ServerAliveCountMax=3',
-        '-i',str(KEY),'-R','127.0.0.1:18080:127.0.0.1:8080','wuye-tunnel@118.31.186.6']
+        '-i',str(KEY),'-R','127.0.0.1:18080:127.0.0.1:8080',
+        '-R','127.0.0.1:18081:127.0.0.1:3000','wuye-tunnel@118.31.186.6']
     while True:
         subprocess.run(command,stdin=subprocess.DEVNULL)
         print('SSH connection ended; retrying in five seconds.',flush=True)

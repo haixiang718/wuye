@@ -1,0 +1,62 @@
+{
+  "checks": [
+    {
+      "name": "http_redirects_to_https",
+      "passed": true
+    },
+    {
+      "name": "anonymous_sees_existing_login",
+      "passed": true
+    },
+    {
+      "name": "login_has_account_and_password_fields",
+      "passed": true
+    },
+    {
+      "name": "anonymous_cannot_query_bills",
+      "passed": true
+    },
+    {
+      "name": "existing_session_loads_community",
+      "passed": true
+    },
+    {
+      "name": "public_authenticated_bill_query",
+      "passed": true
+    },
+    {
+      "name": "no_page_errors",
+      "passed": true
+    },
+    {
+      "name": "no_failed_authenticated_requests",
+      "passed": true
+    }
+  ],
+  "pageErrors": [],
+  "failedRequests": [],
+  "messagesSent": 0,
+  "payments": 0,
+  "queryShape": {
+    "code": 0,
+    "hasBills": false,
+    "hasData": true,
+    "keys": [
+      "code",
+      "data",
+      "msg",
+      "page",
+      "records",
+      "rows",
+      "total"
+    ]
+  },
+  "passed": true,
+  "date": "2026-11-04",
+  "origin": "https://admin.jiaanfuwu.cn",
+  "serverConfigurationChecked": true,
+  "bothTunnelsLoopbackOnly": true,
+  "h5AndCallbackChecksPassed": 7,
+  "freshExternalPasswordLoginVerified": false,
+  "sessionSource": "existing local authorized session, remapped in memory for read-only browser verification"
+}
