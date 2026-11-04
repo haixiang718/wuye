@@ -86,9 +86,8 @@ public class BillReviewDatabaseTest {
         sql.update("UPDATE bill SET cur_bill='F',bill_time=bill_time");assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",review()));
         sql.update("UPDATE bill SET cur_bill='T',bill_time=bill_time");sql.update("DELETE FROM bill_owe_fee");assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",review()));
     }
-    private FeeDto computeCollectionFee() throws Exception {
-        ComputeFeeSMOImpl compute=new ComputeFeeSMOImpl();
-        IFeeInnerServiceSMO service=(IFeeInnerServiceSMO)Proxy.newProxyInstance(
+    private IFeeInnerServiceSMO feeService() {
+        return (IFeeInnerServiceSMO)Proxy.newProxyInstance(
             IFeeInnerServiceSMO.class.getClassLoader(),new Class[]{IFeeInnerServiceSMO.class},(proxy,method,args)->{
                 Map<String,Object> params=BeanConvertUtil.beanCovertMap(args[0]);
                 if(method.getName().equals("queryBills")) {
@@ -97,10 +96,14 @@ public class BillReviewDatabaseTest {
                 if(method.getName().equals("queryBillOweFees")) {
                     return BeanConvertUtil.covertBeanList(mapper.selectList("feeServiceDaoImpl.queryBillOweFees",params),BillOweFeeDto.class);
                 }
+                if(method.getName().equals("updateBillOweFees"))return mapper.update("feeServiceDaoImpl.updateBillOweFees",params);
                 throw new UnsupportedOperationException(method.getName());
             });
+    }
+    private FeeDto computeCollectionFee() throws Exception {
+        ComputeFeeSMOImpl compute=new ComputeFeeSMOImpl();
         Field field=ComputeFeeSMOImpl.class.getDeclaredField("feeInnerServiceSMOImpl");
-        field.setAccessible(true);field.set(compute,service);
+        field.setAccessible(true);field.set(compute,feeService());
         FeeDto fee=new FeeDto();fee.setFeeId("fee");fee.setConfigId("config");
         fee.setCommunityId("community");fee.setBillType("002");
         compute.computeOweFee(fee);return fee;
@@ -118,5 +121,23 @@ public class BillReviewDatabaseTest {
     @Test public void collectionExcludesZeroBalanceBills() throws Exception {
         sql.update("UPDATE bill_owe_fee SET bill_amount_owed=0,amount_owed=0,fee_end_time=fee_end_time");
         assertEquals(0.0,computeCollectionFee().getFeePrice(),0.000001);
+    }
+    private void newerSupplement() {
+        sql.update("INSERT INTO bill(bill_id,bill_name,receivable,cur_receivable,receipts,bill_time,community_id,config_id,remark,cur_bill,create_time) VALUES ('supplement','Supplement',0.02,0.02,0,NOW(),'community','config','Test','T',DATE_ADD(NOW(),INTERVAL 1 MINUTE))");
+        sql.update("INSERT INTO bill_owe_fee(owe_id,bill_id,fee_id,bill_amount_owed,amount_owed,fee_end_time,owner_id,owner_name,owner_tel,payer_obj_name,payer_obj_type,community_id,state,deadline_time) VALUES ('owe-2','supplement','fee-2',0.02,0.02,'2026-11-01','owner','Audit','19900000000','Room','3333','community','1000','2026-12-01')");
+    }
+    @Test public void collectionStillFindsOriginalFeeAfterSupplement() throws Exception {
+        newerSupplement();sql.update("UPDATE bill_owe_fee SET state='3000',fee_end_time=fee_end_time WHERE fee_id='fee'");
+        assertEquals(0.01,computeCollectionFee().getFeePrice(),0.000001);
+    }
+    @Test public void paymentStatusTargetsOriginalFeeWithoutChangingSupplement() throws Exception {
+        newerSupplement();
+        com.java110.fee.bmo.impl.PayOweFeeImpl target=new com.java110.fee.bmo.impl.PayOweFeeImpl();
+        Field field=target.getClass().getDeclaredField("feeInnerServiceSMOImpl");field.setAccessible(true);field.set(target,feeService());
+        java.lang.reflect.Method method=target.getClass().getDeclaredMethod("modifyFeeBill",com.alibaba.fastjson.JSONObject.class);method.setAccessible(true);
+        com.alibaba.fastjson.JSONObject input=new com.alibaba.fastjson.JSONObject();input.put("communityId","community");input.put("configId","config");input.put("feeId","fee");input.put("billType","002");
+        method.invoke(target,input);
+        assertEquals("2000",sql.queryForObject("SELECT state FROM bill_owe_fee WHERE fee_id='fee'",String.class));
+        assertEquals("1000",sql.queryForObject("SELECT state FROM bill_owe_fee WHERE fee_id='fee-2'",String.class));
     }
 }

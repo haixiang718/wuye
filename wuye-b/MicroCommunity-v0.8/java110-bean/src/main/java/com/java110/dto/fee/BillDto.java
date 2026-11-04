@@ -30,6 +30,9 @@ public class BillDto extends PageDto implements Serializable {
     public void setReviewRemark(String value) { reviewRemark = value; }
 
     private String billId;
+    private String baseBillId;
+    public String getBaseBillId() { return baseBillId; }
+    public void setBaseBillId(String baseBillId) { this.baseBillId = baseBillId; }
     private String billName;
     private String receivable;
     private String curReceivable;

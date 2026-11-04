@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-04",
+  "scope": "Supplementary drafts for newly added fees in an existing billing period",
+  "redBeforeGreen": {
+    "newFeeAfterPublishedBillReturnedOldBill": true,
+    "supplementSnapshotPersistenceFailed": true,
+    "legacyCollectionAndPaidStatusFailedWithMultipleCurrentHeaders": true,
+    "sameSecondRootAndSiblingOrderingFailuresReproduced": true
+  },
+  "tests": {
+    "frontend": {"passed": 65, "failed": 0},
+    "manualGenerationChecks": {"passed": 194, "failed": 0},
+    "originalGenerationChecks": {"passed": 20, "failed": 0},
+    "realMySqlSnapshotTests": {"passed": 17, "failed": 0},
+    "realMySqlReviewCollectionAndStatusTests": {"passed": 10, "failed": 0},
+    "publicBrowserChecks": {"passed": 42, "failed": 0},
+    "isolatedSqlAndH5Checks": {"passed": 15, "failed": 0},
+    "runtimeHealthChecks": {"passed": 21, "failed": 0}
+  },
+  "migration": {
+    "columnAdded": "bill.base_bill_id",
+    "nullable": true,
+    "idempotenceVerified": true,
+    "originalBillColumnsUnchanged": true
+  },
+  "deployment": {
+    "mavenBuildPassed": true,
+    "servicesUpdated": ["business", "job", "api", "front"],
+    "stagedInputsMatchProductionSource": true,
+    "databasesAndPriorPackagesBackedUp": true,
+    "scheduledTasksEnabled": false,
+    "paymentEnabled": false
+  },
+  "fixtureCleanup": {
+    "passed": true,
+    "tablesCompared": 15,
+    "countsAndContentsUnchanged": true,
+    "temporaryLoginMetadataNotRestored": true,
+    "orderAuditRetained": true
+  },
+  "userDraft": {
+    "billId": "732026110453030010",
+    "amount": "50.00",
+    "state": "DRAFT",
+    "detailCount": 1,
+    "newFeeCoveredExactlyOnce": true,
+    "originalPublishedBillUnchanged": true,
+    "messageSent": false,
+    "paymentCreated": false
+  },
+  "limitations": [
+    "WeChat identity in the isolated flow was synthetic; no real OAuth or notification delivery acceptance",
+    "Fixture publication used scoped SQL to verify H5 visibility without dispatching notifications",
+    "Payment regression exercised isolated state-update code, not merchant collection",
+    "Billing periods retain original rolling rules until customer rules are confirmed",
+    "Public domains still depend on the local services and SSH tunnel"
+  ]
+}

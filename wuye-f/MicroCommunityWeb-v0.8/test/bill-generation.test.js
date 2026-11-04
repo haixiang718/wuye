@@ -133,6 +133,21 @@ test('existing published bill is refreshed and described accurately without chan
     assert.equal(p.posts.length, 1);
 });
 
+test('supplementary draft is identified and revealed from stale history filters', () => {
+    const p = ready();
+    Object.assign(p.component.billManageInfo.conditions, { page: 3, row: 10, curBill: 'F', billName: '旧账单', title: '旧编号', billId: 'old' });
+    p.component._generateBill();
+    p.posts[0].success(JSON.stringify({ code: 0,
+        data: { billId: 'extra-1', reviewState: 'DRAFT', existing: false, supplemental: true } }));
+    assert.match(p.toasts[0], /补充/);
+    assert.match(p.toasts[0], /待审核/);
+    assert.equal(p.billGets[0].params.params.page, 1);
+    assert.equal(p.billGets[0].params.params.curBill, 'T');
+    assert.equal(p.billGets[0].params.params.billName, '');
+    assert.equal(p.billGets[0].params.params.billId, '');
+    assert.equal(p.posts.length, 1, 'no automatic review or messages');
+});
+
 test('server rejection shows actionable reason, restores controls and permits a deliberate retry', () => {
     const p = ready();
     p.component._generateBill();

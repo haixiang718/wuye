@@ -383,6 +383,7 @@
     <select id="queryBills" parameterType="Map" resultType="Map">
         select
         t.bill_id billId,
+        t.base_bill_id baseBillId,
         t.bill_name billName,
         t.receivable,
         t.cur_receivable curReceivable,
@@ -626,9 +627,9 @@
 
     <insert id="insertBill" parameterType="Map">
         INSERT INTO bill (`bill_id`, `bill_name`, `receivable`, `receipts`, `bill_time`, `community_id`, `config_id`,
-        `remark`, `cur_bill`, `cur_receivable`)
+        `remark`, `cur_bill`, `cur_receivable`, `base_bill_id`)
         VALUES (#{billId}, #{billName}, #{receivable}, #{receipts}, #{billTime}, #{communityId}, #{configId},
-        #{remark}, #{curBill}, #{curReceivable})
+        #{remark}, #{curBill}, #{curReceivable}, #{baseBillId})
     </insert>
 
     <update id="updateBill" parameterType="Map">
@@ -643,9 +644,18 @@
     </select>
 
     <select id="lockCurrentBills" parameterType="Map" resultType="Map">
-        select bill_id billId, DATE_FORMAT(bill_time, '%Y-%m-%d %H:%i:%s') billTime from bill
+        select bill_id billId, base_bill_id baseBillId, DATE_FORMAT(bill_time, '%Y-%m-%d %H:%i:%s') billTime from bill
         where config_id = #{configId} and community_id = #{communityId} and cur_bill = 'T'
+        order by (base_bill_id IS NOT NULL) asc, bill_time asc, bill_id asc
         for update
+    </select>
+
+    <select id="countCurrentBillFees" parameterType="Map" resultType="int">
+        select count(*) from bill_owe_fee d
+        inner join bill b on b.bill_id=d.bill_id and b.community_id=d.community_id
+        where b.config_id=#{configId} and b.community_id=#{communityId} and b.cur_bill='T'
+        and d.fee_id in
+        <foreach collection="feeIds" item="feeId" open="(" close=")" separator=",">#{feeId}</foreach>
     </select>
 
 

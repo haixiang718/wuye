@@ -271,7 +271,9 @@ public class FeeServiceDaoImpl extends BaseServiceDao implements IFeeServiceDao 
     public int insertBill(Map info) throws DAOException {
         logger.debug("保存欠费费用信息 入参 info : {}", info);
 
-        sqlSessionTemplate.update("feeServiceDaoImpl.updateBill", info);
+        if (!Boolean.TRUE.equals(info.get("preserveCurrentBills"))) {
+            sqlSessionTemplate.update("feeServiceDaoImpl.updateBill", info);
+        }
 
         int saveFlag = sqlSessionTemplate.insert("feeServiceDaoImpl.insertBill", info);
 
@@ -286,6 +288,11 @@ public class FeeServiceDaoImpl extends BaseServiceDao implements IFeeServiceDao 
     @Override
     public List<Map> lockCurrentBills(Map info) {
         return sqlSessionTemplate.selectList("feeServiceDaoImpl.lockCurrentBills", info);
+    }
+
+    @Override
+    public int countCurrentBillFees(Map info) {
+        return sqlSessionTemplate.selectOne("feeServiceDaoImpl.countCurrentBillFees", info);
     }
 
     /**

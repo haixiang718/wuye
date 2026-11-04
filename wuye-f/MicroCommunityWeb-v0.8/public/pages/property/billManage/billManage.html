@@ -68,6 +68,7 @@
                 <div class="ibox-content">
                     <div v-if="billManageInfo.generation.show" class="p-md border-bottom" role="region" aria-label="生成待审核账单">
                         <p>按收费项目整批汇总符合条件的费用，先生成待审核账单。核对后点击“审核并推送”，H5 立即可查，并在后台发送公众号缴费通知。</p>
+                        <p class="text-muted">本期已有账单时，再次生成只收录尚未出账的新增费用，保存为独立的补充待审核账单。原账单保持不变，重复生成不会重复出账。</p>
                         <div class="row">
                             <div class="col-md-4 form-group">
                                 <label for="bill-generation-name">收费项目名称</label>

@@ -9,6 +9,7 @@ public class BillSnapshotDto implements Serializable {
     private List<BillOweFeeDto> details;
     private String billType;
     private String previousBillId;
+    private boolean supplemental;
 
     public BillDto getBill() { return bill; }
     public void setBill(BillDto bill) { this.bill = bill; }
@@ -18,4 +19,6 @@ public class BillSnapshotDto implements Serializable {
     public void setBillType(String billType) { this.billType = billType; }
     public String getPreviousBillId() { return previousBillId; }
     public void setPreviousBillId(String previousBillId) { this.previousBillId = previousBillId; }
+    public boolean isSupplemental() { return supplemental; }
+    public void setSupplemental(boolean supplemental) { this.supplemental = supplemental; }
 }

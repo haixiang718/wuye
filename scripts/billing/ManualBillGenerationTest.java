@@ -64,7 +64,7 @@ public class ManualBillGenerationTest {
             try { type=Class.forName("com.java110.job.smo.impl.BillGenerateInnerServiceSMOImpl"); }
             catch (ClassNotFoundException absent) { throw new AssertionError("Manual bill generation entry is missing",absent); }
             Object service=type.newInstance();
-            for (String name:Arrays.asList("feeConfigInnerServiceSMOImpl","feeInnerServiceSMOImpl")) {
+            for (String name:Arrays.asList("feeConfigInnerServiceSMOImpl")) {
                 Field f=type.getDeclaredField(name);BillingWorkflowAudit.inject(service,name,proxy(f.getType()));
             }
             BillingWorkflowAudit.inject(service,"generateBillProTemplate",generator());
@@ -99,6 +99,63 @@ public class ManualBillGenerationTest {
             m=new Memory();m.config.setBillType(type);m.expectedType=type;
             check(m.call().getIntValue("code")==0,"legacy type "+type+" still generates");
         }
+    }
+    static void supplementaryBills() throws Exception {
+        Memory m=new Memory();m.config.setBillType("005");
+        m.fees.get(0).setFeeFlag(FeeDto.FEE_FLAG_ONCE);m.fees.get(0).setAdditionalAmount("50");
+        JSONObject first=m.call();String original=first.getJSONObject("data").getString("billId");
+        m.bills.get(0).setReviewState("PUBLISHED");m.details.get(0).setState("3000");
+        String published=com.alibaba.fastjson.JSON.toJSONString(m.bills.get(0));
+        FeeDto extra=m.fee("fee-2","room-2");extra.setFeeFlag(FeeDto.FEE_FLAG_ONCE);extra.setAdditionalAmount("50");m.fees.add(extra);
+        JSONObject second=m.call();
+        check(second.getIntValue("code")==0&&!original.equals(second.getJSONObject("data").getString("billId")),
+            "new fee after publication creates a separate supplementary draft");
+        check(m.bills.size()==2&&m.details.size()==2&&m.saves==2,"supplement contains only one newly billed fee");
+        check(published.equals(com.alibaba.fastjson.JSON.toJSONString(m.bills.get(0)))&&"3000".equals(m.details.get(0).getState()),
+            "published header and notified detail remain unchanged and current");
+        check("DRAFT".equals(m.bills.get(1).getReviewState())&&"1000".equals(m.details.get(1).getState())
+            &&BillingWorkflowAudit.amount(m.bills.get(1).getReceivable(),"50"),"supplement awaits manual review with correct amount");
+        m.details.get(1).setState("2000");
+        JSONObject repeat=m.call();
+        check(repeat.getJSONObject("data").getBooleanValue("existing")&&m.saves==2&&m.details.size()==2,
+            "repeat excludes both notified and paid fees");
+        FeeDto third=m.fee("fee-3","room-3");third.setFeeFlag(FeeDto.FEE_FLAG_ONCE);third.setAdditionalAmount("25");m.fees.add(third);
+        check(m.call().getIntValue("code")==0&&m.bills.size()==3&&m.details.size()==3&&m.saves==3,
+            "another new fee permits a second supplement even when first supplement is draft");
+        check(m.call().getJSONObject("data").getBooleanValue("existing")&&m.saves==3,"multiple supplementary bills remain idempotent");
+    }
+    static void supplementaryFailureAndConcurrency() throws Exception {
+        final Memory m=new Memory();m.call();
+        m.bills.get(0).setReviewState("PUBLISHED");String base=com.alibaba.fastjson.JSON.toJSONString(m.bills.get(0));
+        m.fees.add(m.fee("fee-2","room-2"));m.failSaveWithoutWinner=true;
+        boolean failed=false;try{m.call();}catch(Exception expected){failed=true;}
+        check(failed&&m.bills.size()==1&&m.details.size()==1,"supplement failure cannot report old header as successful generation");
+        m.failSaveWithoutWinner=false;m.race=new CountDownLatch(2);
+        ExecutorService pool=Executors.newFixedThreadPool(2);
+        try {
+            Callable<JSONObject> task=new Callable<JSONObject>(){public JSONObject call()throws Exception{return m.call();}};
+            Future<JSONObject> a=pool.submit(task),b=pool.submit(task);JSONObject first=a.get(20,TimeUnit.SECONDS),second=b.get(20,TimeUnit.SECONDS);
+            check(first.getIntValue("code")==0&&second.getIntValue("code")==0&&m.bills.size()==2&&m.details.size()==2,
+                "concurrent supplements resolve exactly one new header and detail");
+            check(first.getJSONObject("data").getString("billId").equals(second.getJSONObject("data").getString("billId")),
+                "concurrent supplement responses identify the same winner");
+            check(base.equals(com.alibaba.fastjson.JSON.toJSONString(m.bills.get(0))),"concurrent supplement keeps original published header intact");
+        }finally{pool.shutdownNow();}
+    }
+    static void sameSecondSiblingWinner() throws Exception {
+        final Memory m=new Memory();m.call();m.fees.add(m.fee("fee-2","room-2"));m.call();
+        String time=BillingWorkflowAudit.format(new Date());
+        m.bills.get(0).setBillId("base");m.bills.get(0).setBillTime(time);m.details.get(0).setBillId("base");
+        m.bills.get(1).setBillId("z-extra");m.bills.get(1).setBaseBillId("base");m.bills.get(1).setBillTime(time);m.details.get(1).setBillId("z-extra");
+        m.fees.add(m.fee("fee-3","room-3"));m.race=new CountDownLatch(2);
+        ExecutorService pool=Executors.newFixedThreadPool(2);
+        try {
+            Callable<JSONObject> task=new Callable<JSONObject>(){public JSONObject call()throws Exception{return m.call();}};
+            Future<JSONObject> a=pool.submit(task),b=pool.submit(task);JSONObject first=a.get(20,TimeUnit.SECONDS),second=b.get(20,TimeUnit.SECONDS);
+            String winner=m.details.get(2).getBillId();
+            check(winner.equals(first.getJSONObject("data").getString("billId"))&&winner.equals(second.getJSONObject("data").getString("billId")),
+                "same-second sibling conflict returns actual header containing newly billed fee");
+        }finally{pool.shutdownNow();}
     }
     static void emptyAndInvalid() throws Exception {
         for(int mode=0;mode<5;mode++) {
@@ -155,7 +212,7 @@ public class ManualBillGenerationTest {
     }
     public static void main(String[] args)throws Exception {
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));BillingWorkflowAudit.cache();
-        successAndDuplicate();emptyAndInvalid();failures();concurrency();
+        supplementaryBills();supplementaryFailureAndConcurrency();sameSecondSiblingWinner();successAndDuplicate();emptyAndInvalid();failures();concurrency();
         System.out.println("Manual bill generation: "+checks+" checks passed. No database or notification calls.");
     }
 }

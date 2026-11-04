@@ -31,6 +31,7 @@ def compile_audit():
     java = Path(local.java())
     javac = java.with_name('javac.exe' if os.name == 'nt' else 'javac')
     sources = [ROOT / 'scripts/billing/BillingWorkflowAudit.java',
+        local.BACK / 'java110-bean/src/main/java/com/java110/dto/fee/BillDto.java',
         local.BACK / 'java110-bean/src/main/java/com/java110/dto/fee/BillSnapshotDto.java',
         local.BACK / 'java110-bean/src/main/java/com/java110/dto/owner/OwnerRoomRelDto.java',
         local.BACK / 'java110-utils/src/main/java/com/java110/utils/util/BillCycleWindow.java',

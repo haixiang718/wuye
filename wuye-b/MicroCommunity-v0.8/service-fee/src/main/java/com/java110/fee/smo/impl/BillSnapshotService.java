@@ -33,10 +33,18 @@ public class BillSnapshotService {
             throw new IllegalArgumentException("收费配置不存在或出账类型已改变，请重新生成");
         }
         List<Map> current = feeServiceDaoImpl.lockCurrentBills(scope);
-        if (current.size() > 1) throw new IllegalStateException("收费项存在多个当前账单，请先核查");
         String previous = current.isEmpty() ? null : String.valueOf(current.get(0).get("billId"));
+        if (!current.isEmpty()) {
+            for (int i = 0; i < current.size(); i++) {
+                Object root = current.get(i).get("baseBillId");
+                if ((i == 0 && root != null) || (i > 0 && !previous.equals(root))) {
+                    throw new IllegalStateException("当前账单批次关联异常，请先核查");
+                }
+            }
+        }
         // This check is inside the lock: separate jobs cannot both pass it.
         Date cutoff = BillCycleWindow.start(snapshot.getBillType(), new Date());
+        boolean currentCycle = false;
         if (!current.isEmpty()) {
             Date last;
             try {
@@ -44,12 +52,27 @@ public class BillSnapshotService {
             } catch (java.text.ParseException invalid) {
                 throw new IllegalStateException("历史账单时间无效，请先核查", invalid);
             }
-            if (!last.before(cutoff)) throw new IllegalStateException("当前周期已经出过账");
+            currentCycle = !last.before(cutoff);
         }
+        if (snapshot.isSupplemental() && !currentCycle) throw new IllegalStateException("补充账单所属账期已变化，请重新生成");
+        if (!snapshot.isSupplemental() && currentCycle) throw new IllegalStateException("当前周期已经出过账");
         if (!Objects.equals(previous, snapshot.getPreviousBillId())) {
             throw new IllegalStateException("历史账单已改变，请重新计算后提交");
         }
-        if (feeServiceDaoImpl.insertBill(BeanConvertUtil.beanCovertMap(bill)) != 1) {
+        if (snapshot.isSupplemental() ? !Objects.equals(previous, bill.getBaseBillId()) : bill.getBaseBillId() != null) {
+            throw new IllegalArgumentException("补充账单的原账单关联错误");
+        }
+        if (snapshot.isSupplemental()) {
+            List<String> feeIds = new ArrayList<>();
+            for (BillOweFeeDto detail : snapshot.getDetails()) feeIds.add(detail.getFeeId());
+            scope.put("feeIds", feeIds);
+            if (feeServiceDaoImpl.countCurrentBillFees(scope) != 0) {
+                throw new IllegalStateException("费用已经出账，请重新查询后生成");
+            }
+        }
+        Map<String, Object> header = BeanConvertUtil.beanCovertMap(bill);
+        header.put("preserveCurrentBills", snapshot.isSupplemental());
+        if (feeServiceDaoImpl.insertBill(header) != 1) {
             throw new IllegalStateException("账单汇总保存失败");
         }
         for (BillOweFeeDto detail : snapshot.getDetails()) {
@@ -65,6 +88,7 @@ public class BillSnapshotService {
             throw new IllegalArgumentException("账单快照不完整");
         }
         BillDto bill = snapshot.getBill();
+        if (snapshot.getDetails().isEmpty()) throw new IllegalArgumentException("账单明细不能为空");
         required(bill.getBillId()); required(bill.getConfigId()); required(bill.getCommunityId());
         required(bill.getBillTime()); required(bill.getBillName()); required(snapshot.getBillType());
         BillCycleWindow.start(snapshot.getBillType(), new Date());

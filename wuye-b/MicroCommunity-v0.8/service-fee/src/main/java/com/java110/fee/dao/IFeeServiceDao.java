@@ -19,6 +19,7 @@ public interface IFeeServiceDao {
     Map lockBillConfig(Map info);
 
     List<Map> lockCurrentBills(Map info);
+    int countCurrentBillFees(Map info);
 
     /**
      * 保存 费用信息

@@ -14,8 +14,9 @@ import migrate_bill_review
 def main():
     java,cp,logging,output=compile_audit()
     repo=Path.home()/'.m2/repository'
-    cp=os.pathsep.join([cp,str(repo/'junit/junit/4.13.1/junit-4.13.1.jar'),str(repo/'org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar')])
-    subprocess.run([str(java.with_name('javac.exe')),'-encoding','UTF-8','-cp',cp,'-d',str(output),str(Path(__file__).with_name('BillReviewDatabaseTest.java'))],check=True)
+    cp=os.pathsep.join([cp,str(local.BACK/'service-business/target/classes'),str(repo/'junit/junit/4.13.1/junit-4.13.1.jar'),str(repo/'org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar')])
+    sources=[str(Path(__file__).with_name('BillReviewDatabaseTest.java')),str(local.BACK/'service-fee/src/main/java/com/java110/fee/bmo/impl/PayOweFeeImpl.java')]
+    subprocess.run([str(java.with_name('javac.exe')),'-encoding','UTF-8','-cp',cp,'-d',str(output)]+sources,check=True)
     database='audit_schema_'+uuid.uuid4().hex[:12]
     local.mysql_run('CREATE DATABASE `'+database+'` CHARACTER SET utf8mb4')
     try:

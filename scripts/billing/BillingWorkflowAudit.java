@@ -81,8 +81,19 @@ public class BillingWorkflowAudit {
             if(name.equals("queryBills")) {
                 BillDto q=(BillDto)args[0];List<BillDto> result=new ArrayList<BillDto>();
                 synchronized(this) { for(BillDto b:bills)if((q.getCurBill()==null||q.getCurBill().equals(b.getCurBill()))
+                    &&(q.getBillId()==null||q.getBillId().equals(b.getBillId()))
                     &&(q.getCurBillTime()==null||b.getBillTime().compareTo(q.getCurBillTime())>0))result.add(copy(b,BillDto.class)); }
-                if(q.getCurBillTime()!=null&&race!=null) {race.countDown();if(!race.await(10,TimeUnit.SECONDS))throw new IllegalStateException("Audit race timed out");}
+                if(race!=null) {race.countDown();if(!race.await(10,TimeUnit.SECONDS))throw new IllegalStateException("Audit race timed out");}
+                return result;
+            }
+            if(name.equals("queryBillOweFees")) {
+                BillOweFeeDto q=(BillOweFeeDto)args[0];List<BillOweFeeDto> result=new ArrayList<>();
+                synchronized(this) { for(BillOweFeeDto d:details) {
+                    boolean current=q.getCurBill()==null;
+                    for(BillDto b:bills)if(b.getBillId().equals(d.getBillId())&&q.getCurBill()!=null&&q.getCurBill().equals(b.getCurBill()))current=true;
+                    if((q.getBillId()==null||q.getBillId().equals(d.getBillId()))&&(q.getFeeId()==null||q.getFeeId().equals(d.getFeeId()))
+                        &&q.getCommunityId().equals(d.getCommunityId())&&current)result.add(copy(d,BillOweFeeDto.class));
+                } }
                 return result;
             }
             if(name.equals("queryFees"))return fees;
@@ -109,10 +120,12 @@ public class BillingWorkflowAudit {
                 // Atomic HTTP boundary only; real SQL and transactions have a separate suite.
                 synchronized(this) {
                     String cutoff=format(BillCycleWindow.start(snapshot.getBillType(),new Date()));
-                    for(BillDto b:bills)if("T".equals(b.getCurBill())&&b.getBillTime().compareTo(cutoff)>=0)
+                    for(BillDto b:bills)if(!snapshot.isSupplemental()&&"T".equals(b.getCurBill())&&b.getBillTime().compareTo(cutoff)>=0)
                         throw new IllegalStateException("Current cycle already billed");
+                    if(snapshot.isSupplemental())for(BillOweFeeDto fresh:snapshot.getDetails())for(BillOweFeeDto prior:details)
+                        if(fresh.getFeeId().equals(prior.getFeeId()))throw new IllegalStateException("Fee already billed");
                     if(failHeader)throw new IllegalStateException("Synthetic bill-header failure");
-                    for(BillDto b:bills)b.setCurBill("F");
+                    if(!snapshot.isSupplemental())for(BillDto b:bills)b.setCurBill("F");
                     bills.add(copy(snapshot.getBill(),BillDto.class));
                     for(BillOweFeeDto d:snapshot.getDetails())details.add(copy(d,BillOweFeeDto.class));
                 }
@@ -144,7 +157,7 @@ public class BillingWorkflowAudit {
         check("postpaid_current_cycle_skipped",m.details.isEmpty(),"postpaid current cycle; details="+m.details.size());
         m=new Memory();m.fees.get(0).setAdditionalAmount("0");m.generate();
         check("zero_fee_skipped",m.details.isEmpty(),"zero price; details="+m.details.size());
-        m=new Memory();BillDto old=new BillDto();old.setBillTime(format(month(-2)));old.setCurBill("T");old.setBillId("prior-bill");m.bills.add(old);m.generate();
+        m=new Memory();BillDto old=new BillDto();old.setBillTime(format(month(-2)));old.setCurBill("T");old.setBillId("prior-bill");old.setConfigId(m.config.getConfigId());old.setCommunityId(m.config.getCommunityId());m.bills.add(old);m.generate();
         check("later_cycle_rolls_current_bill",m.bills.size()==2&&"F".equals(m.bills.get(0).getCurBill())&&"T".equals(m.bills.get(1).getCurBill()),"old current flag="+m.bills.get(0).getCurBill()+", new="+m.bills.get(1).getCurBill());
     }
     static void failureChecks()throws Exception {

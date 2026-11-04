@@ -157,11 +157,19 @@
                         return;
                     }
                     var _bill = _result.data || {};
-                    var _message = _result.msg || (_bill.existing ? '当期账单已存在，本次未重复生成' : '已生成待审核账单');
+                    var _message = _result.msg || (_bill.existing ? '当期账单已存在，没有新增可出账费用'
+                        : _bill.supplemental ? '新增费用的补充待审核账单已生成' : '已生成待审核账单');
                     if (_bill.billId) _message += '；账单编号：' + _bill.billId;
                     if (_bill.reviewState) _message += '；状态：'
                         + (_bill.reviewState == 'PUBLISHED' ? '已审核发布' : _bill.reviewState == 'DRAFT' ? '待审核' : _bill.reviewState);
                     _finish(_message);
+                    if (_bill.supplemental && !_bill.existing) {
+                        _info.conditions.title = '';
+                        _info.conditions.billId = '';
+                        _info.conditions.billName = '';
+                        _info.conditions.curBill = 'T';
+                        _info.conditions.page = DEFAULT_PAGE;
+                    }
                     vc.component._listbills(_info.conditions.page || DEFAULT_PAGE, _info.conditions.row || DEFAULT_ROWS);
                 }, function () { _finish('生成请求失败，结果未知，请刷新账单核对后重试'); });
             },

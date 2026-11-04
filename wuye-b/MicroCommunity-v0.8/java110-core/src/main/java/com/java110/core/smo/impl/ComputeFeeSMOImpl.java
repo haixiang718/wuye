@@ -106,26 +106,19 @@ public class ComputeFeeSMOImpl implements IComputeFeeSMO {
             computeFeePrice(tmpFeeDto, null);
             return;
         }
-        BillDto billDto = new BillDto();
-        billDto.setCommunityId(tmpFeeDto.getCommunityId());
-        billDto.setConfigId(tmpFeeDto.getConfigId());
-        billDto.setCurBill("T");
-        List<BillDto> billDtos = feeInnerServiceSMOImpl.queryBills(billDto);
-        if (billDtos == null || billDtos.size() < 1) {
-            tmpFeeDto.setFeePrice(0.00);
-            return;
-        }
         BillOweFeeDto billOweFeeDto = new BillOweFeeDto();
         billOweFeeDto.setCommunityId(tmpFeeDto.getCommunityId());
         billOweFeeDto.setFeeId(tmpFeeDto.getFeeId());
         // A notification does not settle a bill: both 1000 and 3000 remain collectible.
         billOweFeeDto.setOutstandingOnly("T");
-        billOweFeeDto.setBillId(billDtos.get(0).getBillId());
+        // A fee may belong to the original header or any current supplement.
+        billOweFeeDto.setCurBill("T");
         List<BillOweFeeDto> billOweFeeDtos = feeInnerServiceSMOImpl.queryBillOweFees(billOweFeeDto);
         if (billOweFeeDtos == null || billOweFeeDtos.size() < 1) {
             tmpFeeDto.setFeePrice(0.00);
             return;
         }
+        if (billOweFeeDtos.size() != 1) throw new IllegalStateException("费用存在重复当前账单，请先核查");
         try {
             tmpFeeDto.setDeadlineTime(DateUtil.getDateFromString(billOweFeeDtos.get(0).getDeadlineTime(), DateUtil.DATE_FORMATE_STRING_A));
         } catch (ParseException e) {

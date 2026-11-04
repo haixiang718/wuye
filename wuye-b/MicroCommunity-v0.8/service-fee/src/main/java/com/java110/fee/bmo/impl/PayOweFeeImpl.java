@@ -165,20 +165,20 @@ public class PayOweFeeImpl implements IPayOweFee {
         if (FeeConfigDto.BILL_TYPE_EVERY.equals(feeObj.getString("billType"))) {
             return;
         }
-        BillDto billDto = new BillDto();
-        billDto.setCommunityId(feeObj.getString("communityId"));
-        billDto.setConfigId(feeObj.getString("configId"));
-        billDto.setCurBill("T");
-        List<BillDto> billDtos = feeInnerServiceSMOImpl.queryBills(billDto);
-        if (billDtos == null || billDtos.size() < 1) {
-            return;
-        }
         BillOweFeeDto billOweFeeDto = new BillOweFeeDto();
         billOweFeeDto.setCommunityId(feeObj.getString("communityId"));
         billOweFeeDto.setFeeId(feeObj.getString("feeId"));
+        billOweFeeDto.setCurBill("T");
+        List<BillOweFeeDto> details = feeInnerServiceSMOImpl.queryBillOweFees(billOweFeeDto);
+        if (details == null) throw new IllegalStateException("当前账单明细查询失败");
+        if (details.isEmpty()) return;
+        Assert.listOnlyOne(details, "费用存在重复当前账单，请先核查");
         billOweFeeDto.setState(BillOweFeeDto.STATE_FINISH_FEE);
-        billOweFeeDto.setBillId(billDtos.get(0).getBillId());
-        feeInnerServiceSMOImpl.updateBillOweFees(billOweFeeDto);
+        billOweFeeDto.setBillId(details.get(0).getBillId());
+        billOweFeeDto.setOweId(details.get(0).getOweId());
+        if (feeInnerServiceSMOImpl.updateBillOweFees(billOweFeeDto) != 1) {
+            throw new IllegalStateException("缴费后更新对应账单状态失败");
+        }
 
     }
 

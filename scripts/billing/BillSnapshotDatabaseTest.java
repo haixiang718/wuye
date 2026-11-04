@@ -84,6 +84,60 @@ public class BillSnapshotDatabaseTest {
         try{service.save(snapshot);fail("Expected snapshot rejection");}catch(RuntimeException expected){}
     }
 
+    static BillSnapshotDto supplement(String id,String fee,String base) {
+        BillSnapshotDto value=snapshot(id);value.setPreviousBillId(base);
+        value.setDetails(new ArrayList<>(Collections.singletonList(value.getDetails().get(0))));
+        value.getDetails().get(0).setFeeId(fee);
+        value.getBill().setReceivable("0.01");value.getBill().setCurReceivable("0.01");
+        com.alibaba.fastjson.JSONObject json=(com.alibaba.fastjson.JSONObject)com.alibaba.fastjson.JSON.toJSON(value);
+        json.put("supplemental",true);
+        json.getJSONObject("bill").put("baseBillId",base);
+        return json.toJavaObject(BillSnapshotDto.class);
+    }
+    @Test public void sameSecondLowerIdentifierSupplementCannotReplaceRoot() {
+        BillSnapshotDto root=snapshot("z-root");service.save(root);
+        BillSnapshotDto one=supplement("a-extra","fee-3","z-root");one.getBill().setBillTime(root.getBill().getBillTime());service.save(one);
+        BillSnapshotDto two=supplement("b-extra","fee-4","z-root");two.getBill().setBillTime(root.getBill().getBillTime());
+        assertEquals(1,service.save(two));assertEquals(3,count("bill"));
+    }
+    @Test public void supplementPreservesPublishedHeaderAndDetails() {
+        service.save(snapshot("base"));
+        sql.update("UPDATE "+prefix+"bill SET review_state='PUBLISHED',bill_time=bill_time");
+        sql.update("UPDATE "+prefix+"bill_owe_fee SET state='3000'");
+        List<Map<String,Object>> before=sql.queryForList("SELECT * FROM "+prefix+"bill WHERE bill_id='base'");
+        assertEquals(1,service.save(supplement("extra","fee-3","base")));
+        assertEquals(before,sql.queryForList("SELECT * FROM "+prefix+"bill WHERE bill_id='base'"));
+        assertEquals(2,count("bill"));assertEquals(3,count("bill_owe_fee"));
+        assertEquals("DRAFT",sql.queryForObject("SELECT review_state FROM "+prefix+"bill WHERE bill_id='extra'",String.class));
+        assertEquals(2,(int)sql.queryForObject("SELECT COUNT(*) FROM "+prefix+"bill WHERE cur_bill='T'",Integer.class));
+        rejects(supplement("duplicate","fee-3","base"));assertEquals(2,count("bill"));
+        assertEquals(1,service.save(supplement("extra-2","fee-4","base")));
+    }
+    @Test public void supplementalPartialFailureRollsBackWithoutChangingBase() {
+        service.save(snapshot("base"));BillSnapshotDto bad=supplement("bad","fee-3","base");
+        bad.getDetails().get(0).setOwnerName(null);rejects(bad);
+        assertEquals(1,count("bill"));assertEquals(2,count("bill_owe_fee"));
+        assertEquals("T",sql.queryForObject("SELECT cur_bill FROM "+prefix+"bill",String.class));
+        assertEquals(1,service.save(supplement("retry","fee-3","base")));
+    }
+    @Test public void simultaneousSupplementsCannotDuplicateFees() throws Exception {
+        service.save(snapshot("base"));ExecutorService pool=Executors.newFixedThreadPool(2);CountDownLatch start=new CountDownLatch(1);
+        try {
+            List<Future<Boolean>> calls=new ArrayList<>();
+            for(final String id:Arrays.asList("supp-1","supp-2"))calls.add(pool.submit(()->{start.await();try{service.save(supplement(id,"fee-3","base"));return true;}catch(IllegalStateException expected){return false;}}));
+            start.countDown();int accepted=0;for(Future<Boolean> call:calls)if(call.get(15,TimeUnit.SECONDS))accepted++;
+            assertEquals(1,accepted);assertEquals(2,count("bill"));assertEquals(3,count("bill_owe_fee"));
+        }finally{pool.shutdownNow();}
+    }
+    @Test public void supplementalGenerationDoesNotExtendCycle() {
+        service.save(snapshot("base"));service.save(supplement("extra","fee-3","base"));
+        sql.update("UPDATE "+prefix+"bill SET bill_time=DATE_SUB(NOW(),INTERVAL 2 MONTH) WHERE bill_id='base'");
+        rejects(supplement("expired","fee-4","base"));
+        BillSnapshotDto next=snapshot("next");next.setPreviousBillId("base");service.save(next);
+        assertEquals(1,(int)sql.queryForObject("SELECT COUNT(*) FROM "+prefix+"bill WHERE cur_bill='T'",Integer.class));
+        assertEquals("T",sql.queryForObject("SELECT cur_bill FROM "+prefix+"bill WHERE bill_id='next'",String.class));
+    }
+
     @Test public void savesHeaderAndAllDetails() {
         assertEquals(1,service.save(snapshot("ok")));assertEquals(1,count("bill"));assertEquals(2,count("bill_owe_fee"));
     }
