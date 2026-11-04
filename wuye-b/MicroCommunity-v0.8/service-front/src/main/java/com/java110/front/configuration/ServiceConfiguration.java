@@ -25,6 +25,7 @@ public class ServiceConfiguration {
         exclusions.append("/callComponent/download/getFile/fileByObjId,");//放开 下载图片也不需要登录
         exclusions.append("/callComponent/upload/uploadVedio/upload,");
         exclusions.append("/app/payment/notify,");//微信支付通知
+        exclusions.append("/app/payment/v3/notify,");// V3 validates provider signature independently
         exclusions.append("/app/payment/rentingNotify,");//微信支付通知
         exclusions.append("/app/payment/oweFeeNotify,");//欠费微信支付通知
         exclusions.append("/goods/notify,");//商品购买通知

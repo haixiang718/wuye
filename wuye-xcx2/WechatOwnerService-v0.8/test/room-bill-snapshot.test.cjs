@@ -19,10 +19,19 @@ function page(getRoomFees = async () => [{ ...snapshot }]) {
         onLoad() {}, getCurrentCommunity: () => ({ communityId: 'community-1', communityName: '小区' }),
         getHeaders: () => ({}), request: options => requests.push(options)
     };
-    const script = stripImports(fs.readFileSync(path.join(__dirname, '../pages/roomFee/roomFee.vue'), 'utf8')
-        .match(/<script>([\s\S]*?)<\/script>/)[1]).replace('export default', 'module.exports =');
+    const conditions = [];
+    const h5Script = fs.readFileSync(path.join(__dirname, '../pages/roomFee/roomFee.vue'), 'utf8')
+        .match(/<script>([\s\S]*?)<\/script>/)[1].split('\n').filter(line => {
+            if (line.includes('// #ifdef')) { conditions.push(line.includes('H5')); return false; }
+            if (line.includes('// #ifndef')) { conditions.push(!line.includes('H5')); return false; }
+            if (line.includes('// #endif')) { conditions.pop(); return false; }
+            return conditions.every(Boolean);
+        }).join('\n');
+    const script = stripImports(h5Script).replace('export default', 'module.exports =');
     const sandbox = {
-        module: { exports: {} }, require: () => context, vcDiscount: {},
+        module: { exports: {} }, require: name => name.includes('WexinPayFactory')
+            ? { resumePending: async () => ({ state: 'NONE' }), preparePayment: async () => ({ state: 'NONE' }) } : context, vcDiscount: {},
+        navigator: { userAgent: 'MicroMessenger' },
         uni: { getAccountInfoSync: () => ({ miniProgram: { appId: 'test' } }), getStorageSync: () => '', showToast: data => toasts.push(data) },
         wx: { showLoading() {}, hideLoading() {} },
         getRoomFees: async (params, room) => { queries.push({ params, room }); return getRoomFees(params, room); },
@@ -86,6 +95,7 @@ test('snapshot query must finish before enabled payment can submit an order', as
     const loading = p.load();
     p.component.paymentEnabled = true;
     p.component.onPayFee();
+    await Promise.resolve();
     assert.equal(p.component.billReady, false);
     assert.equal(p.component.receivableAmount, '0.00');
     assert.equal(p.requests.length, 0);
@@ -105,6 +115,7 @@ for (const [name, result] of [
     await p.load();
     p.component.paymentEnabled = true;
     p.component.onPayFee();
+    await Promise.resolve();
     p.component._payWxApp();
     assert.equal(p.component.billReady, false);
     assert.equal(p.component.receivableAmount, '0.00');
@@ -124,11 +135,13 @@ test('both payment entries stay closed by default and include bill identities on
     const p = page();
     await p.load();
     p.component.onPayFee();
+    await Promise.resolve();
     p.component._payWxApp();
     assert.equal(p.requests.length, 0);
     assert.match(p.toasts[0].title, /未开通/);
     p.component.paymentEnabled = true;
     p.component.onPayFee();
+    await Promise.resolve();
     p.component._payWxApp();
     assert.equal(p.requests.length, 2);
     for (const request of p.requests) {
@@ -146,5 +159,6 @@ test('ordinary legacy fee details preserve existing calculation and discount loa
     assert.equal(p.discounts.length, 1);
     assert.equal(p.queries.length, 0);
     p.component.onPayFee();
+    await Promise.resolve();
     assert.equal(p.requests.length, 0);
 });

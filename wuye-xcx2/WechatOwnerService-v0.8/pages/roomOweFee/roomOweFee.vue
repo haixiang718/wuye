@@ -55,10 +55,10 @@
 			</view>
 			<view class="btn-group">
 				<!-- #ifdef H5 || MP-WEIXIN -->
-				<button class="cu-btn bg-red shadow-blur lgplus sharp" :disabled="!paymentEnabled" @click="onPayFee()">{{ paymentEnabled ? '提交订单' : '微信支付未开通' }}</button>
+				<button class="cu-btn bg-red shadow-blur lgplus sharp" :disabled="paymentSubmitting || !paymentEnabled" @click="onPayFee()">{{ paymentEnabled ? '提交订单' : '微信支付未开通' }}</button>
 				<!-- #endif -->
 				<!-- #ifdef APP-PLUS -->
-				<button class="cu-btn bg-red shadow-blur lgplus sharp" :disabled="!paymentEnabled" @click="_payWxApp()">{{ paymentEnabled ? '提交订单' : '微信支付未开通' }}</button>
+				<button class="cu-btn bg-red shadow-blur lgplus sharp" :disabled="paymentSubmitting || !paymentEnabled" @click="_payWxApp()">{{ paymentEnabled ? '提交订单' : '微信支付未开通' }}</button>
 				<!-- #endif -->
 			</view>
 		</view>
@@ -109,6 +109,7 @@
 				builtUpArea: '',
 				additionalAmount: "",
 				appId: '',
+				paymentSubmitting: false,
 				fees: [],
 				rooms: [],
 				curRoom: {},
@@ -157,6 +158,18 @@
 				if(error && error.code==='BINDING_REQUIRED')return;
 				uni.showToast({ icon: 'none', title: '房屋信息加载失败，请稍后重试' });
 			});
+		},
+		onShow: function() {
+			// #ifdef H5
+			if (this.paymentSubmitting) return Promise.resolve({ state: 'BUSY' });
+			this.paymentSubmitting = true;
+			return WexinPayFactory.resumePending().then(result => {
+				if (result.state === 'POSTED') {
+					uni.showToast({ icon: 'none', title: '支付成功，请刷新账单' });
+				}
+				return result;
+			}).finally(() => { this.paymentSubmitting = false; });
+			// #endif
 		},
 		methods: {
 
@@ -269,6 +282,28 @@
 			onPayFee: function() {
 				if (!this.paymentEnabled) {
 					uni.showToast({ icon: 'none', title: '微信支付未开通' });
+					return Promise.resolve({ state: 'UNAVAILABLE' });
+				}
+				// #ifdef H5
+				if (this.paymentSubmitting) return Promise.resolve({ state: 'BUSY' });
+				if (!/MicroMessenger/i.test(navigator.userAgent || '')) {
+					uni.showToast({ icon: 'none', title: '请在微信中打开此页面后支付' });
+					return Promise.resolve({ state: 'UNAVAILABLE' });
+				}
+				this.paymentSubmitting = true;
+				return WexinPayFactory.preparePayment().then(result => {
+					if (result.state === 'NONE' || result.state === 'CLOSED') return this._submitPayFee();
+					if (result.state === 'POSTED') uni.showToast({ icon: 'none', title: '支付成功，请刷新账单' });
+					return result;
+				}).finally(() => { this.paymentSubmitting = false; });
+				// #endif
+				// #ifndef H5
+				return this._submitPayFee();
+				// #endif
+			},
+			_submitPayFee: function() {
+				if (!this.paymentEnabled) {
+					uni.showToast({ icon: 'none', title: '微信支付未开通' });
 					return;
 				}
 				let _receivedAmount = this.receivableAmount;
@@ -285,7 +320,7 @@
 					tradeType: _tradeType,
 					appId: this.appId
 				};
-				context.request({
+				return new Promise(resolve => context.request({
 					url: constant.url.toOweFeePay,
 					header: context.getHeaders(),
 					method: "POST",
@@ -320,9 +355,12 @@
 									duration: 2000
 								});
 								uni.navigateBack({});
-							});
+							}).then(resolve, resolve);
 							// #endif
 							wx.hideLoading();
+							// #ifndef H5
+							resolve();
+							// #endif
 							return;
 						}
 
@@ -332,6 +370,7 @@
 							icon: 'none',
 							duration: 2000
 						});
+						resolve({ state: 'FAILED' });
 					},
 					fail: function(e) {
 						wx.hideLoading();
@@ -340,8 +379,9 @@
 							icon: 'none',
 							duration: 2000
 						});
+						resolve({ state: 'FAILED' });
 					}
-				});
+				}));
 			}
 		}
 	};

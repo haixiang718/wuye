@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS payment_order (
   app_id varchar(64) NOT NULL,
   mch_id varchar(64) NOT NULL,
   order_type varchar(12) NOT NULL,
+  provider_version varchar(4) NOT NULL DEFAULT 'V2',
   total_fee bigint NOT NULL,
   payload longtext NOT NULL,
   state varchar(12) NOT NULL DEFAULT 'CREATED',
@@ -28,11 +29,11 @@ CREATE TABLE IF NOT EXISTS payment_order_reservation (
   KEY idx_payment_reservation_order (order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- A snapshot can be sent to the provider under only one order number. Repeat placement reuses it.
+-- Preserve snapshot history after a provider-confirmed close. Active exclusivity uses fee reservations.
 CREATE TABLE IF NOT EXISTS payment_order_item (
   owe_id varchar(30) NOT NULL,
   order_id varchar(32) NOT NULL,
-  PRIMARY KEY (owe_id),
+  PRIMARY KEY (owe_id,order_id),
   KEY idx_payment_item_order (order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

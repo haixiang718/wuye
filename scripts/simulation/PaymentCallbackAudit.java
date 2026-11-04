@@ -124,6 +124,8 @@ public class PaymentCallbackAudit {
             public Map<String,Object> create(Map<String,Object> ignored){throw new PlacementBoundary();}
             public Map<String,Object> query(Map<String,Object> ignored){throw new AssertionError("Unexpected order query");}
             public Map<String,Object> confirm(Map<String,Object> ignored){throw new AssertionError("Unexpected posting");}
+            public List<Map<String,Object>> pendingV3(Map<String,Object> ignored){throw new AssertionError("Unexpected pending recovery");}
+            public Map<String,Object> close(Map<String,Object> ignored){throw new AssertionError("Unexpected close");}
         });
         IPageData pd=PageData.newInstance().builder("simulation-user","","","{}","","","","",AppDto.WECHAT_OWNER_APP_ID);
         JSONObject input=new JSONObject(map("communityId","simulation-community","feeId","simulation-fee","appId",APP,"tradeType","JSAPI"));
@@ -144,7 +146,7 @@ public class PaymentCallbackAudit {
         FeePaymentOrderInnerServiceSMOImpl real=new FeePaymentOrderInnerServiceSMOImpl();
         java.lang.reflect.Field field=real.getClass().getDeclaredField("paymentOrderRepository");field.setAccessible(true);field.set(real,repository);
         ProxyFactory proxy=new ProxyFactory(real);proxy.addAdvice(new TransactionInterceptor(new MemoryTransactions(repository),new AnnotationTransactionAttributeSource()));service=(IFeePaymentOrderInnerServiceSMO)proxy.getProxy();
-        Map<String,Object> order=map("orderId","simulation-order","communityId","simulation-community","userId","simulation-user","appId",APP,"mchId",MCH,"orderType",type,"totalFee","100","state","CREATED");
+        Map<String,Object> order=map("orderId","simulation-order","communityId","simulation-community","userId","simulation-user","appId",APP,"mchId",MCH,"orderType",type,"providerVersion","V2","totalFee","100","state","CREATED");
         order.put("payload",JSON.toJSONString(Arrays.asList(repository.snapshot)));repository.insert(order);
     }
     static Map<String,Object> paid(){return map("orderId","simulation-order","transactionId","simulation-transaction","appId",APP,"mchId",MCH,"orderType","SINGLE","totalFee","100");}

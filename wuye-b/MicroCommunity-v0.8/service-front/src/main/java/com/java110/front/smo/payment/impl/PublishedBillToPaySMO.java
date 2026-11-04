@@ -8,6 +8,7 @@ import com.java110.dto.smallWeChat.SmallWeChatDto;
 import com.java110.front.properties.WechatAuthProperties;
 import com.java110.front.smo.AppAbstractComponentSMO;
 import com.java110.front.smo.payment.adapt.IPayAdapt;
+import com.java110.front.smo.payment.v3.WechatPayV3Service;
 import com.java110.intf.fee.IFeePaymentOrderInnerServiceSMO;
 import com.java110.utils.cache.MappingCache;
 import com.java110.utils.constant.*;
@@ -26,6 +27,7 @@ public abstract class PublishedBillToPaySMO extends AppAbstractComponentSMO {
     @Autowired private RestTemplate outRestTemplate;
     @Autowired private WechatAuthProperties wechatAuthProperties;
     @Autowired private IFeePaymentOrderInnerServiceSMO feePaymentOrderInnerServiceSMO;
+    @Autowired(required=false) private WechatPayV3Service wechatPayV3Service;
     protected abstract String orderType();
     protected boolean qr() { return false; }
     public ResponseEntity<String> toPay(IPageData pd) { return super.businessProcess(pd); }
@@ -56,7 +58,12 @@ public abstract class PublishedBillToPaySMO extends AppAbstractComponentSMO {
         JSONArray merchants=JSONObject.parseObject(response.getBody()).getJSONArray("smallWeChats");
         if(merchants==null || merchants.size()!=1)throw new IllegalArgumentException("微信支付未开通");
         SmallWeChatDto merchant=BeanConvertUtil.covertBean(merchants.get(0),SmallWeChatDto.class);
-        if(StringUtil.isEmpty(merchant.getAppId()) || StringUtil.isEmpty(merchant.getMchId()) || StringUtil.isEmpty(merchant.getPayPassword()))throw new IllegalArgumentException("微信支付未开通");
+        boolean v3=wechatPayV3Service!=null && wechatPayV3Service.configured();
+        if(StringUtil.isEmpty(merchant.getAppId()) || StringUtil.isEmpty(merchant.getMchId()) || (!v3 && StringUtil.isEmpty(merchant.getPayPassword())))throw new IllegalArgumentException("微信支付未开通");
+        if(v3) {
+            if(qr() || !WechatAuthProperties.TRADE_TYPE_JSAPI.equals(input.getString("tradeType")))throw new IllegalArgumentException("当前仅开放公众号账单支付");
+            wechatPayV3Service.requireNewPayment(pd.getUserId(),merchant.getAppId(),merchant.getMchId());
+        }
         String openId="";
         if(!qr()) {
             String appType=AppDto.WECHAT_OWNER_APP_ID.equals(pd.getAppId())?OwnerAppUserDto.APP_TYPE_WECHAT:
@@ -67,16 +74,19 @@ public abstract class PublishedBillToPaySMO extends AppAbstractComponentSMO {
         for(String key:Arrays.asList("communityId","feeId","roomId","billId","oweId"))if(input.containsKey(key))scope.put(key,input.getString(key));
         scope.put("payObjType",input.getString("payObjType")==null?"3333":input.getString("payObjType"));
         scope.put("userId",pd.getUserId());scope.put("appId",merchant.getAppId());scope.put("mchId",merchant.getMchId());scope.put("orderType",orderType());
+        scope.put("providerVersion",v3?"V3":"V2");
+        if(v3)scope.put("maxTotalFee",wechatPayV3Service.maximumTotalFee());
         // Commit the trusted order BEFORE a provider call; even a timeout leaves a recoverable record.
         Map<String,Object> order=feePaymentOrderInnerServiceSMO.create(scope);
+        JSONArray snapshots=JSON.parseArray(String.valueOf(order.get("payload")));
+        String description=snapshots.getJSONObject(0).getString("feeName");
+        if(v3)return new ResponseEntity<String>(JSON.toJSONString(wechatPayV3Service.prepay(order,description,openId,pd.getUserId())),HttpStatus.OK);
         double money=BigDecimal.valueOf(Long.parseLong(order.get("totalFee").toString()),2).doubleValue();
         if(Double.compare(PayUtil.getPayAmountByEnv(MappingCache.getValue("HC_ENV"),money),money)!=0)throw new IllegalStateException("环境支付金额与已发布账单不一致");
         String adapt=MappingCache.getValue(WechatConstant.WECHAT_DOMAIN,WechatConstant.PAY_ADAPT);
         adapt=StringUtil.isEmpty(adapt)?DEFAULT_PAY_ADAPT:adapt;
         if(!DEFAULT_PAY_ADAPT.equals(adapt))throw new IllegalArgumentException("当前支付适配器不支持可信账单订单");
         IPayAdapt provider=ApplicationContextFactory.getBean(adapt,IPayAdapt.class);
-        JSONArray snapshots=JSON.parseArray(String.valueOf(order.get("payload")));
-        String description=snapshots.getJSONObject(0).getString("feeName");
         String trade=qr()?WechatAuthProperties.TRADE_TYPE_NATIVE:input.getString("tradeType");
         Map result;
         if("ARREARS".equals(orderType()))result=provider.java110Payment(outRestTemplate,description,trade,order.get("orderId").toString(),money,openId,merchant,wechatAuthProperties.getOweFeeNotifyUrl());

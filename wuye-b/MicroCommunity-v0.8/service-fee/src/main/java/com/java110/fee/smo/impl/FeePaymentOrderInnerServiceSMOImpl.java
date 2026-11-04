@@ -19,7 +19,14 @@ public class FeePaymentOrderInnerServiceSMOImpl implements IFeePaymentOrderInner
     @Override
     @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public Map<String,Object> create(@RequestBody Map<String,Object> request) {
-        JSONObject input = new JSONObject(request);
+        JSONObject input = new JSONObject(new HashMap<>(request));
+        String providerVersion = input.containsKey("providerVersion") ? required(input,"providerVersion") : "V2";
+        if (!Arrays.asList("V2", "V3").contains(providerVersion)) throw new IllegalArgumentException("Invalid provider version");
+        input.put("providerVersion",providerVersion);
+        // Trusted caller policy only: never accept a browser-controlled collection cap.
+        String requestedCap = input.containsKey("maxTotalFee") ? required(input,"maxTotalFee") : "999999999";
+        if (!requestedCap.matches("[1-9][0-9]*")) throw new IllegalArgumentException("Invalid collection amount cap");
+        java.math.BigInteger maxTotalFee = new java.math.BigInteger(requestedCap);
         for (String key : Arrays.asList("communityId", "userId", "appId", "mchId", "orderType")) required(input, key);
         if (!Arrays.asList("SINGLE", "ARREARS").contains(input.getString("orderType"))) throw new IllegalArgumentException("Invalid payment type");
         if (empty(input.getString("feeId")) && empty(input.getString("roomId"))) throw new IllegalArgumentException("Payment scope missing");
@@ -45,6 +52,7 @@ public class FeePaymentOrderInnerServiceSMOImpl implements IFeePaymentOrderInner
         }
         // fee_receipt.amount is DECIMAL(9,2); reject overflow before a provider can collect money.
         if (total <= 0 || total > 999999999L) throw new IllegalArgumentException("Payment amount exceeds receipt limits");
+        if (java.math.BigInteger.valueOf(total).compareTo(maxTotalFee) > 0) throw new IllegalArgumentException("Payment amount exceeds collection cap");
         if(!reservations.isEmpty()) {
             if(reservations.size()!=1)throw new IllegalStateException("Overlapping pending payments exist");
             Map<String,Object> key=new HashMap<>();key.put("orderId",reservations.iterator().next());
@@ -58,7 +66,7 @@ public class FeePaymentOrderInnerServiceSMOImpl implements IFeePaymentOrderInner
             }
             for(Map<String,Object> fee:snapshots)newOwes.add(String.valueOf(fee.get("oweId")));
             if(!newOwes.equals(oldOwes) || total!=existing.getLongValue("totalFee") || !"CREATED".equals(existing.getString("state")))throw new IllegalStateException("An overlapping payment must be resolved first");
-            for(String field:Arrays.asList("userId","communityId","appId","mchId","orderType"))if(!input.getString(field).equals(existing.getString(field)))throw new IllegalStateException("An overlapping payment must be resolved first");
+            for(String field:Arrays.asList("userId","communityId","appId","mchId","orderType","providerVersion"))if(!input.getString(field).equals(existing.getString(field)))throw new IllegalStateException("An overlapping payment must be resolved first");
             for(Map<String,Object> row:snapshots) {
                 JSONObject live=new JSONObject(row),frozen=oldSnapshots.get(live.getString("oweId"));
                 for(String field:Arrays.asList("oweId","billId","feeId","communityId","ownerId","payerObjId","payerObjType",
@@ -72,6 +80,7 @@ public class FeePaymentOrderInnerServiceSMOImpl implements IFeePaymentOrderInner
         Map<String,Object> order = new HashMap<>();
         order.put("orderId", UUID.randomUUID().toString().replace("-", ""));
         for (String key : Arrays.asList("communityId", "userId", "appId", "mchId", "orderType")) order.put(key, input.getString(key));
+        order.put("providerVersion", providerVersion);
         order.put("totalFee", total); order.put("state", "CREATED");
         order.put("payload", JSON.toJSONString(snapshots));
         paymentOrderRepository.insert(order);
@@ -89,6 +98,54 @@ public class FeePaymentOrderInnerServiceSMOImpl implements IFeePaymentOrderInner
         Map<String,Object> order = paymentOrderRepository.find(request, false);
         if (order == null) throw new IllegalArgumentException("Unknown payment order");
         return order;
+    }
+
+    @Override
+    public List<Map<String,Object>> pendingV3(@RequestBody Map<String,Object> request) {
+        JSONObject input = new JSONObject(new HashMap<>(request));
+        required(input,"appId"); required(input,"mchId");
+        if (input.containsKey("afterOrderId")) {
+            Object cursor = input.get("afterOrderId");
+            if (!(cursor instanceof String) || !((String)cursor).matches("[A-Za-z0-9_-]{0,32}")) {
+                throw new IllegalArgumentException("Invalid pending order cursor");
+            }
+        }
+        String requested = input.containsKey("limit") ? required(input,"limit") : "50";
+        if (!requested.matches("[1-9][0-9]*")) throw new IllegalArgumentException("Invalid pending order limit");
+        input.put("limit",new java.math.BigInteger(requested).min(java.math.BigInteger.valueOf(50)).intValue());
+        return paymentOrderRepository.pendingV3(input);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    public Map<String,Object> close(@RequestBody Map<String,Object> request) {
+        JSONObject input = new JSONObject(request);
+        required(input,"orderId"); required(input,"appId"); required(input,"mchId");
+        if (!"CLOSED".equals(required(input,"providerState"))) throw new IllegalArgumentException("Provider has not confirmed close");
+        Map<String,Object> stored = paymentOrderRepository.find(request,true);
+        if (stored == null) throw new IllegalArgumentException("Unknown payment order");
+        JSONObject order = new JSONObject(stored);
+        for (String field : Arrays.asList("appId","mchId")) {
+            if (!required(order,field).equals(input.getString(field))) throw new IllegalArgumentException("Payment ownership mismatch");
+        }
+        if (!"V3".equals(order.getString("providerVersion"))) throw new IllegalArgumentException("Only V3 orders may be closed");
+        String state = order.getString("state");
+        if (!"CLOSED".equals(state)) {
+            if (!"CREATED".equals(state)) throw new IllegalArgumentException("Invalid payment state for close");
+            List<JSONObject> fees = JSON.parseArray(order.getString("payload"),JSONObject.class);
+            fees.sort(Comparator.comparing(f -> f.getString("oweId")));
+            for (JSONObject fee : fees) {
+                fee.put("communityId",order.getString("communityId"));
+                fee.put("orderId",order.getString("orderId"));
+                // Serialize release with placement's snapshot locks; history rows remain immutable.
+                paymentOrderRepository.lockSnapshot(fee);
+                paymentOrderRepository.write("releaseFee",fee);
+            }
+            paymentOrderRepository.write("markClosed",request);
+        }
+        Map<String,Object> result = new HashMap<>();
+        result.put("code",0); result.put("state","CLOSED"); result.put("orderId",order.getString("orderId"));
+        return result;
     }
 
     @Override

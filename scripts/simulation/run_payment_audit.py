@@ -11,6 +11,9 @@ from verify import compile_audit, local
 def main():
     java, cp, logging, output = compile_audit()
     cp = os.pathsep.join([cp, str(local.BACK / 'service-front/target/classes'), str(local.BACK / 'service-fee/target/classes')])
+    sys.path.insert(0, str(local.ROOT / 'scripts/tests'))
+    from verify_wechat_v3 import dependency_jars
+    cp = os.pathsep.join([cp] + list(map(str, dependency_jars())))
     base = local.BACK / 'service-front/src/main/java/com/java110/front/smo/payment/adapt/wechatPay'
     placement = local.BACK / 'service-front/src/main/java/com/java110/front/smo/payment/impl'
     sources = [Path(__file__).with_name('PaymentCallbackAudit.java'),
@@ -19,6 +22,7 @@ def main():
         local.BACK / 'java110-interface/src/main/java/com/java110/intf/fee/IFeePaymentOrderInnerServiceSMO.java',
         local.BACK / 'service-fee/src/main/java/com/java110/fee/dao/PaymentOrderRepository.java',
         local.BACK / 'service-fee/src/main/java/com/java110/fee/smo/impl/FeePaymentOrderInnerServiceSMOImpl.java']
+    sources += list((local.BACK / 'service-front/src/main/java/com/java110/front/smo/payment/v3').glob('*.java'))
     subprocess.run([str(java.with_name('javac.exe')), '-encoding', 'UTF-8', '-source', '8', '-target', '8', '-cp', cp, '-d', str(output)] + list(map(str, sources)), check=True)
     report = local.RUN / 'payment-callback-simulation.json'
     subprocess.run([str(java), '-Dlogback.configurationFile=' + str(logging), '-cp', cp, 'PaymentCallbackAudit', str(report)], check=True)

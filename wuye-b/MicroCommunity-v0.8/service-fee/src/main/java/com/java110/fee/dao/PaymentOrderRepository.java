@@ -11,6 +11,9 @@ public class PaymentOrderRepository extends BaseServiceDao {
     public Map<String,Object> find(Map<String,Object> key, boolean lock) {
         return sqlSessionTemplate.selectOne(NS + (lock ? "lockOrder" : "queryOrder"), key);
     }
+    public List<Map<String,Object>> pendingV3(Map<String,Object> scope) {
+        return sqlSessionTemplate.selectList(NS + "pendingV3", scope);
+    }
     public List<Map<String,Object>> snapshots(Map<String,Object> scope) {
         return sqlSessionTemplate.selectList(NS + "snapshots", scope);
     }

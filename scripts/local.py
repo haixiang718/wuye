@@ -146,6 +146,7 @@ def configure(profile='property'):
     <encoder><pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{60} - %msg%n</pattern></encoder>
   </appender>
   <logger name="com.java110" level="INFO"/>
+  <logger name="com.wechat.pay.java" level="WARN"/>
   <root level="WARN"><appender-ref ref="CONSOLE"/></root>
 </configuration>
 ''', encoding='utf-8')
@@ -173,9 +174,21 @@ def configure(profile='property'):
             'spring.datasource.url': jdbc('TT'), 'spring.datasource.username': 'wuye_local',
             'spring.datasource.password': cfg['db_password'],
             'java110.runtime.api-docs-enabled': 'false' if compact else 'true',
+            'java110.payment.enabled': 'false',
         }
         if compact:
             values['spring.jmx.enabled'] = 'false'
+        if name == 'front' and (RUN / 'wechat-pay.json').exists():
+            try:
+                payment = json.loads((RUN / 'wechat-pay.json').read_text(encoding='utf-8-sig'))
+                if not isinstance(payment, dict):
+                    raise ValueError('Invalid payment object')
+            except (ValueError, OSError):
+                raise RuntimeError('Private payment profile is invalid; collection remains disabled') from None
+            # Pass only the private file path, never merchant secrets in JVM arguments/properties.
+            values['java110.payment.v3.config'] = (RUN / 'wechat-pay.json').as_posix()
+            values['java110.payment.enabled'] = 'true' if payment.get('enabled') is True else 'false'
+            values['java110.payment.v3.recovery.enabled'] = 'true'
         if name == 'business':
             values['jedis.pool.timeout'] = 3000
             values['jedis.pool.config.maxWaitMillis'] = 20000

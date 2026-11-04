@@ -19,8 +19,10 @@ const routes = new Map([
   ['/app/feeApi/listOweFees', 'GET'], ['/app/feeDiscount/computeFeeDiscount', 'GET'],
   ['/app/parkingSpace.queryParkingSpacesByOwner', 'GET'], ['/app/fee.queryFeeByParkingSpace', 'GET'],
   ['/app/owner.queryOwnerCars', 'GET'], ['/app/userLogin/generatorHcCode', 'GET'],
+  ['/app/payment/toPay', 'POST'], ['/app/payment/toOweFeePay', 'POST'],
+  ['/app/payment/v3/notify', 'POST'], ['/app/payment/v3/query', 'POST'], ['/app/payment/v3/close', 'POST'],
 ]);
-const publicCallbacks = new Set(['/app/wechat/gateway', '/app/loginOwnerWechatAuth']);
+const publicCallbacks = new Set(['/app/wechat/gateway', '/app/loginOwnerWechatAuth', '/app/payment/v3/notify']);
 
 function equal(a, b) {
   const x = Buffer.from(String(a)), y = Buffer.from(String(b));
@@ -65,6 +67,25 @@ function createGateway(options) {
     let url;
     try { url = new URL(req.url, 'http://localhost'); }
     catch { return json(res, 404, { msg: '路径不可用' }); }
+    let notificationBody;
+    if (url.pathname === '/app/payment/v3/notify') {
+      if (req.method !== 'POST') return json(res, 405, {msg:'请求方法不可用'});
+      // Keep the signed body intact. Actual signature verification and decryption are server-side.
+      const names=['wechatpay-timestamp','wechatpay-nonce','wechatpay-serial','wechatpay-signature'];
+      if (names.some(name => typeof req.headers[name] !== 'string' || !req.headers[name] || req.headers[name].length > 2048)) {
+        return json(res, 403, {msg:'支付通知签名头缺失或无效'});
+      }
+      if (Number(req.headers['content-length']) > 65536) return json(res, 413, {msg:'请求过大'});
+      const chunks=[]; let size=0;
+      try {
+        for await (const chunk of req) {
+          size+=chunk.length;
+          if (size>65536) return json(res,413,{msg:'请求过大'});
+          chunks.push(chunk);
+        }
+      } catch { return json(res,400,{msg:'请求读取失败'}); }
+      notificationBody=Buffer.concat(chunks);
+    }
     if (url.pathname === '/wechat-test/callback') {
       if (req.method === 'GET') {
         const signature = url.searchParams.get('signature') || '';
@@ -111,9 +132,11 @@ function createGateway(options) {
     if (url.pathname === '/wechat-test/config.js' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
       return res.end('window.__WUYE_WECHAT_TEST__=' + JSON.stringify({ appId: config.appId, communityId: config.communityId,
-        communityName: config.communityName || '丰仪家园', smsEnabled: config.smsEnabled === true, paymentEnabled: false }) + ';');
+        communityName: config.communityName || '丰仪家园', smsEnabled: config.smsEnabled === true, paymentEnabled: config.paymentEnabled === true }) + ';');
     }
-    if (url.pathname.startsWith('/app/payment/')) return json(res, 503, { code: 'PAYMENT_NOT_CONFIGURED', msg: '微信支付尚未开通，当前仅联调账单查询' });
+    if (['/app/payment/toPay','/app/payment/toOweFeePay'].includes(url.pathname) && config.paymentEnabled !== true) {
+      return json(res, 503, { code: 'PAYMENT_NOT_CONFIGURED', msg: '微信支付暂未启用，仍可查询账单' });
+    }
     const isBackend = url.pathname.startsWith('/app/');
     if (isBackend) {
       if (!routes.has(url.pathname)) return json(res, 404, { msg: '该接口不在本次联调范围内' });
@@ -152,7 +175,7 @@ function createGateway(options) {
     proxy.on('timeout', () => proxy.destroy(new Error('upstream timeout')));
     proxy.on('error', () => { if (!res.headersSent) json(res, 502, { msg: '本地服务尚未就绪，请稍后重试' }); else res.destroy(); });
     req.on('aborted', () => proxy.destroy());
-    req.pipe(proxy);
+    if (notificationBody) proxy.end(notificationBody); else req.pipe(proxy);
   });
 }
 

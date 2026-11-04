@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="paymentOrder">
-    <sql id="orderColumns">order_id orderId, community_id communityId,user_id userId,app_id appId,mch_id mchId,order_type orderType,total_fee totalFee,payload,state,transaction_id transactionId</sql>
+    <sql id="orderColumns">order_id orderId, community_id communityId,user_id userId,app_id appId,mch_id mchId,order_type orderType,provider_version providerVersion,total_fee totalFee,payload,state,transaction_id transactionId</sql>
     <select id="queryOrder" parameterType="Map" resultType="Map">select <include refid="orderColumns"/> from payment_order where order_id=#{orderId}</select>
     <select id="lockOrder" parameterType="Map" resultType="Map">select <include refid="orderColumns"/> from payment_order where order_id=#{orderId} for update</select>
+    <select id="pendingV3" parameterType="Map" resultType="Map">
+        select <include refid="orderColumns"/> from payment_order
+        where provider_version='V3' and state='CREATED' and app_id=#{appId} and mch_id=#{mchId}
+        <choose>
+            <when test="afterOrderId != null">
+                and order_id &gt; #{afterOrderId}
+                order by order_id
+            </when>
+            <otherwise>order by create_time,order_id</otherwise>
+        </choose>
+        limit #{limit}
+    </select>
     <select id="merchantMatches" parameterType="Map" resultType="int">
         select case when count(*)=1 and min(mch_id)=#{mchId} then 1 else 0 end
         from small_wechat where obj_id=#{communityId} and obj_type='1000' and appId=#{appId} and status_cd='0'
@@ -47,8 +59,8 @@
         for update
     </select>
     <insert id="insertOrder" parameterType="Map">
-        insert into payment_order(order_id,community_id,user_id,app_id,mch_id,order_type,total_fee,payload,state)
-        values(#{orderId},#{communityId},#{userId},#{appId},#{mchId},#{orderType},#{totalFee},#{payload},'CREATED')
+        insert into payment_order(order_id,community_id,user_id,app_id,mch_id,order_type,provider_version,total_fee,payload,state)
+        values(#{orderId},#{communityId},#{userId},#{appId},#{mchId},#{orderType},#{providerVersion},#{totalFee},#{payload},'CREATED')
     </insert>
     <insert id="reserveSnapshot" parameterType="Map">insert into payment_order_item(owe_id,order_id) values(#{oweId},#{orderId})</insert>
     <insert id="reserveFee" parameterType="Map">insert into payment_order_reservation(community_id,fee_id,order_id) values(#{communityId},#{feeId},#{orderId})</insert>
@@ -73,5 +85,6 @@
         insert into fee_receipt(amount,obj_id,obj_name,community_id,receipt_id,obj_type,pay_obj_id,pay_obj_name,remark)
         values(#{amount},#{payerObjId},#{payerObjName},#{communityId},#{receiptId},#{payerObjType},#{ownerId},#{ownerName},concat('微信账单支付 ',#{orderId}))
     </insert>
+    <update id="markClosed" parameterType="Map">update payment_order set state='CLOSED' where order_id=#{orderId} and provider_version='V3' and state='CREATED'</update>
     <update id="markPosted" parameterType="Map">update payment_order set state='POSTED',posted_time=current_timestamp where order_id=#{orderId} and transaction_id=#{transactionId} and state='CREATED'</update>
 </mapper>

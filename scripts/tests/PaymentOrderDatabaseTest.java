@@ -94,4 +94,100 @@ public class PaymentOrderDatabaseTest {
     @Test public void receiptOverflowRejectedBeforeCollection(){sql.update("UPDATE bill_owe_fee SET bill_amount_owed=10000000.00,fee_end_time=fee_end_time");rejected(()->service.create(request("fee")));assertEquals(0,count("payment_order"));}
     @Test public void changedPendingPeriodCannotReuseOrder(){Map<String,Object> order=service.create(request("fee"));sql.update("UPDATE bill_owe_fee SET deadline_time='2026-12-01 00:00:00',fee_end_time=fee_end_time");rejected(()->service.create(request("fee")));assertEquals(1,count("payment_order"));assertEquals(order.get("orderId"),sql.queryForObject("SELECT order_id FROM payment_order",String.class));}
     @Test public void unchangedTotalCannotHidePendingFeeReallocation(){addFee("fee-two","owe-two");sql.update("UPDATE bill SET receivable=2.00,bill_time=bill_time");Map<String,Object> request=request("fee");request.remove("feeId");request.put("roomId","room");request.put("payObjType","3333");request.put("orderType","ARREARS");service.create(request);sql.update("UPDATE bill_owe_fee SET bill_amount_owed=case when fee_id='fee' then 0.50 else 1.50 end,fee_end_time=fee_end_time");rejected(()->service.create(request));assertEquals(1,count("payment_order"));assertEquals(2,count("payment_order_item"));}
+    static Map<String,Object> v3Request(String fee){Map<String,Object> row=request(fee);row.put("providerVersion","V3");return row;}
+    @SuppressWarnings("unchecked") static <T> T newApi(IFeePaymentOrderInnerServiceSMO target,String name,Map<String,Object> row){
+        try{return (T)IFeePaymentOrderInnerServiceSMO.class.getMethod(name,Map.class).invoke(target,row);}
+        catch(java.lang.reflect.InvocationTargetException ex){if(ex.getCause() instanceof RuntimeException)throw (RuntimeException)ex.getCause();throw new AssertionError(ex.getCause());}
+        catch(ReflectiveOperationException ex){throw new AssertionError("Missing order lifecycle API: "+name,ex);}
+    }
+    static Map<String,Object> closeRequest(Map<String,Object> order){return data("orderId",order.get("orderId"),"appId",APP,"mchId",MCH,"providerState","CLOSED");}
+    @Test public void providerVersionIsImmutableAndDefaultsToV2(){
+        Map<String,Object> legacy=service.create(request("fee"));assertEquals("V2",legacy.get("providerVersion"));
+        assertEquals("V2",service.query(data("orderId",legacy.get("orderId"))).get("providerVersion"));
+        rejected(()->service.create(v3Request("fee")));assertEquals(1,count("payment_order"));
+        Map<String,Object> invalid=request("fee");invalid.put("providerVersion","V4");rejected(()->service.create(invalid));
+    }
+    @Test public void confirmedCloseReleasesReservationsPreservesHistoryAndAllowsRetry()throws Exception {
+        Map<String,Object> order=service.create(v3Request("fee"));assertEquals("V3",order.get("providerVersion"));
+        assertEquals(order.get("orderId"),service.create(v3Request("fee")).get("orderId"));
+        Map<String,Object> closed=newApi(service,"close",closeRequest(order));assertEquals(0,closed.get("code"));assertEquals("CLOSED",closed.get("state"));
+        assertEquals("CLOSED",((Map<String,Object>)newApi(instance(new PaymentOrderRepository()),"close",closeRequest(order))).get("state"));
+        assertEquals(0,count("payment_order_reservation"));assertEquals(0,count("pay_fee_detail"));assertEquals(0,count("fee_receipt"));assertEquals(0,count("fee_receipt_detail"));
+        assertEquals("1000",sql.queryForObject("SELECT state FROM bill_owe_fee",String.class));assertEquals(BigDecimal.ZERO.setScale(2),sql.queryForObject("SELECT receipts FROM bill",BigDecimal.class));
+        rejected(()->service.confirm(payment(order,"late-transaction")));
+        Map<String,Object> next=service.create(v3Request("fee"));assertNotEquals(order.get("orderId"),next.get("orderId"));assertEquals(2,count("payment_order_item"));assertEquals(2,count("payment_order"));
+        newApi(service,"close",closeRequest(order));assertEquals(1,count("payment_order_reservation"));
+        assertEquals("POSTED",service.confirm(payment(next,"transaction")).get("state"));assertEquals("POSTED",service.confirm(payment(next,"transaction")).get("state"));assertEquals(1,count("pay_fee_detail"));
+        rejected(()->newApi(service,"close",closeRequest(next)));assertEquals("POSTED",service.query(data("orderId",next.get("orderId"))).get("state"));
+    }
+    @Test public void closeRequiresConfirmedProviderStateAndV3MerchantOwnership(){
+        Map<String,Object> order=service.create(v3Request("fee"));
+        for(String field:Arrays.asList("appId","mchId","providerState")) {Map<String,Object> request=closeRequest(order);request.put(field,"wrong");rejected(()->newApi(service,"close",request));request.remove(field);rejected(()->newApi(service,"close",request));}
+        assertEquals(1,count("payment_order_reservation"));assertEquals("CREATED",service.query(data("orderId",order.get("orderId"))).get("state"));
+        newApi(service,"close",closeRequest(order));Map<String,Object> legacy=service.create(request("fee"));rejected(()->newApi(service,"close",closeRequest(legacy)));assertEquals(1,count("payment_order_reservation"));
+    }
+    @Test public void closeFailureRollsBackStateAndReservationAndRetryWorks()throws Exception {
+        Map<String,Object> order=service.create(v3Request("fee"));FaultRepository repository=new FaultRepository();repository.failAt="markClosed";
+        IFeePaymentOrderInnerServiceSMO faulty=instance(repository);rejected(()->newApi(faulty,"close",closeRequest(order)));
+        assertEquals(1,count("payment_order_reservation"));assertEquals("CREATED",service.query(data("orderId",order.get("orderId"))).get("state"));
+        assertEquals("CLOSED",((Map<String,Object>)newApi(service,"close",closeRequest(order))).get("state"));assertEquals(0,count("payment_order_reservation"));
+    }
+    @Test public void pendingV3IsDurableScopedOldestFirstAndBounded()throws Exception {
+        Map<String,Object> sample=service.create(v3Request("fee"));
+        for(int i=0;i<55;i++){Map<String,Object> row=sql.queryForMap("SELECT * FROM payment_order WHERE order_id=?",sample.get("orderId"));row.put("order_id",String.format("synthetic-%03d",i));row.put("create_time",String.format("2026-10-01 00:00:%02d",i));insert("payment_order",row);}
+        sql.update("UPDATE payment_order SET create_time='2026-11-01 00:00:00' WHERE order_id=?",sample.get("orderId"));
+        sql.update("UPDATE payment_order SET state='CLOSED' WHERE order_id='synthetic-000'");sql.update("UPDATE payment_order SET state='POSTED' WHERE order_id='synthetic-001'");
+        sql.update("UPDATE payment_order SET provider_version='V2' WHERE order_id='synthetic-002'");sql.update("UPDATE payment_order SET app_id='other' WHERE order_id='synthetic-003'");sql.update("UPDATE payment_order SET mch_id='other' WHERE order_id='synthetic-004'");
+        List<Map<String,Object>> pending=newApi(instance(new PaymentOrderRepository()),"pendingV3",data("appId",APP,"mchId",MCH,"limit",999));
+        assertEquals(50,pending.size());assertEquals("synthetic-005",pending.get(0).get("orderId"));assertEquals("V3",pending.get(0).get("providerVersion"));
+        assertEquals(2,((List<?>)newApi(service,"pendingV3",data("appId",APP,"mchId",MCH,"limit",2))).size());
+        assertEquals(50,((List<?>)newApi(service,"pendingV3",data("appId",APP,"mchId",MCH))).size());
+        rejected(()->newApi(service,"pendingV3",data("appId",APP)));rejected(()->newApi(service,"pendingV3",data("mchId",MCH)));
+        for(Object limit:Arrays.asList(0,-1,"1 OR 1=1","1.5"))rejected(()->newApi(service,"pendingV3",data("appId",APP,"mchId",MCH,"limit",limit)));
+    }
+    @Test public void pendingV3CursorVisitsAllUnresolvedOrdersAcrossPagesAndRestarts()throws Exception {
+        Map<String,Object> sample=service.create(v3Request("fee"));
+        Set<String> expected=new TreeSet<>();expected.add(sample.get("orderId").toString());
+        for(int i=0;i<61;i++){
+            Map<String,Object> row=sql.queryForMap("SELECT * FROM payment_order WHERE order_id=?",sample.get("orderId"));
+            String id=String.format("recovery-%03d",i);row.put("order_id",id);row.put("create_time",String.format("2026-10-%02d 00:00:00",28-i%28));insert("payment_order",row);expected.add(id);
+        }
+        Map<String,Object> excluded=sql.queryForMap("SELECT * FROM payment_order WHERE order_id=?",sample.get("orderId"));
+        excluded.put("order_id","excluded-other-app");excluded.put("app_id","other-app");insert("payment_order",excluded);
+        excluded.put("order_id","excluded-v2");excluded.put("app_id",APP);excluded.put("provider_version","V2");insert("payment_order",excluded);
+        String cursor="";List<String> visited=new ArrayList<>(),firstPage=new ArrayList<>();int pages=0;
+        while(pages++<4){
+            List<Map<String,Object>> rows=newApi(instance(new PaymentOrderRepository()),"pendingV3",data("appId",APP,"mchId",MCH,"limit",50,"afterOrderId",cursor));
+            if(rows.isEmpty())break;
+            assertTrue(rows.size()<=50);
+            for(Map<String,Object> row:rows){String id=row.get("orderId").toString();assertTrue(id.compareTo(cursor)>0);visited.add(id);cursor=id;if(pages==1)firstPage.add(id);}
+        }
+        assertEquals(3,pages);assertEquals(new ArrayList<>(expected),visited);assertEquals(50,firstPage.size());
+        // Every order remains CREATED, modeling provider failures; advancing the cursor still reaches order 51+.
+        assertEquals(64,sql.queryForObject("SELECT count(*) FROM payment_order WHERE state='CREATED'",Integer.class).intValue());
+        List<Map<String,Object>> restarted=newApi(service,"pendingV3",data("appId",APP,"mchId",MCH,"afterOrderId",""));
+        List<String> restartedIds=new ArrayList<>();for(Map<String,Object> row:restarted)restartedIds.add(row.get("orderId").toString());assertEquals(firstPage,restartedIds);
+    }
+    @Test public void pendingV3RejectsMalformedCursor(){
+        for(Object cursor:Arrays.asList(null,1,true,"bad space","../order","abcdefghijklmnopqrstuvwxyz1234567","' OR 1=1 --"))
+            rejected(()->newApi(service,"pendingV3",data("appId",APP,"mchId",MCH,"afterOrderId",cursor)));
+    }
+    @Test public void internalCollectionCapRejectsLargerBillBeforeAnyOrderWritesAndAcceptsOneFen(){
+        Map<String,Object> request=request("fee");request.put("maxTotalFee",1);
+        rejected(()->service.create(request));assertEquals(0,count("payment_order"));assertEquals(0,count("payment_order_item"));assertEquals(0,count("payment_order_reservation"));
+        sql.update("UPDATE bill_owe_fee SET bill_amount_owed=0.01,amount_owed=0.01,fee_end_time=fee_end_time");
+        Map<String,Object> order=service.create(request);assertEquals(1L,((Number)order.get("totalFee")).longValue());
+        assertEquals(order.get("orderId"),service.create(request).get("orderId"));assertEquals(1,count("payment_order"));assertEquals(1,count("payment_order_reservation"));
+    }
+    @Test public void pendingOrderReuseCannotBypassLoweredInternalCollectionCap(){
+        Map<String,Object> order=service.create(request("fee"));Map<String,Object> capped=request("fee");capped.put("maxTotalFee",1);
+        rejected(()->service.create(capped));assertEquals(1,count("payment_order"));assertEquals(1,count("payment_order_item"));assertEquals(1,count("payment_order_reservation"));
+        assertEquals(order.get("orderId"),service.query(data("orderId",order.get("orderId"))).get("orderId"));
+    }
+    @Test public void internalCollectionCapMustBePositiveIntegerFen(){
+        for(Object cap:Arrays.asList(null,0,-1,"0.01","1.0","unbounded","1 OR 1=1")){
+            Map<String,Object> request=request("fee");request.put("maxTotalFee",cap);rejected(()->service.create(request));
+        }
+        assertEquals(0,count("payment_order"));assertEquals(0,count("payment_order_item"));assertEquals(0,count("payment_order_reservation"));
+    }
 }

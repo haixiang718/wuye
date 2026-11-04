@@ -6,13 +6,22 @@ const vm = require('node:vm');
 
 function page(overrides = {}) {
     const calls = [], toasts = [], requests = [];
+    const conditions = [];
     const script = fs.readFileSync(path.join(__dirname, '../pages/roomOweFee/roomOweFee.vue'), 'utf8')
         .match(/<script>([\s\S]*?)<\/script>/)[1]
+        .split('\n').filter(line => {
+            if (line.includes('// #ifdef')) { conditions.push(line.includes('H5')); return false; }
+            if (line.includes('// #ifndef')) { conditions.push(!line.includes('H5')); return false; }
+            if (line.includes('// #endif')) { conditions.pop(); return false; }
+            return conditions.every(Boolean);
+        }).join('\n')
         .replace(/import\s[\s\S]*?from\s*['"][^'"]+['"];?/g, '')
         .replace('export default', 'module.exports =');
     const context = { constant: { mapping: { W_APP_ID: 'appid' }, url: {} }, onLoad() {}, getHeaders: () => ({}), request: data => requests.push(data) };
     const sandbox = {
-        module: { exports: {} }, require: () => context,
+        module: { exports: {} }, require: name => name.includes('WexinPayFactory')
+            ? { resumePending: async () => ({ state: 'NONE' }), preparePayment: async () => ({ state: 'NONE' }) } : context,
+        navigator: { userAgent: 'MicroMessenger' },
         uni: { getAccountInfoSync: () => ({ miniProgram: { appId: 'test' } }), getStorageSync: () => '', showToast: data => toasts.push(data) },
         wx: { showLoading() {}, hideLoading() {} },
         getCurCommunity: async () => ({ communityId: 'community-1', communityName: '小区' }),
