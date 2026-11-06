@@ -56,4 +56,4 @@
 
 - [x] Review the final diff, delete-only manifest, migrator failure behavior and payment/parking exceptions.
 - [x] Update approved design status, database function map and V2 release guide with actual counts, validations and remaining limitations. Report measured memory/package differences only where measured under comparable conditions.
-- [ ] `git diff --check`, targeted tests after any review fix, commit to `codex/v2-module-pruning` and push. Keep V1 tag/branch unchanged.
+- [x] `git diff --check`, targeted tests after any review fix, commit to `codex/v2-module-pruning` and push. Keep V1 tag/branch unchanged. Implementation commit: `99cbdf1`.
