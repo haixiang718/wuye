@@ -86,6 +86,16 @@ public class BillReviewDatabaseTest {
         sql.update("UPDATE bill SET cur_bill='F',bill_time=bill_time");assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",review()));
         sql.update("UPDATE bill SET cur_bill='T',bill_time=bill_time");sql.update("DELETE FROM bill_owe_fee");assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",review()));
     }
+    @Test public void roomBatchFilterIsBoundAndMatchesListAndCount() {
+        mapper.update("feeServiceDaoImpl.reviewBill",review());
+        Map<String,Object> q=query();q.remove("payObjId");
+        q.put("payObjIds",new String[]{"room","another-room"});
+        assertEquals(1,visible(q).size());assertEquals(1,total(q));
+        q.put("payObjIds",new String[]{"another-room","room' OR '1'='1"});
+        assertTrue(visible(q).isEmpty());assertEquals(0,total(q));
+        q.put("payObjIds",new String[]{"room"});q.put("communityId","other-community");
+        assertTrue(visible(q).isEmpty());assertEquals(0,total(q));
+    }
     private IFeeInnerServiceSMO feeService() {
         return (IFeeInnerServiceSMO)Proxy.newProxyInstance(
             IFeeInnerServiceSMO.class.getClassLoader(),new Class[]{IFeeInnerServiceSMO.class},(proxy,method,args)->{

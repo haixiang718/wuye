@@ -503,6 +503,10 @@
         <if test="curBill !=null and curBill != ''">and b.cur_bill = #{curBill}</if>
         <if test="reviewState !=null and reviewState != ''">and b.review_state = #{reviewState}</if>
         <if test="payObjId !=null and payObjId != ''">and pf.payer_obj_id = #{payObjId}</if>
+        <if test="payObjIds != null">
+            and pf.payer_obj_id in
+            <foreach collection="payObjIds" item="item" open="(" close=")" separator=",">#{item}</foreach>
+        </if>
         <if test="payerObjType !=null and payerObjType != ''">and pf.payer_obj_type = #{payerObjType}</if>
         <if test='outstandingOnly == "T"'>and t.state in ('1000','3000') and t.bill_amount_owed &gt; 0</if>
         <if test="oweId !=null and oweId != ''">
@@ -558,6 +562,10 @@
         <if test="curBill !=null and curBill != ''">and b.cur_bill = #{curBill}</if>
         <if test="reviewState !=null and reviewState != ''">and b.review_state = #{reviewState}</if>
         <if test="payObjId !=null and payObjId != ''">and pf.payer_obj_id = #{payObjId}</if>
+        <if test="payObjIds != null">
+            and pf.payer_obj_id in
+            <foreach collection="payObjIds" item="item" open="(" close=")" separator=",">#{item}</foreach>
+        </if>
         <if test="payerObjType !=null and payerObjType != ''">and pf.payer_obj_type = #{payerObjType}</if>
         <if test='outstandingOnly == "T"'>and t.state in ('1000','3000') and t.bill_amount_owed &gt; 0</if>
         <if test="ownerIds !=null">

@@ -32,6 +32,10 @@ public class ApiRoomDataVo implements Serializable {
     private String apartment;
     private String apartmentName;
     private String roomType;
+    private String feePaymentStatus;
+
+    public String getFeePaymentStatus() { return feePaymentStatus; }
+    public void setFeePaymentStatus(String value) { feePaymentStatus = value; }
 
     private String ownerId;
     private String ownerName;

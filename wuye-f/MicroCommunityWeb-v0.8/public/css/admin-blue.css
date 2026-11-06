@@ -290,3 +290,14 @@ body.admin-blue .table .admin-empty { padding: 36px 20px; text-align: center; co
   body.admin-blue .animated { animation: none !important; }
   body.admin-blue .btn { transition: none; }
 }
+
+/* Room fee indicators remain scoped to the room collection list. */
+.room-create-fee-page .room-fee-legend { display: flex; gap: 18px; flex-wrap: wrap; color: #576574; font-size: 13px; }
+.room-create-fee-page .room-fee-dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid rgba(0,0,0,.12); }
+.room-create-fee-page .room-fee-dot-owing { background: #fff4cc; }
+.room-create-fee-page .room-fee-dot-settled { background: #e3f4e8; }
+.room-create-fee-page .table tbody tr.room-fee-owing > td { background: #fff4cc !important; }
+.room-create-fee-page .table tbody tr.room-fee-settled > td { background: #e3f4e8 !important; }
+.room-create-fee-page .room-fee-status { white-space: nowrap; font-weight: 600; color: #697586; }
+.room-create-fee-page .room-fee-owing .room-fee-status { color: #805b00; }
+.room-create-fee-page .room-fee-settled .room-fee-status { color: #25643c; }

@@ -59,6 +59,15 @@
             });
         },
         methods: {
+            _roomFeeStatusText: function (room) {
+                var labels = {
+                    OUTSTANDING: '存在未缴费项',
+                    SETTLED: '账单结清',
+                    NO_BILLS: '暂无费用',
+                    UNKNOWN: '状态待确认'
+                };
+                return labels[room.feePaymentStatus] || '状态待确认';
+            },
             listRoom: function (_page, _row) {
                 if (vc.component.roomCreateFeeInfo.conditions.floorName == '' || vc.component.roomCreateFeeInfo.conditions.floorName == null) {
                     vc.component.roomCreateFeeInfo.conditions.floorId = ''
@@ -159,31 +168,8 @@
                 vc.component.roomCreateFeeInfo.conditions.floorId = "";
                 vc.component.roomCreateFeeInfo.conditions.roomId = "";
                 vc.component.roomCreateFeeInfo.conditions.roomType = "";
-                let _conditions = JSON.parse(JSON.stringify(vc.component.roomCreateFeeInfo.conditions));
-                let param = {
-                    params: _conditions
-                };
-                //发送get请求
-                vc.http.get('roomCreateFee',
-                    'listRoom',
-                    param,
-                    function (json, res) {
-                        var listRoomData = JSON.parse(json);
-                        vc.component.roomCreateFeeInfo.total = listRoomData.total;
-                        vc.component.roomCreateFeeInfo.records = listRoomData.records;
-                        vc.component.roomCreateFeeInfo.rooms = listRoomData.rooms;
-                        // 缓存
-                        $that.updateCurrentPage(DEFAULT_PAGE);
-                        $that.saveTempSearchData();
-                        vc.emit('pagination', 'init', {
-                            total: vc.component.roomCreateFeeInfo.records,
-                            dataCount: vc.component.roomCreateFeeInfo.total,
-                            currentPage: _page
-                        });
-                    }, function (errInfo, error) {
-                        console.log('请求失败处理');
-                    }
-                );
+                $that.updateCurrentPage(DEFAULT_PAGE);
+                $that.listRoom(DEFAULT_PAGE, DEFAULT_ROW);
             },
             //查询
             _queryRoomMethod: function () {
@@ -240,39 +226,6 @@
                 let roomName = _room.floorNum + "栋" + _room.unitNum + "单元" + _room.roomNum + "室"
                 vc.jumpToPage('/admin.html#/pages/property/owePayFeeOrder?payObjId=' + _room.roomId + "&payObjType=3333&roomName=" + roomName);
             },
-            _printOwnOrder: function (_room) {
-                //打印催交单
-                vc.jumpToPage('print.html#/pages/property/printOweFee?roomId=' + _room.roomId)
-            },
-            _openTranslateFeeManualCollectionDetailModel: function (_room) {
-                let _data = {
-                    roomId: _room.roomId,
-                    communityId: vc.getCurrentCommunity().communityId
-                }
-                //重新同步房屋欠费
-                vc.http.apiPost(
-                    '/feeManualCollection/saveFeeManualCollection',
-                    JSON.stringify(_data),
-                    {
-                        emulateJSON: true
-                    },
-                    function (json, res) {
-                        //vm.menus = vm.refreshMenuActive(JSON.parse(json),0);
-                        let _json = JSON.parse(json);
-                        if (_json.code == 0) {
-                            //关闭model
-                            vc.toast(_json.msg);
-                            vc.jumpToPage('/admin.html#/pages/property/feeManualCollectionManage');
-                            return;
-                        }
-                        vc.toast(_json.msg);
-                    },
-                    function (errInfo, error) {
-                        console.log('请求失败处理');
-                        vc.message(errInfo);
-                    });
-            },
-
             /**
              * 更新当前页码
              */
@@ -290,12 +243,6 @@
                     conditions: conditions,
                     currentPage: $that.currentPage
                 });
-            },
-            _downloadCollectionLetterOrder: function () {
-                vc.jumpToPage('/callComponent/feeManualCollection/downloadCollectionLetterOrder?communityId=' + vc.getCurrentCommunity().communityId);
-            },
-            _downloadRoomCollectionLetterOrder: function (_room) {
-                vc.jumpToPage('/callComponent/feeManualCollection/downloadCollectionLetterOrder?communityId=' + vc.getCurrentCommunity().communityId + "&roomId=" + _room.roomId);
             }
         }
     });

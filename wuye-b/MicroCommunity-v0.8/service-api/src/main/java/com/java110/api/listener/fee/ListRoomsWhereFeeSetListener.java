@@ -2,6 +2,7 @@ package com.java110.api.listener.fee;
 
 import com.alibaba.fastjson.JSONObject;
 import com.java110.api.listener.AbstractServiceApiListener;
+import com.java110.api.bmo.fee.impl.RoomFeeStatusService;
 import com.java110.core.annotation.Java110Listener;
 import com.java110.core.context.DataFlowContext;
 import com.java110.dto.basePrivilege.BasePrivilegeDto;
@@ -33,6 +34,9 @@ import java.util.Map;
  */
 @Java110Listener("listRoomsWhereFeeSetListener")
 public class ListRoomsWhereFeeSetListener extends AbstractServiceApiListener {
+
+    @Autowired
+    private RoomFeeStatusService roomFeeStatusService;
 
     @Autowired
     private IRoomInnerServiceSMO roomInnerServiceSMOImpl;
@@ -89,7 +93,7 @@ public class ListRoomsWhereFeeSetListener extends AbstractServiceApiListener {
             String userId = context.getUserId();
             refreshRoomOwners(userId, reqJson.getString("communityId"), roomDtoList);
 
-            apiRoomVo.setRooms(BeanConvertUtil.covertBeanList(roomDtoList, ApiRoomDataVo.class));
+            setRoomsWithFeeStatus(apiRoomVo, reqJson.getString("communityId"), roomDtoList);
         }
         int row = reqJson.getInteger("row");
         apiRoomVo.setRecords((int) Math.ceil((double) total / (double) row));
@@ -118,13 +122,19 @@ public class ListRoomsWhereFeeSetListener extends AbstractServiceApiListener {
 
             roomDtoList = refreshOwnerRooms(reqJson.getString("communityId"), ownerRoomRelDtos);
 
-            apiRoomVo.setRooms(BeanConvertUtil.covertBeanList(roomDtoList, ApiRoomDataVo.class));
+            setRoomsWithFeeStatus(apiRoomVo, reqJson.getString("communityId"), roomDtoList);
         }
         int row = reqJson.getInteger("row");
         apiRoomVo.setRecords((int) Math.ceil((double) total / (double) row));
 
         ResponseEntity<String> responseEntity = new ResponseEntity<String>(JSONObject.toJSONString(apiRoomVo), HttpStatus.OK);
         context.setResponseEntity(responseEntity);
+    }
+
+    private void setRoomsWithFeeStatus(ApiRoomVo result, String communityId, List<RoomDto> rooms) {
+        List<ApiRoomDataVo> views = BeanConvertUtil.covertBeanList(rooms, ApiRoomDataVo.class);
+        roomFeeStatusService.populate(communityId, rooms, views);
+        result.setRooms(views);
     }
 
     private List<RoomDto> refreshOwnerRooms(String communityId, List<OwnerRoomRelDto> ownerRoomRelDtos) {
