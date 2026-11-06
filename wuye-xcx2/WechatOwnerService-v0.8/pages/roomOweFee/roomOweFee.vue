@@ -4,7 +4,7 @@
 		<wechat-binding-gate />
 		<!-- #endif -->
 		<view v-if="!wechatPropertyLocked">
-		<scroll-view scroll-y>
+		<scroll-view scroll-y class="selection-body">
 			<view class="block__title">房屋信息</view>
 			<view class="cu-list menu">
 				<view class="cu-item">
@@ -32,33 +32,27 @@
 					</view>
 				</view>
 			</view>
-			<view class="block__title" v-if="fees.length > 0">欠费信息</view>
-			<view class="cu-list menu"  v-for="(item,index) in fees" :key="index" :data-item="item">
+			<view class="block__title" v-if="fees.length > 0">请选择需要缴纳的账单（可多选）</view>
+			<view v-if="selectionError" class="selection-error">{{selectionError}}</view>
+			<view class="cu-list menu"  v-for="item in fees" :key="item.oweId" :data-item="item">
 				<view class="cu-item">
-					<view class="content padding-tb-sm">
-						<view>
-							<view class="text-cut" style="width:220px">{{item.feeName}}</view>
-						</view>
-						<view class="text-gray text-sm">
-							<text class="margin-right-xs">{{item.endTime}}至{{item.deadlineTime}}</text></view>
-					</view>
-					<view class="action">
-						<text class="text-grey text-sm">应缴:￥{{item.feePrice}}</text>
+					<checkbox-group class="selection-check" @change="toggleFee(item)"><checkbox :value="item.oweId" :checked="isSelected(item)" :disabled="paymentSubmitting || !isSelectable(item)" color="#14836b" /></checkbox-group>
+					<view class="content padding-tb-sm selection-content">
+						<view class="selection-heading"><view class="selection-name">{{item.feeName}}</view><text class="selection-price">¥{{money(item.feePrice) || '金额待核实'}}</text></view>
+						<view class="selection-period">{{date(item.feeEndTime || item.endTime)}} 至 {{date(item.deadlineTime)}}</view>
 					</view>
 				</view>
 			</view>
 		</scroll-view>
-		<view v-if="fees.length > 0" class="bg-white  border flex justify-end" style="position: fixed;width: 100%;bottom: 0;">
-
-			<view class="action text-orange margin-right line-height">
-				合计：{{receivableAmount}}元
-			</view>
+		<view v-if="fees.length > 0" class="bg-white selection-footer">
+			<checkbox-group class="selection-all" @change="toggleAll"><label><checkbox value="all" :checked="allSelected()" :disabled="paymentSubmitting" color="#14836b" />全选</label></checkbox-group>
+			<view class="selection-summary"><view>已选 {{selectedOweIds.length}} 项</view><view class="selection-total">合计 ¥{{receivableAmount}}</view></view>
 			<view class="btn-group">
 				<!-- #ifdef H5 || MP-WEIXIN -->
-				<button class="cu-btn bg-red shadow-blur lgplus sharp" :disabled="paymentSubmitting || !paymentEnabled" @click="onPayFee()">{{ paymentEnabled ? '提交订单' : '微信支付未开通' }}</button>
+				<button class="cu-btn bg-red sharp" :disabled="paymentSubmitting || !paymentEnabled || !selectedOweIds.length" @click="onPayFee()">{{ paymentEnabled ? '确认缴费' : '微信支付未开通' }}</button>
 				<!-- #endif -->
 				<!-- #ifdef APP-PLUS -->
-				<button class="cu-btn bg-red shadow-blur lgplus sharp" :disabled="paymentSubmitting || !paymentEnabled" @click="_payWxApp()">{{ paymentEnabled ? '提交订单' : '微信支付未开通' }}</button>
+				<button class="cu-btn bg-red sharp" :disabled="paymentSubmitting || !paymentEnabled || !selectedOweIds.length" @click="_payWxApp()">{{ paymentEnabled ? '确认缴费' : '微信支付未开通' }}</button>
 				<!-- #endif -->
 			</view>
 		</view>
@@ -71,6 +65,8 @@
 	// pages/payParkingFee/payParkingFee.js
 	const context = require("../../context/Java110Context.js");
 	const constant = context.constant;
+	import billSelection from '../../utils/bill-selection.js';
+	import feeDisplay from '../../utils/fee-display.js';
 
 
 	// #ifdef H5
@@ -111,6 +107,9 @@
 				appId: '',
 				paymentSubmitting: false,
 				fees: [],
+				selectedOweIds: [],
+				requestedOweIds: [],
+				selectionError: '',
 				rooms: [],
 				curRoom: {},
 				roomId: ''
@@ -121,6 +120,7 @@
 		 */
 		onLoad: function(options) {
 			let _that = this;
+			try {this.requestedOweIds=options.oweIds ? billSelection.parse(options.oweIds) : [];} catch(error) {this.selectionError=error.message;uni.showToast({icon:'none',title:error.message});return Promise.resolve();}
 			context.onLoad(options);
 			// #ifdef MP-WEIXIN
 			let accountInfo = uni.getAccountInfoSync();
@@ -172,27 +172,28 @@
 			// #endif
 		},
 		methods: {
+			...billSelection.methods('fees'),
+			money:feeDisplay.money,
+			date:feeDisplay.date,
 
 			_loadRoomOweFee: function() {
 				let _that =this;
 				this.fees = [];
-				this.receivableAmount = '0.00';
+				this.resetSelection();
+				this.selectionError='';
 				let _objData = {
 					payObjId: this.roomId,
 					payObjType:'3333',
 					page: 1,
-					row: 50,
+					row: 100,
 					communityId: this.communityId
 				}
 
 				return getRoomOweFees(_objData)
 					.then(function(_fees) {
 						_that.fees = Array.isArray(_fees) ? _fees : [];
-						let _totalCents = _that.fees.reduce(function(total, item) {
-							let _price = Number(item.feePrice);
-							return total + (Number.isFinite(_price) ? Math.round((_price + Number.EPSILON) * 100) : 0);
-						}, 0);
-						_that.receivableAmount = (_totalCents / 100).toFixed(2);
+						try {_that.resetSelection(_that.requestedOweIds);} catch(error) {_that.resetSelection();_that.selectionError=error.message;uni.showToast({icon:'none',title:error.message});}
+						_that.requestedOweIds=[];
 					}).catch(function() {
 						_that.fees = [];
 						_that.receivableAmount = '0.00';
@@ -208,6 +209,7 @@
 					uni.showToast({ icon: 'none', title: '微信支付未开通' });
 					return;
 				}
+				if (!this.hasSelection()) {uni.showToast({icon:'none',title:'请先勾选需要缴纳的账单'});return;}
 				let _receivedAmount = this.receivableAmount;
 				wx.showLoading({
 					title: '支付中'
@@ -218,6 +220,7 @@
 					cycles: this.feeMonth,
 					communityId: this.communityId,
 					roomId: this.roomId,
+					oweIds: this.selectedOweIds.slice(),
 					feeName: '物业费',
 					receivedAmount: _receivedAmount,
 					tradeType: _tradeType,
@@ -284,6 +287,7 @@
 					uni.showToast({ icon: 'none', title: '微信支付未开通' });
 					return Promise.resolve({ state: 'UNAVAILABLE' });
 				}
+				if (!this.hasSelection()) {uni.showToast({icon:'none',title:'请先勾选需要缴纳的账单'});return Promise.resolve({state:'EMPTY_SELECTION'});}
 				// #ifdef H5
 				if (this.paymentSubmitting) return Promise.resolve({ state: 'BUSY' });
 				if (!/MicroMessenger/i.test(navigator.userAgent || '')) {
@@ -306,6 +310,7 @@
 					uni.showToast({ icon: 'none', title: '微信支付未开通' });
 					return;
 				}
+				if (!this.hasSelection()) {uni.showToast({icon:'none',title:'请先勾选需要缴纳的账单'});return Promise.resolve({state:'EMPTY_SELECTION'});}
 				let _receivedAmount = this.receivableAmount;
 				wx.showLoading({
 					title: '支付中'
@@ -315,6 +320,7 @@
 					cycles: this.feeMonth,
 					communityId: this.communityId,
 					roomId: this.roomId,
+					oweIds: this.selectedOweIds.slice(),
 					feeName: '物业费',
 					receivedAmount: _receivedAmount,
 					tradeType: _tradeType,
@@ -387,6 +393,19 @@
 	};
 </script>
 <style>
+	@import "../../style/bill-selection.css";
+	.selection-body{padding-bottom:calc(110rpx + env(safe-area-inset-bottom));}
+	.selection-check{flex-shrink:0;margin-right:16rpx;}
+	.selection-content{flex:1;min-width:0;}
+	.selection-heading{display:flex;justify-content:space-between;gap:16rpx;}
+	.selection-name{min-width:0;overflow-wrap:anywhere;}
+	.selection-price{flex-shrink:0;color:#d45235;}
+	.selection-period{font-size:24rpx;color:#7b8493;margin-top:12rpx;}
+	.selection-error{padding:20rpx;color:#b54d28;}
+	.selection-footer{position:fixed;bottom:0;left:0;width:100%;display:flex;align-items:center;gap:16rpx;padding:16rpx 20rpx calc(16rpx + env(safe-area-inset-bottom));z-index:5;border-top:1px solid #edf0f4;}
+	.selection-all{flex-shrink:0;font-size:26rpx;}
+	.selection-summary{flex:1;min-width:0;font-size:22rpx;color:#7b8493;}
+	.selection-total{font-size:28rpx;font-weight:600;color:#d45235;}
 	.ppf_item {
 		padding: 0rpx 0rpx 0rpx 0rpx;
 	}

@@ -19,17 +19,18 @@ function page(overrides = {}) {
         .replace('export default', 'module.exports =');
     const context = { constant: { mapping: { W_APP_ID: 'appid' }, url: {} }, onLoad() {}, getHeaders: () => ({}), request: data => requests.push(data) };
     const sandbox = {
+        billSelection:require('../utils/bill-selection'),feeDisplay:require('../utils/fee-display'),
         module: { exports: {} }, require: name => name.includes('WexinPayFactory')
             ? { resumePending: async () => ({ state: 'NONE' }), preparePayment: async () => ({ state: 'NONE' }) } : context,
         navigator: { userAgent: 'MicroMessenger' },
         uni: { getAccountInfoSync: () => ({ miniProgram: { appId: 'test' } }), getStorageSync: () => '', showToast: data => toasts.push(data) },
-        wx: { showLoading() {}, hideLoading() {} },
+        wx: { showLoading() {}, hideLoading() {},showToast:data=>toasts.push(data) },
         getCurCommunity: async () => ({ communityId: 'community-1', communityName: '小区' }),
         getRooms: async () => ({ rooms: [
             { roomId: 'room-1', floorNum: '1', unitNum: '1', roomNum: '101', builtUpArea: '80' },
             { roomId: 'room-2', floorNum: '2', unitNum: '3', roomNum: '502', builtUpArea: '98.50' }
         ] }),
-        getRoomOweFees: async params => { calls.push(params); return [{ feePrice: '0.10' }, { feePrice: '0.20' }, { feePrice: 1.01 }]; },
+        getRoomOweFees: async params => { calls.push(params); return ['0.10','0.20',1.01].map((feePrice,i)=>({feePrice,oweId:'owe-'+i,feeId:'fee-'+i,billId:'bill-'+i,billSnapshot:true})); },
         ...overrides
     };
     vm.runInNewContext(script, sandbox);
@@ -52,6 +53,9 @@ test('initialization loads only the requested owned room once with its full room
     assert.equal(p.calls.length, 1);
     assert.equal(p.calls[0].payObjId, 'room-2');
     assert.equal(p.calls[0].communityId, 'community-1');
+    assert.equal(p.component.receivableAmount, '0.00');
+    assert.equal(p.component.selectedOweIds.length,0);
+    p.component.toggleAll();
     assert.equal(p.component.receivableAmount, '1.31');
 });
 
@@ -63,6 +67,8 @@ test('reloading recomputes numeric and string amounts in cents without carrying 
     await p.settle();
     await p.component._loadRoomOweFee();
     await p.settle();
+    assert.equal(p.component.receivableAmount, '0.00');
+    p.component.toggleAll();
     assert.equal(p.component.receivableAmount, '1.31');
     assert.equal(p.calls.length, 2);
 });
@@ -122,4 +128,31 @@ test('direct payment methods respect the disabled payment switch', () => {
     assert.equal(p.requests.length, 0);
     assert.equal(p.toasts.length, 2);
     assert.match(p.toasts[0].title, /未开通/);
+});
+
+test('individual selection and deselection only sum selected published bills',async()=>{
+    const p=page();await p.load({roomId:'room-2'});
+    p.component.toggleFee(p.component.fees[0]);p.component.toggleFee(p.component.fees[2]);
+    assert.equal(p.component.receivableAmount,'1.11');assert.deepEqual(Array.from(p.component.selectedOweIds),['owe-0','owe-2']);
+    p.component.toggleFee(p.component.fees[0]);assert.equal(p.component.receivableAmount,'1.01');
+    p.component.toggleAll();assert.equal(p.component.receivableAmount,'1.31');p.component.toggleAll();assert.equal(p.component.receivableAmount,'0.00');
+});
+test('checkout restores explicitly chosen IDs but rejects stale or malformed selection',async()=>{
+    const p=page();await p.load({roomId:'room-2',oweIds:JSON.stringify(['owe-1'])});
+    assert.equal(p.component.receivableAmount,'0.20');assert.deepEqual(Array.from(p.component.selectedOweIds),['owe-1']);
+    const stale=page();await stale.load({roomId:'room-2',oweIds:JSON.stringify(['owe-1','missing'])});
+    assert.equal(stale.component.selectedOweIds.length,0);assert.equal(stale.component.receivableAmount,'0.00');assert.ok(stale.toasts.length);
+    const invalid=page();await invalid.load({oweIds:'bad-json'});assert.equal(invalid.component.fees.length,0);assert.ok(invalid.toasts.length);
+});
+test('empty selection cannot prepare or submit payment and submission includes only checked IDs',async()=>{
+    const p=page();await p.load({roomId:'room-2'});p.component.paymentEnabled=true;
+    p.component.onPayFee();await p.settle();assert.equal(p.requests.length,0);
+    p.component.toggleFee(p.component.fees[1]);const promise=p.component._submitPayFee();
+    assert.equal(p.requests.length,1);assert.deepEqual(Array.from(p.requests[0].data.oweIds),['owe-1']);assert.equal(p.requests[0].data.receivedAmount,'0.20');
+    p.requests[0].success({statusCode:400,data:{code:1}});await promise;
+});
+test('selection freezes during payment and clears when bills reload',async()=>{
+    const p=page();await p.load({});p.component.toggleAll();p.component.paymentSubmitting=true;
+    p.component.toggleFee(p.component.fees[0]);assert.equal(p.component.selectedOweIds.length,3);
+    p.component.paymentSubmitting=false;await p.component._loadRoomOweFee();assert.equal(p.component.selectedOweIds.length,0);assert.equal(p.component.receivableAmount,'0.00');
 });

@@ -46,6 +46,9 @@
             and oau.status_cd='0' and bo.owner_id=bof.owner_id)
         <if test="feeId != null and feeId != ''">and bof.fee_id=#{feeId}</if>
         <if test="oweId != null and oweId != ''">and bof.owe_id=#{oweId}</if>
+        <if test="oweIds != null">
+            and bof.owe_id in <foreach collection="oweIds" item="selectedOwe" open="(" separator="," close=")">#{selectedOwe}</foreach>
+        </if>
         <if test="billId != null and billId != ''">and bof.bill_id=#{billId}</if>
         <if test="roomId != null and roomId != ''">and pf.payer_obj_id=#{roomId} and bof.payer_obj_type=#{payObjType}</if>
         order by bof.owe_id

@@ -11,7 +11,7 @@ function page(rooms = [{ roomId: 'room-1' }, { roomId: 'room-2' }], operations =
         .replace(/import\s[\s\S]*?from\s*['"][^'"]+['"];?/g, '')
         .replace('export default', 'module.exports =');
     const sandbox = {
-        module: { exports: {} }, noDataPage: {}, feeDisplay: require('../utils/fee-display'),
+        module: { exports: {} }, noDataPage: {}, feeDisplay: require('../utils/fee-display'),billSelection:require('../utils/bill-selection'),
         require: () => ({ constant: {}, onLoad: options => loads.push(options) }),
         uni: { showToast: options => toasts.push(options) },
         getRooms: operations.getRooms || (async () => ({ rooms, owner: { communityId: 'community-1', communityName: '小区' } })),
@@ -127,4 +127,23 @@ test('room loading failure clears old fees and shows a retry message', async () 
     assert.equal(p.component.moreRooms.length, 0);
     assert.equal(p.component.noData, true);
     assert.match(p.toasts[0].title, /加载失败|重试/);
+});
+
+test('property list forwards exactly the selected bill IDs to checkout and clears on room switch',async()=>{
+    const bills=[{oweId:'owe-a',billId:'bill-a',feeId:'fee-a',billSnapshot:true,amount:'0.10'},
+      {oweId:'owe-b',billId:'bill-b',feeId:'fee-b',billSnapshot:true,amount:'0.20'}];
+    const p=page(undefined,{getRoomFees:async()=>bills});p.load({});await p.show();const navigations=[];
+    p.component.vc={isEmpty:value=>!value,navigateTo:options=>navigations.push(options)};
+    p.component.toRoomOweFee();assert.equal(navigations.length,0);
+    p.component.toggleFee(p.component.moreRooms[1]);assert.equal(p.component.receivableAmount,'0.20');p.component.toRoomOweFee();
+    const query=new URLSearchParams(navigations[0].url.split('?')[1]);assert.deepEqual(JSON.parse(query.get('oweIds')),['owe-b']);
+    p.component.switchRoom(p.component.rooms[1]);assert.equal(p.component.selectedOweIds.length,0);assert.equal(p.component.receivableAmount,'0.00');
+});
+
+test('invalid bill amounts or incomplete snapshots cannot be selected or silently priced as zero',()=>{
+    const selection=require('../utils/bill-selection');
+    const valid={oweId:'owe',billId:'bill',feeId:'fee',billSnapshot:true,feePrice:'0.10'};
+    for(const fee of [{...valid,feePrice:null},{...valid,feePrice:'NaN'},{...valid,feePrice:'0.001'},{...valid,oweId:''},{...valid,billSnapshot:false}])assert.equal(selection.eligible(fee),false);
+    assert.equal(selection.total([valid,{...valid,oweId:'two',feePrice:'0.20'}],['owe','two']),'0.30');
+    assert.throws(()=>selection.resolve([valid],['owe','missing']));assert.throws(()=>selection.normalize(['owe','owe']));
 });

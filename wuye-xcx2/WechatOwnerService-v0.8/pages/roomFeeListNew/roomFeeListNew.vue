@@ -1,5 +1,5 @@
 <template>
-	<view>
+	<view class="bill-list-page">
 		<!-- #ifdef H5 -->
 		<wechat-binding-gate />
 		<!-- #endif -->
@@ -22,10 +22,12 @@
 		</view>
 		<view v-if="rooms.length == 1" class="block__title">{{rooms[0].floorNum}}栋{{rooms[0].roomNum}}室</view>
 		<view v-if="rooms.length > 1" class="margin-header-top"></view>
+		<view v-if="moreRooms.length" class="bill-selection-hint">勾选需要缴纳的账单，可单项或多项支付</view>
 		<view v-if="noData == false">
 			<view class="cu-list menu" v-if="moreRooms.length > 0" v-for="(fee, idx) in moreRooms" :key="idx" :data-item="fee"
 			 @click="payFee(fee)">
 				<view class="cu-item arrow">
+					<view class="bill-check" @click.stop><checkbox-group @change="toggleFee(fee)"><checkbox :value="fee.oweId" :checked="isSelected(fee)" :disabled="!isSelectable(fee)" color="#14836b" /></checkbox-group></view>
 					<view class="content padding-tb-sm bill-content">
 						<view class="bill-heading"><view class="bill-name">{{fee.feeName}}</view><view class="bill-amount">待缴 <text v-if="money(fee.amount)">¥{{money(fee.amount)}}</text><text v-else>金额待核实</text></view></view>
 						<view class="bill-period">账期 {{date(fee.feeEndTime)}} 至 {{date(fee.deadlineTime)}}</view>
@@ -36,11 +38,10 @@
 		<view v-else>
 			<no-data-page></no-data-page>
 		</view>
-		<view class=" bg-white  border flex justify-end" style="position: fixed;width: 100%; bottom: 0;">
-			<view class="btn-group line-height">
-				<button class="cu-btn bg-red shadow-blur lgplus sharp" @click="toRoomOweFee()">欠费缴费</button>
-				
-			</view>
+		<view v-if="moreRooms.length" class="bg-white bill-selection-footer">
+			<checkbox-group class="bill-all" @change="toggleAll"><label><checkbox value="all" :checked="allSelected()" color="#14836b" />全选</label></checkbox-group>
+			<view class="bill-summary"><view>已选 {{selectedOweIds.length}} 项</view><view class="bill-total">合计 ¥{{receivableAmount}}</view></view>
+			<button class="cu-btn bg-red" :disabled="!selectedOweIds.length" @click="toRoomOweFee()">缴纳所选</button>
 		</view>
 		</view>
 	</view>
@@ -52,6 +53,7 @@
 	const constant = context.constant;
 	import noDataPage from '@/components/no-data-page/no-data-page.vue'
 	import feeDisplay from '../../utils/fee-display.js';
+	import billSelection from '../../utils/bill-selection.js';
 
 	import {
 		getRooms
@@ -69,6 +71,8 @@
 				curRoom: {},
 				requestedRoomId: '',
 				moreRooms: [],
+				selectedOweIds: [],
+				receivableAmount: '0.00',
 				feeRequestId: 0,
 				needFefresh: true,
 				noData: false
@@ -90,6 +94,7 @@
 		 */
 		onShow: function() {return this.loadRoomBills();},
 		methods: {
+			...billSelection.methods('moreRooms'),
 			money: feeDisplay.money,
 			date: feeDisplay.date,
 			loadRoomBills: function() {
@@ -101,6 +106,7 @@
 			}
 			this.noData = false;
 			this.moreRooms = [];
+			this.resetSelection();
 			let _roomRequestId = ++this.feeRequestId;
 			return getRooms(this.requestedRoomId).then(data => {
 				if (_roomRequestId !== _that.feeRequestId) return;
@@ -150,6 +156,7 @@
 					state: '2008001'
 				}
 				_that.moreRooms = [];
+				_that.resetSelection();
 				return getRoomFees(_objData, _room)
 					.then((moreRooms) => {
 						if (_requestId !== _that.feeRequestId || _room.roomId !== _that.curRoom.roomId) return;
@@ -174,6 +181,7 @@
 				this._loadRoomFee();
 			},
 			toRoomOweFee:function(){
+				if(!this.hasSelection()){uni.showToast({icon:'none',title:'请先勾选需要缴纳的账单'});return;}
 				if(this.vc.isEmpty(this.curRoom.roomId)){
 					uni.showToast({
 						icon:'none',
@@ -182,14 +190,22 @@
 					return;
 				}
 				this.vc.navigateTo({
-					url:'/pages/roomOweFee/roomOweFee?roomId='+this.curRoom.roomId
+					url:'/pages/roomOweFee/roomOweFee?roomId='+this.curRoom.roomId+'&oweIds='+encodeURIComponent(JSON.stringify(this.selectedOweIds))
 				});
 			}
 		}
 	};
 </script>
 <style>
+	@import "../../style/bill-selection.css";
 	@import "./roomFeeListNew.css";
+	.bill-selection-hint{font-size:24rpx;color:#7b8493;padding:0 30rpx 20rpx;}
+	.bill-check{flex-shrink:0;margin-right:16rpx;}
+	.bill-selection-footer{position:fixed;bottom:0;left:0;width:100%;display:flex;align-items:center;gap:16rpx;padding:16rpx 20rpx calc(16rpx + env(safe-area-inset-bottom));z-index:5;border-top:1px solid #edf0f4;}
+	.bill-all{font-size:26rpx;flex-shrink:0;}
+	.bill-summary{flex:1;min-width:0;font-size:22rpx;color:#7b8493;}
+	.bill-total{font-size:28rpx;color:#d45235;font-weight:600;}
+	.bill-list-page{padding-bottom:calc(140rpx + env(safe-area-inset-bottom));}
 	.bill-content{min-width:0;width:100%;}
 	.bill-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:20rpx;}
 	.bill-name{min-width:0;font-size:30rpx;overflow-wrap:anywhere;}

@@ -240,11 +240,12 @@ function pageHarness(name, resumeResult={state:'NONE'}) {
   let pendingResolve, requests=0, recoveries=0, preparations=0;
   const factory={resumePending(){recoveries++;return Promise.resolve(resumeResult);},preparePayment(){recoveries++;preparations++;return Promise.resolve(resumeResult);},wexinPay(){return new Promise(resolve=>{pendingResolve=resolve;});}};
   const context={constant:{url:{preOrder:'/preOrder',toOweFeePay:'/owe'},mapping:{}},getHeaders(){return {};},request(req){requests++;req.success({statusCode:200,data:{code:0,...payment}});}};
-  const sandbox={module:{exports:{}},require:name=>name.includes('WexinPayFactory')?factory:context,vcDiscount:{},Promise,
+  const sandbox={module:{exports:{}},require:name=>name.includes('WexinPayFactory')?factory:context,vcDiscount:{},billSelection:require('../utils/bill-selection'),feeDisplay:require('../utils/fee-display'),Promise,
     navigator:{userAgent:'MicroMessenger'},uni:{showToast(){},navigateBack(){}},wx:{showLoading(){},hideLoading(){}}};
   vm.runInNewContext(code,sandbox);
   const definition=sandbox.module.exports;
   const page={...definition.data(),...definition.methods,paymentEnabled:true,_canPayFee:()=>true,appId:'wx-app'};
+  if(name==='roomOweFee'){page.fees=[{oweId:'owe-1',billId:'bill-1',feeId:'fee-1',billSnapshot:true,feePrice:'1.00'}];page.resetSelection(['owe-1']);}
   return {page,definition,requests:()=>requests,recoveries:()=>recoveries,preparations:()=>preparations,finish:()=>pendingResolve({state:'POSTED'}),async flush(){for(let i=0;i<20;i++)await Promise.resolve();}};
 }
 

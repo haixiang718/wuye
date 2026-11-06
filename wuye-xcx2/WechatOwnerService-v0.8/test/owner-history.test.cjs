@@ -36,6 +36,7 @@ test('bill amounts are present on list cards and missing values never become zer
   const display=require('../utils/fee-display');
   assert.equal(display.money('0.01'),'0.01');assert.equal(display.money(1234.5),'1234.50');assert.equal(display.money(null),'');assert.equal(display.money(''),'');assert.equal(display.money('bad'),'');
   assert.equal(display.date(null),'—');assert.equal(display.date('2026-11-06 10:00:00'),'2026-11-06');
+  assert.equal(display.date('2026/12/01'),'2026-12-01');
   assert.match(read('pages/roomFeeListNew/roomFeeListNew.vue').split('</template>')[0],/待缴/);
   assert.match(read('pages/roomFeeListNew/roomFeeListNew.vue').split('</template>')[0],/fee\.amount/);
 });

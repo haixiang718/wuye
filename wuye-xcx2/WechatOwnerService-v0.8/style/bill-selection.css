@@ -1,0 +1,28 @@
+/* #ifdef H5 */
+/* ColorUI hides the native checkmark; draw it without depending on icon fonts. */
+.bill-check checkbox::before,
+.bill-all checkbox::before,
+.selection-check checkbox::before,
+.selection-all checkbox::before {content:none;}
+.bill-check /deep/ .uni-checkbox-input-checked,
+.bill-all /deep/ .uni-checkbox-input-checked,
+.selection-check /deep/ .uni-checkbox-input-checked,
+.selection-all /deep/ .uni-checkbox-input-checked {
+  background:#14836b;
+  border-color:#14836b !important;
+}
+.bill-check /deep/ .uni-checkbox-input-checked::before,
+.bill-all /deep/ .uni-checkbox-input-checked::before,
+.selection-check /deep/ .uni-checkbox-input-checked::before,
+.selection-all /deep/ .uni-checkbox-input-checked::before {
+  content:"";
+  display:block;
+  width:6px;
+  height:11px;
+  border:solid #fff;
+  border-width:0 2px 2px 0;
+  top:43%;
+  left:50%;
+  transform:translate(-50%,-50%) rotate(45deg);
+}
+/* #endif */

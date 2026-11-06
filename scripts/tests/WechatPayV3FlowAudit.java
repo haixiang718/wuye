@@ -52,6 +52,8 @@ public class WechatPayV3FlowAudit {
     }
     static class Placement extends ToPaySMOImpl {
         boolean ambiguous;
+        boolean arrears;
+        @Override protected String orderType(){return arrears?"ARREARS":"SINGLE";}
         ResponseEntity<String> execute(JSONObject input)throws Exception{
             return doBusinessProcess(PageData.newInstance().builder(USER,"","","{}","","","","",AppDto.WECHAT_OWNER_APP_ID),input);
         }
@@ -65,7 +67,9 @@ public class WechatPayV3FlowAudit {
     }
     static class PlacementOrders extends Orders {
         int creates;
+        Map<String,Object> scope;
         @Override public Map<String,Object> create(Map<String,Object> request){
+            scope=new HashMap<>(request);
             creates++;check("V3".equals(request.get("providerVersion")),"Placement marks the durable V3 order");
             check(Long.valueOf(100).equals(request.get("maxTotalFee")),"Pilot amount limit is supplied by server policy");
             check(USER.equals(request.get("userId")),"Payer comes from authenticated context");
@@ -146,6 +150,16 @@ public class WechatPayV3FlowAudit {
         inject(placement,"feePaymentOrderInnerServiceSMO",placementOrders);inject(placement,"wechatPayV3Service",placementV3);
         JSONObject input=JSON.parseObject("{\"communityId\":\"synthetic-community\",\"feeId\":\"synthetic-fee\",\"appId\":\""+APP+"\",\"tradeType\":\"JSAPI\",\"receivedAmount\":\"999999.99\",\"openId\":\"browser-forged-open-id\"}");
         check(placement.execute(input).getStatusCode()==HttpStatus.OK&&placementV3.prepayments==1,"V3 placement works without a V2 payPassword");
+        placement.arrears=true;input.remove("feeId");input.put("roomId","synthetic-room");input.put("oweIds",Arrays.asList("selected-a","selected-b"));
+        check(placement.execute(input).getStatusCode()==HttpStatus.OK,"Selected arrears reaches V3 placement");
+        check(Arrays.asList("selected-a","selected-b").equals(placementOrders.scope.get("oweIds")),"Public boundary forwards exact selected bill identifiers");
+        int selectionBefore=placementOrders.creates;
+        for(Object invalid:Arrays.asList(Collections.emptyList(),Arrays.asList("selected-a","selected-a"),"selected-a",Arrays.asList(1))) {
+            input.put("oweIds",invalid);try{placement.execute(input);throw new AssertionError("Invalid selection accepted");}catch(IllegalArgumentException expected){checks++;}
+        }
+        input.remove("oweIds");try{placement.execute(input);throw new AssertionError("Missing selection accepted");}catch(IllegalArgumentException expected){checks++;}
+        check(placementOrders.creates==selectionBefore,"Invalid selection cannot reserve a payment order");
+        placement.arrears=false;input.put("feeId","synthetic-fee");input.remove("roomId");
         int before=placementOrders.creates;placement.ambiguous=true;
         try{placement.execute(input);throw new AssertionError("Ambiguous payer accepted");}catch(IllegalArgumentException expected){checks++;}
         check(placementOrders.creates==before,"Ambiguous identity cannot reserve or charge a bill");placement.ambiguous=false;

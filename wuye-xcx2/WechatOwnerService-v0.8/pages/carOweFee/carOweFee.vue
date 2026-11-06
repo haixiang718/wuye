@@ -59,6 +59,7 @@
 	// pages/payParkingFee/payParkingFee.js
 	const context = require("../../context/Java110Context.js");
 	const constant = context.constant;
+	import billSelection from '../../utils/bill-selection.js';
 
 
 	// #ifdef H5
@@ -134,6 +135,14 @@
 			
 		},
 		methods: {
+			_paymentOweIds: function() {
+				const ids=billSelection.ids(this.fees);
+				if (!ids.length || ids.length!==this.fees.length || ids.length>100) {
+					uni.showToast({icon:'none',title:'账单信息已变化，请刷新后重试'});
+					return null;
+				}
+				return ids;
+			},
 
 			_loadCarOweFee: function() {
 				let _that =this;
@@ -165,6 +174,7 @@
 			},
 
 			_payWxApp: function(_data) {
+				const oweIds=this._paymentOweIds();if(!oweIds)return;
 				let _receivedAmount = this.receivableAmount;
 				wx.showLoading({
 					title: '支付中'
@@ -176,6 +186,7 @@
 					communityId: this.communityId,
 					roomId: this.carId,
 					payObjType:'6666',
+					oweIds,
 					feeName: '物业费',
 					receivedAmount: _receivedAmount,
 					tradeType: _tradeType,
@@ -238,6 +249,7 @@
 				});
 			},
 			onPayFee: function() {
+				const oweIds=this._paymentOweIds();if(!oweIds)return;
 				let _receivedAmount = this.receivableAmount;
 				wx.showLoading({
 					title: '支付中'
@@ -248,6 +260,7 @@
 					communityId: this.communityId,
 					roomId: this.carId,
 					payObjType:'6666',
+					oweIds,
 					feeName: '停车费',
 					receivedAmount: _receivedAmount,
 					tradeType: _tradeType,

@@ -75,6 +75,36 @@ public class PaymentOrderDatabaseTest {
         insert("bill_owe_fee",data("owe_id",owe,"bill_id","bill","fee_id",fee,"community_id","community","state","1000","owner_id","owner","owner_name","Synthetic owner","owner_tel","19900000000","payer_obj_name","Synthetic room","payer_obj_type","3333","fee_end_time","2026-10-01 00:00:00","deadline_time","2026-11-01 00:00:00","bill_amount_owed",new BigDecimal("1.00"),"amount_owed",new BigDecimal("1.00")));
     }
     static Map<String,Object> request(String fee){return data("communityId","community","userId","user","appId",APP,"mchId",MCH,"orderType","SINGLE","feeId",fee,"receivedAmount","0.01","cycles","999");}
+    static Map<String,Object> selected(String... ids){Map<String,Object> q=request("fee");q.remove("feeId");q.put("orderType","ARREARS");q.put("roomId","room");q.put("payObjType","3333");q.put("oweIds",Arrays.asList(ids));return q;}
+    @Test public void selectedArrearsOnlyChargesAndPostsChosenItems(){
+        addFee("fee-two","owe-two");sql.update("UPDATE bill SET receivable=2.00,bill_time=bill_time");
+        Map<String,Object> order=service.create(selected("owe"));assertEquals(100L,((Number)order.get("totalFee")).longValue());
+        assertEquals(1,com.alibaba.fastjson.JSON.parseArray(order.get("payload").toString()).size());assertEquals(1,count("payment_order_reservation"));
+        service.confirm(payment(order,"selected-transaction"));assertEquals(1,count("pay_fee_detail"));assertEquals(1,count("fee_receipt_detail"));
+        assertEquals("1000",sql.queryForObject("SELECT state FROM bill_owe_fee WHERE owe_id='owe-two'",String.class));
+        assertEquals(new BigDecimal("1.00"),sql.queryForObject("SELECT receipts FROM bill",BigDecimal.class));
+        assertEquals(100L,((Number)service.create(selected("owe-two")).get("totalFee")).longValue());
+    }
+    @Test public void arrearsCannotImplicitlyChargeAllOrAcceptMalformedSelection(){
+        for(Object ids:Arrays.asList(Collections.emptyList(),Arrays.asList("owe","owe"),Arrays.asList("owe",null),"owe",Arrays.asList(1),Arrays.asList(" owe"))) {
+            Map<String,Object> q=selected("owe");q.put("oweIds",ids);rejected(()->service.create(q));
+        }
+        Map<String,Object> missing=selected("owe");missing.remove("oweIds");rejected(()->service.create(missing));
+        assertEquals(0,count("payment_order"));assertEquals(0,count("payment_order_reservation"));
+    }
+    @Test public void anyMissingUnpublishedPaidOrForeignSelectionRejectsWholeOrder(){
+        rejected(()->service.create(selected("owe","missing")));
+        addFee("fee-two","owe-two");sql.update("UPDATE bill_owe_fee SET owner_id='foreign',fee_end_time=fee_end_time WHERE owe_id='owe-two'");
+        rejected(()->service.create(selected("owe","owe-two")));
+        sql.update("UPDATE bill_owe_fee SET owner_id='owner',state='2000',fee_end_time=fee_end_time WHERE owe_id='owe-two'");rejected(()->service.create(selected("owe","owe-two")));
+        sql.update("UPDATE bill_owe_fee SET state='1000',fee_end_time=fee_end_time WHERE owe_id='owe-two'");sql.update("UPDATE pay_fee SET payer_obj_id='other-room' WHERE fee_id='fee-two'");rejected(()->service.create(selected("owe","owe-two")));
+        assertEquals(0,count("payment_order"));assertEquals(0,count("payment_order_item"));
+    }
+    @Test public void pendingSelectedOrdersRequireIdenticalItemSet(){
+        addFee("fee-two","owe-two");Map<String,Object> order=service.create(selected("owe","owe-two"));
+        assertEquals(order.get("orderId"),service.create(selected("owe-two","owe")).get("orderId"));
+        rejected(()->service.create(selected("owe")));assertEquals(1,count("payment_order"));assertEquals(2,count("payment_order_item"));
+    }
     static Map<String,Object> payment(Map<String,Object> order,String transaction){return data("orderId",order.get("orderId"),"transactionId",transaction,"appId",APP,"mchId",MCH,"orderType",order.get("orderType"),"totalFee",order.get("totalFee"));}
     static int count(String table){return sql.queryForObject("SELECT count(*) FROM `"+table+"`",Integer.class);}
     static void rejected(Runnable call){try{call.run();fail("Expected safe rejection");}catch(IllegalArgumentException|IllegalStateException expected){}}
@@ -93,7 +123,7 @@ public class PaymentOrderDatabaseTest {
     @Test public void missingOrderNeverMeansPaid(){rejected(()->service.confirm(data("orderId","absent","transactionId","transaction","appId",APP,"mchId",MCH,"orderType","SINGLE","totalFee",100)));assertEquals(0,count("pay_fee_detail"));}
     @Test public void receiptOverflowRejectedBeforeCollection(){sql.update("UPDATE bill_owe_fee SET bill_amount_owed=10000000.00,fee_end_time=fee_end_time");rejected(()->service.create(request("fee")));assertEquals(0,count("payment_order"));}
     @Test public void changedPendingPeriodCannotReuseOrder(){Map<String,Object> order=service.create(request("fee"));sql.update("UPDATE bill_owe_fee SET deadline_time='2026-12-01 00:00:00',fee_end_time=fee_end_time");rejected(()->service.create(request("fee")));assertEquals(1,count("payment_order"));assertEquals(order.get("orderId"),sql.queryForObject("SELECT order_id FROM payment_order",String.class));}
-    @Test public void unchangedTotalCannotHidePendingFeeReallocation(){addFee("fee-two","owe-two");sql.update("UPDATE bill SET receivable=2.00,bill_time=bill_time");Map<String,Object> request=request("fee");request.remove("feeId");request.put("roomId","room");request.put("payObjType","3333");request.put("orderType","ARREARS");service.create(request);sql.update("UPDATE bill_owe_fee SET bill_amount_owed=case when fee_id='fee' then 0.50 else 1.50 end,fee_end_time=fee_end_time");rejected(()->service.create(request));assertEquals(1,count("payment_order"));assertEquals(2,count("payment_order_item"));}
+    @Test public void unchangedTotalCannotHidePendingFeeReallocation(){addFee("fee-two","owe-two");sql.update("UPDATE bill SET receivable=2.00,bill_time=bill_time");Map<String,Object> request=selected("owe","owe-two");service.create(request);sql.update("UPDATE bill_owe_fee SET bill_amount_owed=case when fee_id='fee' then 0.50 else 1.50 end,fee_end_time=fee_end_time");rejected(()->service.create(request));assertEquals(1,count("payment_order"));assertEquals(2,count("payment_order_item"));}
     static Map<String,Object> v3Request(String fee){Map<String,Object> row=request(fee);row.put("providerVersion","V3");return row;}
     @SuppressWarnings("unchecked") static <T> T newApi(IFeePaymentOrderInnerServiceSMO target,String name,Map<String,Object> row){
         try{return (T)IFeePaymentOrderInnerServiceSMO.class.getMethod(name,Map.class).invoke(target,row);}

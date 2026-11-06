@@ -48,9 +48,11 @@ public abstract class PublishedBillToPaySMO extends AppAbstractComponentSMO {
         Assert.hasLength(input.getString("communityId"),"未包含小区");
         Assert.hasLength(input.getString("SINGLE".equals(orderType())?"feeId":"roomId"),"未包含支付范围");
         if(!qr())Assert.hasLength(input.getString("appId"),"未包含应用");
+        if("ARREARS".equals(orderType()))selectedOwes(input);
     }
 
     @Override protected ResponseEntity<String> doBusinessProcess(IPageData pd,JSONObject input)throws Exception {
+        List<String> selected = "ARREARS".equals(orderType()) ? selectedOwes(input) : null;
         String merchantUrl=ServiceConstant.SERVICE_API_URL+"/api/smallWeChat.listSmallWeChats?page=1&row=2&statusCd=0&communityId="+input.getString("communityId");
         merchantUrl+=qr()?"&weChatType=1100":"&appId="+input.getString("appId");
         ResponseEntity<String> response=callCenterService(restTemplate,pd,"",merchantUrl,HttpMethod.GET);
@@ -72,6 +74,7 @@ public abstract class PublishedBillToPaySMO extends AppAbstractComponentSMO {
         }
         Map<String,Object> scope=new HashMap<>();
         for(String key:Arrays.asList("communityId","feeId","roomId","billId","oweId"))if(input.containsKey(key))scope.put(key,input.getString(key));
+        if(selected != null)scope.put("oweIds",selected);
         scope.put("payObjType",input.getString("payObjType")==null?"3333":input.getString("payObjType"));
         scope.put("userId",pd.getUserId());scope.put("appId",merchant.getAppId());scope.put("mchId",merchant.getMchId());scope.put("orderType",orderType());
         scope.put("providerVersion",v3?"V3":"V2");
@@ -92,6 +95,18 @@ public abstract class PublishedBillToPaySMO extends AppAbstractComponentSMO {
         if("ARREARS".equals(orderType()))result=provider.java110Payment(outRestTemplate,description,trade,order.get("orderId").toString(),money,openId,merchant,wechatAuthProperties.getOweFeeNotifyUrl());
         else result=provider.java110Payment(outRestTemplate,description,trade,order.get("orderId").toString(),money,openId,merchant);
         return new ResponseEntity<String>(JSON.toJSONString(result),HttpStatus.OK);
+    }
+
+    private List<String> selectedOwes(JSONObject input) {
+        Object value=input.get("oweIds");
+        if(!(value instanceof List) || ((List<?>)value).isEmpty() || ((List<?>)value).size()>100)
+            throw new IllegalArgumentException("请选择1至100项账单后缴费");
+        Set<String> ids=new LinkedHashSet<>();
+        for(Object id:(List<?>)value) {
+            if(!(id instanceof String) || !((String)id).matches("[A-Za-z0-9_-]{1,30}") || !ids.add((String)id))
+                throw new IllegalArgumentException("所选账单编号无效或重复，请重新选择");
+        }
+        return new ArrayList<>(ids);
     }
 
     private String approvedPayerOpenId(IPageData pd,String communityId,String appType)throws Exception {

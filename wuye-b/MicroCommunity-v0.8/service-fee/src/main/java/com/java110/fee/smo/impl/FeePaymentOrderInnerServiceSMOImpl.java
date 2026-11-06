@@ -30,9 +30,20 @@ public class FeePaymentOrderInnerServiceSMOImpl implements IFeePaymentOrderInner
         for (String key : Arrays.asList("communityId", "userId", "appId", "mchId", "orderType")) required(input, key);
         if (!Arrays.asList("SINGLE", "ARREARS").contains(input.getString("orderType"))) throw new IllegalArgumentException("Invalid payment type");
         if (empty(input.getString("feeId")) && empty(input.getString("roomId"))) throw new IllegalArgumentException("Payment scope missing");
-        if (!paymentOrderRepository.merchantMatches(request)) throw new IllegalArgumentException("Merchant does not match community");
-        List<Map<String,Object>> snapshots = paymentOrderRepository.snapshots(request);
+        Set<String> selected = null;
+        if ("ARREARS".equals(input.getString("orderType"))) {
+            required(input,"roomId");
+            selected = selectedOwes(input.get("oweIds"));
+            input.put("oweIds",new ArrayList<>(selected));
+        } else input.remove("oweIds");
+        if (!paymentOrderRepository.merchantMatches(input)) throw new IllegalArgumentException("Merchant does not match community");
+        List<Map<String,Object>> snapshots = paymentOrderRepository.snapshots(input);
         if (snapshots.isEmpty()) throw new IllegalArgumentException("No published unpaid bill");
+        if (selected != null) {
+            Set<String> matched = new HashSet<>();
+            for (Map<String,Object> snapshot : snapshots) matched.add(String.valueOf(snapshot.get("oweId")));
+            if (!selected.equals(matched) || snapshots.size() != selected.size()) throw new IllegalArgumentException("所选账单已变化或无权支付，请刷新后重新选择");
+        }
         if ("SINGLE".equals(input.getString("orderType")) && snapshots.size() != 1) throw new IllegalArgumentException("Select one published bill");
         long total = 0;
         Set<String> fees = new HashSet<>();
@@ -204,6 +215,16 @@ public class FeePaymentOrderInnerServiceSMOImpl implements IFeePaymentOrderInner
         Map<String,Object> result = new HashMap<>(); result.put("code",0);result.put("state","POSTED");result.put("orderId",id);return result;
     }
     private static String id() { return UUID.randomUUID().toString().replace("-", "").substring(0,30); }
+    private static Set<String> selectedOwes(Object value) {
+        if (!(value instanceof List) || ((List<?>)value).isEmpty() || ((List<?>)value).size() > 100)
+            throw new IllegalArgumentException("请选择1至100项账单后缴费");
+        Set<String> selected = new LinkedHashSet<>();
+        for (Object id : (List<?>)value) {
+            if (!(id instanceof String) || !((String)id).matches("[A-Za-z0-9_-]{1,30}") || !selected.add((String)id))
+                throw new IllegalArgumentException("所选账单编号无效或重复，请重新选择");
+        }
+        return selected;
+    }
     private static String required(JSONObject data,String key) {
         String value=data.getString(key);if(empty(value))throw new IllegalArgumentException("Missing payment field: " + key);return value;
     }
