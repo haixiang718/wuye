@@ -164,7 +164,7 @@
             and ip.inspection_plan_name = #{inspectionPlanName}
         </if>
         <if test="planUserName !=null and planUserName != ''">
-            and t.plan_user_name like '%${planUserName}%'
+            and t.plan_user_name like concat('%', #{planUserName}, '%')
         </if>
         <if test="communityId !=null and communityId != ''">
             and t.community_id= #{communityId}
@@ -284,7 +284,7 @@
             and ip.inspection_plan_name = #{inspectionPlanName}
         </if>
         <if test="planUserName !=null and planUserName != ''">
-            and t.plan_user_name like '%${planUserName}%'
+            and t.plan_user_name like concat('%', #{planUserName}, '%')
         </if>
         <if test="communityId !=null and communityId != ''">
             and t.community_id= #{communityId}

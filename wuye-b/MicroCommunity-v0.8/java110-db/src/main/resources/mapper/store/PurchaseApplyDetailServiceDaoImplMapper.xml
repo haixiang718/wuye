@@ -99,7 +99,7 @@
             and t.apply_order_id= #{applyOrderId}
         </if>
         <if test="resName !=null and resName != ''">
-            and rs.res_name like '%${resName}%'
+            and rs.res_name like concat('%', #{resName}, '%')
         </if>
         <if test="rsId !=null and rsId != ''">
             and t.rs_id = #{rsId}
@@ -129,7 +129,7 @@
             and pa.create_user_id= #{createUserId}
         </if>
         <if test="userName !=null and userName != ''">
-            and pa.user_name like '%${userName}%'
+            and pa.user_name like concat('%', #{userName}, '%')
         </if>
         <if test="description !=null and description != ''">
             and pa.description= #{description}
@@ -138,7 +138,7 @@
             and pa.state= #{state}
         </if>
         <if test="endUserName !=null and endUserName != ''">
-            and pa.end_user_name like '%${endUserName}%'
+            and pa.end_user_name like concat('%', #{endUserName}, '%')
         </if>
         <if test="endUserTel !=null and endUserTel != ''">
             and pa.end_user_tel= #{endUserTel}
@@ -237,7 +237,7 @@
             and t.apply_order_id= #{applyOrderId}
         </if>
         <if test="resName !=null and resName != ''">
-            and rs.res_name like '%${resName}%'
+            and rs.res_name like concat('%', #{resName}, '%')
         </if>
         <if test="rsId !=null and rsId != ''">
             and t.rs_id = #{rsId}
@@ -267,7 +267,7 @@
             and pa.create_user_id= #{createUserId}
         </if>
         <if test="userName !=null and userName != ''">
-            and pa.user_name like '%${userName}%'
+            and pa.user_name like concat('%', #{userName}, '%')
         </if>
         <if test="description !=null and description != ''">
             and pa.description= #{description}
@@ -276,7 +276,7 @@
             and pa.state= #{state}
         </if>
         <if test="endUserName !=null and endUserName != ''">
-            and pa.end_user_name like '%${endUserName}%'
+            and pa.end_user_name like concat('%', #{endUserName}, '%')
         </if>
         <if test="endUserTel !=null and endUserTel != ''">
             and pa.end_user_tel= #{endUserTel}

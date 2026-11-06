@@ -21,6 +21,7 @@ public class OwnerDataAccessTest {
     private HttpHeaders forwardedHeaders;
     private JSONObject billQuery;
     private JSONObject historyQuery;
+    private String upstreamReply="{\"code\":0}";
     private final RestTemplate template=new RestTemplate(){
         @Override public <T> T postForObject(String url,Object body,Class<T> type,Object... vars){
             String reply;
@@ -50,7 +51,7 @@ public class OwnerDataAccessTest {
         }
         @Override public <T> ResponseEntity<T> exchange(String url,HttpMethod method,HttpEntity<?> entity,Class<T> type,Object... vars){
             forwarded++;forwardedUrl=url;forwardedBody=String.valueOf(entity.getBody());forwardedHeaders=entity.getHeaders();
-            return new ResponseEntity<>(type.cast("{\"code\":0}"),HttpStatus.OK);
+            return new ResponseEntity<>(type.cast(upstreamReply),HttpStatus.OK);
         }
     };
 
@@ -80,6 +81,21 @@ public class OwnerDataAccessTest {
     }
     private void forbidden(String code,String json)throws Exception {
         assertEquals(HttpStatus.FORBIDDEN,call(code,json).getStatusCode());assertEquals(0,forwarded);
+    }
+    @Test public void staffWithForgedClientAppCannotReadMerchantSecrets()throws Exception {
+        storeMember=true;
+        upstreamReply="{\"smallWeChats\":[{\"appId\":\"public-id\",\"mchId\":\"merchant-id\",\"appSecret\":\"synthetic-secret\",\"payPassword\":\"synthetic-key\"}]}";
+        for(String route:Arrays.asList("smallWeChat.listSmallWeChats","/smallWeChat.listSmallWeChats")) {
+            ResponseEntity<String> response=call(route,"{\"communityId\":\"community\"}");
+            assertEquals(HttpStatus.OK,response.getStatusCode());
+            assertFalse(response.getBody().contains("synthetic-secret"));assertFalse(response.getBody().contains("synthetic-key"));
+            assertTrue(response.getBody().contains("public-id"));assertTrue(response.getBody().contains("merchant-id"));
+        }
+    }
+    @Test public void malformedMerchantResponseFailsClosed()throws Exception {
+        storeMember=true;upstreamReply="synthetic-secret from failed upstream";
+        ResponseEntity<String> response=call("smallWeChat.listSmallWeChats","{}");
+        assertEquals(HttpStatus.BAD_GATEWAY,response.getStatusCode());assertFalse(response.getBody().contains("synthetic-secret"));
     }
     @Test public void otherOwnerRoomsAreRejected()throws Exception{forbidden("room.queryRoomsByOwner","{\"communityId\":\"community\",\"ownerId\":\"other\"}");}
     @Test public void ownSecondRoomIsAllowed()throws Exception{assertEquals(HttpStatus.OK,call("fee.listFee","{\"communityId\":\"community\",\"payerObjId\":\"room-2\",\"payerObjType\":\"3333\"}").getStatusCode());}

@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-06",
+  "scope": "Local origin and reverse-tunnel resource transfer; not a public-site latency benchmark",
+  "method": {
+    "browser": "Headless Microsoft Edge through Playwright",
+    "measurement": "Sum of PerformanceResourceTiming.transferSize for page subresources, excluding the main HTML document",
+    "baseline": "Existing unchanged Node processes on ports 3000 and 8000, through isolated loopback proxies",
+    "optimized": "New app and H5 static server on temporary loopback ports, without rebuilding H5",
+    "adminApi": "Synthetic loopback responses; no production business API calls",
+    "h5Identity": "Guest; no owner login or payment",
+    "cache": "Fresh browser context for cold load, same-context navigation for warm load; browser routing was not used because it disables HTTP cache"
+  },
+  "measurements": [
+    {"page":"admin", "load":"cold", "beforeBytes":2295071, "afterBytes":736049, "beforeResources":77, "afterResources":77},
+    {"page":"admin", "load":"warm", "beforeBytes":22863, "afterBytes":32992, "beforeResources":76, "afterResources":76},
+    {"page":"h5", "load":"cold", "beforeBytes":1233248, "afterBytes":438823, "beforeResources":12, "afterResources":12},
+    {"page":"h5", "load":"warm", "beforeBytes":1232948, "afterBytes":63495, "beforeResources":11, "afterResources":11, "hashedResourcesFromBrowserCache":5}
+  ],
+  "rawAssetChecks": [
+    {"asset":"admin ECharts", "beforeBytes":762111, "gzipBytes":254163, "decodedContentEqual":true},
+    {"asset":"H5 vendor chunk", "beforeBytes":714147, "gzipBytes":215529, "decodedContentEqual":true}
+  ],
+  "boundaries": {
+    "html": "no-store; warm admin HTML component requests intentionally transfer fresh bodies instead of the previous 304 behavior",
+    "runtimeConfigAndGatewayApi": "no-store",
+    "hashedJsAndCss": "private, max-age=31536000, immutable only after gateway authentication, with matching static MIME, 200 or 304 status and no Set-Cookie",
+    "otherTextAssets": "private, no-cache with ETag and Last-Modified; gateway continues to force no-store",
+    "gzipCache": "At most 64 compressed entries and 8 MiB retained compressed data per static server; eligible individual files at most 2 MiB. The 8 MiB cap does not include pending file reads, zlib work buffers or process memory; concurrent cold requests can use more memory.",
+    "directoryLinks": "Canonical real paths are verified before text delivery and binary/Range fallback; an escaping symlink or Windows junction returns 403/no-store",
+    "fallback": "Existing static implementation handles binary files, Range requests and directory behavior"
+  },
+  "checks": {
+    "pageErrors":0,
+    "externalRequests":0,
+    "realPayments":0,
+    "messagesSent":0,
+    "adminNodeTestsPassed":65,
+    "staticAndGatewayNodeTestsPassed":7,
+    "releaseAndRuntimePythonTestsPassed":16,
+    "releaseAndRuntimePythonTestsSkipped":1,
+    "skipReason":"Windows symlink creation unavailable"
+  },
+  "limitations": [
+    "Public nginx already enabled gzip before this change. Local compression reduces traffic before the SSH tunnel and avoids repeatedly recompressing unchanged assets; these numbers must not be described as a public-network speedup of the same percentage.",
+    "Admin already had validators, so the main gain is cold-load compression. Its warm transfer rises slightly because HTML is now explicitly no-store.",
+    "Images retain existing caching behavior. H5 warm-load savings come from the five immutable JS/CSS chunks.",
+    "Measurements use synthetic admin responses and guest H5. They do not establish production concurrent-user capacity or authenticated business latency.",
+    "Running services must be restarted separately to activate these source changes. This verification did not restart the existing services."
+  ]
+}

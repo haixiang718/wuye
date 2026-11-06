@@ -137,7 +137,7 @@
             and t.repair_id= #{repairId}
         </if>
         <if test="createUserName !=null and createUserName != ''">
-            and t.create_user_name like '%${createUserName}%'
+            and t.create_user_name like concat('%', #{createUserName}, '%')
         </if>
         <if test="statusCd !=null and statusCd != ''">
             and t.status_cd= #{statusCd}
@@ -241,7 +241,7 @@
             and t.repair_id= #{repairId}
         </if>
         <if test="createUserName !=null and createUserName != ''">
-            and t.create_user_name like '%${createUserName}%'
+            and t.create_user_name like concat('%', #{createUserName}, '%')
         </if>
         <if test="statusCd !=null and statusCd != ''">
             and t.status_cd= #{statusCd}

@@ -18,6 +18,7 @@ public class WechatPayV3FlowAudit {
     static void check(boolean condition,String description){checks++;if(!condition)throw new AssertionError(description);}
     static void denied(Runnable action,String name){try{action.run();throw new AssertionError(name);}catch(IllegalArgumentException|IllegalStateException|SecurityException expected){checks++;}}
     static class Orders implements IFeePaymentOrderInnerServiceSMO {
+        public Boolean isOnlinePaymentDetail(Map<String,Object> request){throw new AssertionError("Unexpected refund query");}
         JSONObject order=JSON.parseObject("{\"orderId\":\""+ORDER+"\",\"appId\":\""+APP+"\",\"mchId\":\""+MCH+"\",\"userId\":\""+USER+"\",\"orderType\":\"SINGLE\",\"providerVersion\":\"V3\",\"totalFee\":100,\"state\":\"CREATED\"}");
         int posts,closes;boolean failPosting;
         public Map<String,Object> create(Map<String,Object> request){throw new AssertionError("Query must not create an order");}

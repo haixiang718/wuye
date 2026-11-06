@@ -70,7 +70,7 @@
             and t.rst_id= #{rstId}
         </if>
         <if test="name !=null and name != ''">
-            and t.name like '%${name}%'
+            and t.name like concat('%', #{name}, '%')
         </if>
         <if test="description !=null and description != ''">
             and t.description= #{description}
@@ -123,7 +123,7 @@
             and t.rst_id= #{rstId}
         </if>
         <if test="name !=null and name != ''">
-            and t.name like '%${name}%'
+            and t.name like concat('%', #{name}, '%')
         </if>
         <if test="description !=null and description != ''">
             and t.description= #{description}

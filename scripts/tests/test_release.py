@@ -37,6 +37,7 @@ class ReleaseTests(unittest.TestCase):
             }))
         web = root / 'wuye-f/MicroCommunityWeb-v0.8'
         for name, content in {'package.json': '{}', 'package-lock.json': '{}', 'app.js': 'module.exports={};',
+                              'lib/static-assets.cjs': 'exports.createStaticAssets=()=>{};',
                               'public/index.html': '<html></html>', 'public/.env': 'secret=private',
                               'test/test.js': 'TEST_FIXTURE', 'node_modules/private/key.pem': 'PRIVATE KEY'}.items():
             p = web / name
@@ -71,6 +72,7 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(source.read_bytes(), original)
             with tarfile.open(target) as t:
                 names = t.getnames()
+                self.assertIn('admin/lib/static-assets.cjs', names)
                 self.assertFalse(any('.runtime' in n or 'node_modules' in n or '/test/' in n or '.env' in n for n in names))
                 data = t.extractfile('java/service-front.jar').read()
                 with zipfile.ZipFile(io.BytesIO(data)) as z:
@@ -95,6 +97,16 @@ class ReleaseTests(unittest.TestCase):
             (root / 'wuye-b/MicroCommunity-v0.8/service-job/target/service-job.jar').unlink()
             target = base / 'release.tar.gz'
             with self.assertRaisesRegex(ValueError, 'Missing'):
+                release.build(root, target)
+            self.assertFalse(target.exists())
+
+    def test_missing_static_runtime_dependency_fails_without_partial_archive(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            root = self.fixture(base)
+            (root / 'wuye-f/MicroCommunityWeb-v0.8/lib/static-assets.cjs').unlink()
+            target = base / 'release.tar.gz'
+            with self.assertRaisesRegex(ValueError, 'Missing required artifact'):
                 release.build(root, target)
             self.assertFalse(target.exists())
 

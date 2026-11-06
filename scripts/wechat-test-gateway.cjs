@@ -169,7 +169,15 @@ function createGateway(options) {
     }
     const proxy = http.request({ hostname: target.hostname, port: target.port, method: req.method,
       path: url.pathname + url.search, headers, timeout: 25000 }, upstream => {
-      res.writeHead(upstream.statusCode, { ...upstream.headers, 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' });
+      // Only content-addressed JS/CSS may persist in this browser after the
+      // access gate. HTML, runtime config, errors and every API remain no-store.
+      const cacheable = !isBackend && [200,304].includes(upstream.statusCode)
+        && /^\/static\/[a-zA-Z0-9_./@~-]+\.[a-f0-9]{8,64}\.(?:js|css)$/.test(url.pathname)
+        && !upstream.headers['set-cookie']
+        && /^(?:application\/javascript|text\/css)(?:;|$)/i.test(upstream.headers['content-type'] || '')
+        && upstream.headers['cache-control'] === 'private, max-age=31536000, immutable';
+      res.writeHead(upstream.statusCode, { ...upstream.headers,
+        'cache-control': cacheable ? 'private, max-age=31536000, immutable' : 'no-store', 'referrer-policy': 'no-referrer' });
       upstream.pipe(res);
     });
     proxy.on('timeout', () => proxy.destroy(new Error('upstream timeout')));

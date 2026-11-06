@@ -124,6 +124,7 @@ def build(root, output):
     web = root / 'wuye-f/MicroCommunityWeb-v0.8'
     h5 = root / 'wuye-xcx2/WechatOwnerService-v0.8/unpackage/dist/build/h5'
     required = [*jars.values(), web / 'app.js', web / 'package.json', web / 'package-lock.json',
+                web / 'lib/static-assets.cjs',
                 h5 / 'index.html', root / 'scripts/wechat-test-gateway.cjs', root / 'deploy/linux/README.md']
     data_sources = {'business': 'user', 'business-community': 'community', 'business-report': 'report',
                     'order': 'order', 'job': 'job'}
@@ -143,7 +144,7 @@ def build(root, output):
         for name in ('app.js', 'package.json', 'package-lock.json'):
             (stage / 'admin').mkdir(exist_ok=True)
             shutil.copyfile(web / name, stage / 'admin' / name)
-        for name in ('routes', 'views', 'public'):
+        for name in ('routes', 'views', 'public', 'lib'):
             if (web / name).exists():
                 copy_tree(web / name, stage / 'admin' / name)
         copy_tree(h5, stage / 'h5')

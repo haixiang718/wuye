@@ -4,16 +4,9 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-
 const proxy  = require('express-http-proxy');
 
 var app = express();
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
 
 app.use(logger('dev'));
 // 反向代理（这里把需要进行反代的路径配置到这里即可）
@@ -49,11 +42,8 @@ app.use('/app', proxy(backendTarget, opts));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(require('./lib/static-assets.cjs').createStaticAssets(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
-
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -62,13 +52,13 @@ app.use(function(req, res, next) {
 
 // error handler
 app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+  // Local development is also reachable through the public reverse tunnel.
+  // Keep internal error messages and stack traces out of every browser response.
+  var status = Number.isInteger(err.status) && err.status >= 400 && err.status <= 599 ? err.status : 500;
+  var message = require('http').STATUS_CODES[status] || 'Request failed';
+  res.setHeader('Cache-Control', 'no-store');
+  res.status(status).type('html').send('<!doctype html><html lang="en"><meta charset="utf-8"><title>' +
+    status + '</title><body><h1>' + status + ' ' + message + '</h1></body></html>');
 });
 
 module.exports = app;

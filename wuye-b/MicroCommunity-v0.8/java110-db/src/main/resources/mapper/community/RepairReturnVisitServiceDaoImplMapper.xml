@@ -64,7 +64,7 @@
             and rrp.repair_type= #{repairType}
         </if>
         <if test="repairName !=null and repairName != ''">
-            and rrp.repair_name like '%${repairName}%'
+            and rrp.repair_name like concat('%', #{repairName}, '%')
         </if>
         <if test="tel !=null and tel != ''">
             and rrp.tel= #{tel}
@@ -153,7 +153,7 @@
             and rrp.repair_type= #{repairType}
         </if>
         <if test="repairName !=null and repairName != ''">
-            and rrp.repair_name like '%${repairName}%'
+            and rrp.repair_name like concat('%', #{repairName}, '%')
         </if>
         <if test="tel !=null and tel != ''">
             and rrp.tel= #{tel}

@@ -1,6 +1,7 @@
 package com.java110.front.smo.api.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSONArray;
 import com.java110.core.component.BaseComponentSMO;
 import com.java110.core.context.IPageData;
 import com.java110.entity.component.ComponentValidateResult;
@@ -113,7 +114,7 @@ public class ApiSMOImpl extends BaseComponentSMO implements IApiSMO {
         }
 
         header.add("store-id", result.getStoreId());
-        logger.debug("api请求头" + headers + ";请求内容：" + body);
+        // Headers/body can contain merchant credentials and owner identity data.
         HttpMethod method = null;
         String service = headers.get(CommonConstant.HTTP_SERVICE);
         String url = ServiceConstant.SERVICE_API_URL + "/api/" + (service.startsWith("/") ? service.substring(1) : service);
@@ -138,7 +139,7 @@ public class ApiSMOImpl extends BaseComponentSMO implements IApiSMO {
         }
 
         HttpEntity<String> httpEntity = new HttpEntity<String>(body, header);
-        logger.debug("请求后端url" + url);
+        logger.debug("api request service={} method={}", service, method);
         ResponseEntity<String> responseEntity = null;
         try {
             responseEntity = restTemplate.exchange(url, method, httpEntity, String.class);
@@ -146,10 +147,33 @@ public class ApiSMOImpl extends BaseComponentSMO implements IApiSMO {
             responseEntity = new ResponseEntity<String>(e.getResponseBodyAsString(), e.getStatusCode());
         } catch (Exception e) {
             responseEntity = new ResponseEntity<String>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        } finally {
-            logger.debug("api返回信息" + responseEntity);
         }
+        // A caller-controlled app-id must never select an internal credential response.
+        // Payment services call the internal API directly and retain their trusted lookup.
+        if ("smallWeChat.listSmallWeChats".equals(service.startsWith("/") ? service.substring(1) : service)) {
+            try {
+                JSONObject safe = JSONObject.parseObject(responseEntity.getBody());
+                if (safe == null) throw new IllegalArgumentException("Missing merchant response");
+                redactMerchantSecrets(safe);
+                responseEntity = new ResponseEntity<>(safe.toJSONString(), responseEntity.getStatusCode());
+            } catch (RuntimeException invalid) {
+                responseEntity = new ResponseEntity<>("{\"code\":502,\"msg\":\"公众号配置读取失败\"}", HttpStatus.BAD_GATEWAY);
+            }
+        }
+        logger.debug("api response service={} status={}", service, responseEntity.getStatusCode());
         return responseEntity;
+    }
+
+    private void redactMerchantSecrets(Object value) {
+        if (value instanceof JSONObject) {
+            JSONObject object = (JSONObject)value;
+            for (String key : Arrays.asList("appSecret", "payPassword", "apiV3Key", "privateKey", "encodingAesKey")) {
+                if (object.containsKey(key)) object.put(key, "");
+            }
+            for (Object child : object.values()) redactMerchantSecrets(child);
+        } else if (value instanceof JSONArray) {
+            for (Object child : (JSONArray)value) redactMerchantSecrets(child);
+        }
     }
 
 

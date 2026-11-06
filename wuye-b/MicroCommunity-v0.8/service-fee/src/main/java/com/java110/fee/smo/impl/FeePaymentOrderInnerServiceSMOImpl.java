@@ -51,6 +51,7 @@ public class FeePaymentOrderInnerServiceSMOImpl implements IFeePaymentOrderInner
         String payer = null;
         for (Map<String,Object> row : snapshots) {
             JSONObject fee = new JSONObject(row);
+            if(paymentOrderRepository.hasCollectedOverlap(row))throw new IllegalStateException("该账期已有缴费明细，请刷新账单或联系财务核实");
             if (!fees.add(required(fee, "feeId"))) throw new IllegalStateException("Multiple current snapshots for fee");
             total = Math.addExact(total, cents(fee.getString("billAmountOwed")));
             row.put("feePrice", fee.getString("billAmountOwed"));
@@ -109,6 +110,13 @@ public class FeePaymentOrderInnerServiceSMOImpl implements IFeePaymentOrderInner
         Map<String,Object> order = paymentOrderRepository.find(request, false);
         if (order == null) throw new IllegalArgumentException("Unknown payment order");
         return order;
+    }
+
+    @Override
+    public Boolean isOnlinePaymentDetail(@RequestBody Map<String,Object> request) {
+        JSONObject input=new JSONObject(request);
+        for(String key:Arrays.asList("communityId","feeId","detailId"))required(input,key);
+        return paymentOrderRepository.isOnlinePaymentDetail(input);
     }
 
     @Override

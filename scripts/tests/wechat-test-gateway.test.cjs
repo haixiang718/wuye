@@ -4,6 +4,45 @@ const http = require('node:http');
 const crypto = require('node:crypto');
 const { createGateway } = require('../wechat-test-gateway.cjs');
 
+test('only authenticated hashed static assets retain private caching through the gateway', async t => {
+  const upstream = http.createServer((req, res) => {
+    res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
+    res.setHeader('ETag', 'W/"synthetic-version"');
+    res.setHeader('Vary', 'Accept-Encoding');
+    res.setHeader('Content-Type', req.url.includes('.css') ? 'text/css' : 'application/javascript');
+    if (req.url.includes('cookie')) res.setHeader('Set-Cookie', 'private=synthetic');
+    if (req.url.includes('error')) res.statusCode = 404;
+    if (req.headers['if-none-match']) res.statusCode = 304;
+    res.end('synthetic static content');
+  });
+  await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
+  const config = {sessionSecret:'a'.repeat(64), accessCode:'synthetic-only', appId:'synthetic-app'};
+  const target = 'http://127.0.0.1:' + upstream.address().port;
+  const gateway = createGateway({config:()=>config, backend:target, owner:target});
+  await new Promise(resolve => gateway.listen(0, '127.0.0.1', resolve));
+  t.after(() => {gateway.close(); upstream.close();});
+  const base = 'http://127.0.0.1:' + gateway.address().port;
+  const denied = await fetch(base + '/static/js/index.1234abcd.js');
+  assert.equal(denied.status,403);
+  assert.equal(denied.headers.get('cache-control'),'no-store');
+  const enter = await fetch(base + '/wechat-test/enter',{method:'POST',body:'code=synthetic-only',redirect:'manual'});
+  const headers = {cookie:enter.headers.get('set-cookie').split(';')[0]};
+  for (const url of ['/static/js/index.1234abcd.js','/static/index.1234abcd.css']) {
+    const response = await fetch(base + url,{headers});
+    assert.equal(response.status,200);
+    assert.equal(response.headers.get('cache-control'),'private, max-age=31536000, immutable');
+    assert.equal(response.headers.get('vary'),'Accept-Encoding');
+    const fresh = await fetch(base + url,{headers:{...headers,'If-None-Match':'W/"synthetic-version"'}});
+    assert.equal(fresh.status,304);
+    assert.equal(fresh.headers.get('cache-control'),'private, max-age=31536000, immutable');
+  }
+  for (const url of ['/','/index.html','/wechat-test/config.js','/static/config.js','/static/js/cookie.1234abcd.js',
+    '/static/js/error.1234abcd.js','/app/fee.listFee','/app/loginOwnerWechatAuth']) {
+    const response = await fetch(base + url,{headers});
+    assert.equal(response.headers.get('cache-control'),'no-store',url);
+  }
+});
+
 test('test ingress restricts routes and sessions, hides credentials, and preserves OAuth callbacks', async t => {
   const received = [];
   const upstream = http.createServer((req, res) => {

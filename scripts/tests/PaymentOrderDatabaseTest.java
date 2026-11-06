@@ -1,4 +1,8 @@
 import com.java110.fee.dao.PaymentOrderRepository;
+import com.java110.fee.dao.IFeeDetailServiceDao;
+import com.java110.fee.dao.IFeeServiceDao;
+import com.java110.fee.dao.impl.FeeDetailServiceDaoImpl;
+import com.java110.fee.dao.impl.FeeServiceDaoImpl;
 import com.java110.fee.smo.impl.FeePaymentOrderInnerServiceSMOImpl;
 import com.java110.intf.fee.IFeePaymentOrderInnerServiceSMO;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
@@ -12,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.*;
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
 import org.springframework.transaction.interceptor.TransactionInterceptor;
+import org.springframework.transaction.annotation.Transactional;
 import org.junit.*;
 import java.io.*;
 import java.nio.file.*;
@@ -42,7 +47,8 @@ public class PaymentOrderDatabaseTest {
         DriverManagerDataSource source=new DriverManagerDataSource("jdbc:mysql://127.0.0.1:13306/"+database+"?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false","root","");source.setDriverClassName("com.mysql.cj.jdbc.Driver");
         sql=new JdbcTemplate(source);manager=new DataSourceTransactionManager(source);
         Configuration config=new Configuration(new Environment("payment-test",new SpringManagedTransactionFactory(),source));
-        try(InputStream stream=Files.newInputStream(Paths.get(System.getProperty("schema.mapper.root"),"fee/PaymentOrderMapper.xml"))){new XMLMapperBuilder(stream,config,"paymentOrder",config.getSqlFragments()).parse();}
+        for(String file:Arrays.asList("PaymentOrderMapper.xml","FeeDetailServiceDaoImplMapper.xml","FeeServiceDaoImplMapper.xml"))
+            try(InputStream stream=Files.newInputStream(Paths.get(System.getProperty("schema.mapper.root"),"fee/"+file))){new XMLMapperBuilder(stream,config,file,config.getSqlFragments()).parse();}
         mapper=new SqlSessionTemplate(new SqlSessionFactoryBuilder().build(config));service=instance(new PaymentOrderRepository());
     }
     /** Supply synthetic values for legacy mandatory columns; honor defaults and nullability. */
@@ -62,7 +68,7 @@ public class PaymentOrderDatabaseTest {
         sql.update("INSERT INTO `"+table+"`("+columns+") VALUES ("+marks+")",row.values().toArray());
     }
     @Before public void reset() {
-        for(String table:Arrays.asList("payment_order_reservation","payment_order_item","payment_order","fee_receipt_detail","fee_receipt","pay_fee_detail","bill_owe_fee","bill","pay_fee","pay_fee_config","owner_app_user","building_owner","small_wechat"))sql.update("DELETE FROM `"+table+"`");
+        for(String table:Arrays.asList("payment_order_reservation","payment_order_item","payment_order","fee_receipt_detail","fee_receipt","pay_fee_detail","business_pay_fee_detail","bill_owe_fee","bill","pay_fee","pay_fee_config","owner_app_user","building_owner","small_wechat"))sql.update("DELETE FROM `"+table+"`");
         insert("small_wechat",data("appId",APP,"mch_id",MCH,"obj_id","community","obj_type","1000","status_cd","0","wechat_id","merchant-id","pay_password","synthetic-only"));
         insert("building_owner",data("owner_id","owner","member_id","member","community_id","community","status_cd","0"));
         insert("owner_app_user",data("app_user_id","binding","member_id","member","user_id","user","community_id","community","state","12000","status_cd","0"));
@@ -125,6 +131,104 @@ public class PaymentOrderDatabaseTest {
     @Test public void changedPendingPeriodCannotReuseOrder(){Map<String,Object> order=service.create(request("fee"));sql.update("UPDATE bill_owe_fee SET deadline_time='2026-12-01 00:00:00',fee_end_time=fee_end_time");rejected(()->service.create(request("fee")));assertEquals(1,count("payment_order"));assertEquals(order.get("orderId"),sql.queryForObject("SELECT order_id FROM payment_order",String.class));}
     @Test public void unchangedTotalCannotHidePendingFeeReallocation(){addFee("fee-two","owe-two");sql.update("UPDATE bill SET receivable=2.00,bill_time=bill_time");Map<String,Object> request=selected("owe","owe-two");service.create(request);sql.update("UPDATE bill_owe_fee SET bill_amount_owed=case when fee_id='fee' then 0.50 else 1.50 end,fee_end_time=fee_end_time");rejected(()->service.create(request));assertEquals(1,count("payment_order"));assertEquals(2,count("payment_order_item"));}
     static Map<String,Object> v3Request(String fee){Map<String,Object> row=request(fee);row.put("providerVersion","V3");return row;}
+    @SuppressWarnings("unchecked") static <T> T legacyDao(com.java110.core.base.dao.BaseServiceDao dao)throws Exception {
+        dao.setSessionTemplate(mapper);PaymentOrderRepository repository=new PaymentOrderRepository();repository.setSessionTemplate(mapper);
+        for(Class<?> type=dao.getClass();type!=null;type=type.getSuperclass())
+            for(java.lang.reflect.Field field:type.getDeclaredFields())if(field.getType()==PaymentOrderRepository.class){field.setAccessible(true);field.set(dao,repository);}
+        ProxyFactory proxy=new ProxyFactory(dao);proxy.addAdvice(new TransactionInterceptor(manager,new AnnotationTransactionAttributeSource()));return (T)proxy.getProxy();
+    }
+    static Map<String,Object> cashDetail(String id){return data("detailId",id,"communityId","community","feeId","fee","primeRate","1","receivableAmount","1.00","receivedAmount","1.00","cycles","1","remark","Cash collection","state","1400","startTime","2026-10-01 00:00:00","endTime","2026-11-01 00:00:00");}
+    @Test public void pendingOnlineOrderBlocksLegacyLedgerAndFeeWrites()throws Exception {
+        service.create(v3Request("fee"));IFeeDetailServiceDao details=legacyDao(new FeeDetailServiceDaoImpl());IFeeServiceDao fees=legacyDao(new FeeServiceDaoImpl());
+        rejected(()->details.saveFeeDetail(cashDetail("cash-detail")));assertEquals(0,count("pay_fee_detail"));
+        rejected(()->fees.updateFeeInfoInstance(data("communityId","community","feeId","fee","endTime","2026-11-01 00:00:00","statusCd","0")));
+        rejected(()->fees.updateBillOweFees(data("communityId","community","feeId","fee","billId","bill","oweId","owe","state","2000")));
+        assertEquals("2026-10-01 00:00:00",sql.queryForObject("SELECT DATE_FORMAT(end_time,'%Y-%m-%d %H:%i:%s') FROM pay_fee",String.class));
+        assertEquals("1000",sql.queryForObject("SELECT state FROM bill_owe_fee",String.class));
+        Map<String,Object> staged=cashDetail("staged-detail");staged.put("bId","staged-business");staged.put("operate","ADD");details.saveBusinessFeeDetailInfo(staged);
+        rejected(()->details.saveFeeDetailInfoInstance(data("bId","staged-business")));assertEquals(0,count("pay_fee_detail"));
+    }
+    @Test public void alreadyCollectedPeriodBlocksOnlinePlacementButHistoryAndRefundsDoNot()throws Exception {
+        IFeeDetailServiceDao details=legacyDao(new FeeDetailServiceDaoImpl());
+        details.saveFeeDetail(cashDetail("cash-detail"));rejected(()->service.create(v3Request("fee")));assertEquals(0,count("payment_order"));
+        for(String state:Arrays.asList("1100","1300")) {reset();Map<String,Object> row=cashDetail("refunded-detail");row.put("state",state);details.saveFeeDetail(row);assertNotNull(service.create(v3Request("fee")));}
+        reset();Map<String,Object> history=cashDetail("previous-detail");history.put("startTime","2026-09-01 00:00:00");history.put("endTime","2026-10-01 00:00:00");details.saveFeeDetail(history);assertNotNull(service.create(v3Request("fee")));
+        reset();Map<String,Object> reversal=cashDetail("negative-detail");reversal.put("receivedAmount","-1.00");details.saveFeeDetail(reversal);assertNotNull(service.create(v3Request("fee")));
+        reset();details.saveFeeDetail(cashDetail("deleted-detail"));sql.update("UPDATE pay_fee_detail SET status_cd='1'");assertNotNull(service.create(v3Request("fee")));
+    }
+    @Test public void partialAndRefundPendingReceiptsRequireReconciledBillBeforeOnlinePayment()throws Exception {
+        IFeeDetailServiceDao details=legacyDao(new FeeDetailServiceDaoImpl());
+        for(String state:Arrays.asList("1000","1200","1400")) {
+            reset();Map<String,Object> partial=cashDetail("partial-detail");partial.put("receivedAmount","0.01");partial.put("state",state);details.saveFeeDetail(partial);
+            sql.update("UPDATE bill_owe_fee SET state='3000',bill_amount_owed=0.99,fee_end_time=fee_end_time");
+            rejected(()->service.create(v3Request("fee")));assertEquals(0,count("payment_order"));
+        }
+    }
+    static void await(CountDownLatch latch){try{if(!latch.await(10,TimeUnit.SECONDS))throw new AssertionError("Timed out at synthetic transaction boundary");}catch(InterruptedException e){Thread.currentThread().interrupt();throw new AssertionError(e);}}
+    @Test public void onlineReservationWinsConcurrentCashCollection()throws Exception {
+        CountDownLatch reserved=new CountDownLatch(1),release=new CountDownLatch(1);
+        PaymentOrderRepository repository=new PaymentOrderRepository(){@Override public void write(String statement,Map<String,Object> row){super.write(statement,row);if("reserveFee".equals(statement)){reserved.countDown();await(release);}}};
+        IFeePaymentOrderInnerServiceSMO online=instance(repository);IFeeDetailServiceDao cash=legacyDao(new FeeDetailServiceDaoImpl());ExecutorService pool=Executors.newFixedThreadPool(2);
+        try {Future<Map<String,Object>> order=pool.submit(()->online.create(v3Request("fee")));await(reserved);Future<Boolean> offline=pool.submit(()->{try{cash.saveFeeDetail(cashDetail("racing-cash"));return true;}catch(IllegalStateException denied){return false;}});release.countDown();assertNotNull(order.get(10,TimeUnit.SECONDS));assertFalse(offline.get(10,TimeUnit.SECONDS));assertEquals(0,count("pay_fee_detail"));assertEquals(1,count("payment_order_reservation"));}
+        finally{release.countDown();pool.shutdownNow();}
+    }
+    static class PausedCashDao extends FeeDetailServiceDaoImpl {
+        final CountDownLatch written=new CountDownLatch(1),release=new CountDownLatch(1);
+        @Override @Transactional(rollbackFor=Exception.class) public void saveFeeDetail(Map row){super.saveFeeDetail(row);written.countDown();await(release);}
+    }
+    @Test public void cashCollectionWinsBeforeOnlinePlacement()throws Exception {
+        PausedCashDao real=new PausedCashDao();IFeeDetailServiceDao cash=legacyDao(real);ExecutorService pool=Executors.newFixedThreadPool(2);
+        try {Future<?> offline=pool.submit(()->cash.saveFeeDetail(cashDetail("racing-cash")));await(real.written);Future<Boolean> online=pool.submit(()->{try{service.create(v3Request("fee"));return true;}catch(IllegalArgumentException|IllegalStateException denied){return false;}});real.release.countDown();offline.get(10,TimeUnit.SECONDS);assertFalse(online.get(10,TimeUnit.SECONDS));assertEquals(0,count("payment_order"));assertEquals(1,count("pay_fee_detail"));}
+        finally{real.release.countDown();pool.shutdownNow();}
+    }
+    @Test public void onlineRefundGuardUsesPersistedReceiptAndOrderRelationships() {
+        for(String version:Arrays.asList("V2","V3")) {
+            reset();Map<String,Object> request=request("fee");request.put("providerVersion",version);
+            Map<String,Object> order=service.create(request);service.confirm(payment(order,"online-transaction"));
+            String detail=sql.queryForObject("SELECT detail_id FROM pay_fee_detail",String.class);
+            Map<String,Object> scope=data("communityId","community","feeId","fee","detailId",detail,"remark","ordinary cash","primeRate","1");
+            assertTrue((Boolean)newApi(service,"isOnlinePaymentDetail",scope));
+            sql.update("UPDATE pay_fee_detail SET remark='edited display text',prime_rate='1'");
+            sql.update("UPDATE fee_receipt SET remark='edited receipt label'");
+            assertTrue((Boolean)newApi(service,"isOnlinePaymentDetail",scope));
+            scope.put("communityId","other-community");assertFalse((Boolean)newApi(service,"isOnlinePaymentDetail",scope));
+            scope.put("communityId","community");scope.put("feeId","other-fee");assertFalse((Boolean)newApi(service,"isOnlinePaymentDetail",scope));
+            scope.put("feeId","fee");scope.put("detailId","unrelated-detail");assertFalse((Boolean)newApi(service,"isOnlinePaymentDetail",scope));
+        }
+    }
+    @Test public void onlineRefundGuardDoesNotTrustRemarkOrCallerPaymentMethod() {
+        Map<String,Object> order=service.create(v3Request("fee"));service.confirm(payment(order,"online-transaction"));
+        String detail=sql.queryForObject("SELECT detail_id FROM pay_fee_detail",String.class);
+        Map<String,Object> manual=new HashMap<>(sql.queryForMap("SELECT * FROM pay_fee_detail"));
+        manual.put("detail_id","cash-detail");insert("pay_fee_detail",manual);
+        assertFalse((Boolean)newApi(service,"isOnlinePaymentDetail",data("communityId","community","feeId","fee","detailId","cash-detail","remark","微信账单支付 "+order.get("orderId"),"primeRate","6")));
+        assertTrue((Boolean)newApi(service,"isOnlinePaymentDetail",data("communityId","community","feeId","fee","detailId",detail)));
+        for(String missing:Arrays.asList("communityId","feeId","detailId")) {
+            Map<String,Object> scope=data("communityId","community","feeId","fee","detailId",detail);scope.remove(missing);
+            rejected(()->newApi(service,"isOnlinePaymentDetail",scope));
+        }
+    }
+    @Test public void legacyDetailEditsCannotRewriteOnlineLedgerEvenWithForgedCashFields()throws Exception {
+        Map<String,Object> order=service.create(v3Request("fee"));service.confirm(payment(order,"online-transaction"));
+        String detail=sql.queryForObject("SELECT detail_id FROM pay_fee_detail",String.class);
+        IFeeDetailServiceDao dao=legacyDao(new FeeDetailServiceDaoImpl());
+        rejected(()->dao.updateFeeDetailInfoInstance(data("detailId",detail,"state","1100","receivedAmount","-1.00","primeRate","1","remark","cash","statusCd","0")));
+        rejected(()->dao.updateFeeDetailInfoInstance(data("bId","-1","state","1300","statusCd","0")));
+        assertEquals("1400",sql.queryForObject("SELECT state FROM pay_fee_detail",String.class));
+        assertEquals(new BigDecimal("1.00"),sql.queryForObject("SELECT received_amount FROM pay_fee_detail",BigDecimal.class));
+        assertEquals("POSTED",service.query(data("orderId",order.get("orderId"))).get("state"));
+    }
+    @Test public void legacyDetailEditsStillWorkForOfflineRecords()throws Exception {
+        IFeeDetailServiceDao dao=legacyDao(new FeeDetailServiceDaoImpl());dao.saveFeeDetail(cashDetail("cash-detail"));
+        dao.updateFeeDetailInfoInstance(data("detailId","cash-detail","remark","corrected cash note","statusCd","0"));
+        assertEquals("corrected cash note",sql.queryForObject("SELECT remark FROM pay_fee_detail",String.class));
+    }
+    @Test public void oldCashDetailCannotBeMovedIntoReservedOnlineFee()throws Exception {
+        addFee("other-fee","other-owe");IFeeDetailServiceDao dao=legacyDao(new FeeDetailServiceDaoImpl());
+        Map<String,Object> old=cashDetail("old-cash");old.put("feeId","other-fee");dao.saveFeeDetail(old);
+        service.create(v3Request("fee"));rejected(()->dao.updateFeeDetailInfoInstance(data("detailId","old-cash","feeId","fee","statusCd","0")));
+        assertEquals("other-fee",sql.queryForObject("SELECT fee_id FROM pay_fee_detail WHERE detail_id='old-cash'",String.class));
+    }
     @SuppressWarnings("unchecked") static <T> T newApi(IFeePaymentOrderInnerServiceSMO target,String name,Map<String,Object> row){
         try{return (T)IFeePaymentOrderInnerServiceSMO.class.getMethod(name,Map.class).invoke(target,row);}
         catch(java.lang.reflect.InvocationTargetException ex){if(ex.getCause() instanceof RuntimeException)throw (RuntimeException)ex.getCause();throw new AssertionError(ex.getCause());}

@@ -6,12 +6,16 @@ import com.java110.utils.exception.DAOException;
 import com.java110.utils.util.DateUtil;
 import com.java110.core.base.dao.BaseServiceDao;
 import com.java110.fee.dao.IFeeDetailServiceDao;
+import com.java110.fee.dao.PaymentOrderRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.Comparator;
 
 /**
  * 费用明细服务 与数据库交互
@@ -65,8 +69,15 @@ public class FeeDetailServiceDaoImpl extends BaseServiceDao implements IFeeDetai
      * @throws DAOException DAO异常
      */
     @Override
+    @Transactional(rollbackFor=Exception.class)
     public void saveFeeDetailInfoInstance(Map info) throws DAOException {
         logger.debug("保存费用明细信息Instance 入参 info : {}",info);
+
+        Map scope=new HashMap(info);scope.put("operate","ADD");
+        List<Map> rows=getBusinessFeeDetailInfo(scope);
+        rows.sort(Comparator.comparing(row -> String.valueOf(row.get("communityId"))+":"+String.valueOf(row.get("feeId"))));
+        PaymentOrderRepository orders=paymentOrders();
+        for(Map row:rows)orders.requireLegacyWriteAllowed(row);
 
         int saveFlag = sqlSessionTemplate.insert("feeDetailServiceDaoImpl.saveFeeDetailInfoInstance",info);
 
@@ -98,8 +109,11 @@ public class FeeDetailServiceDaoImpl extends BaseServiceDao implements IFeeDetai
      * @throws DAOException DAO异常
      */
     @Override
+    @Transactional(rollbackFor=Exception.class)
     public void updateFeeDetailInfoInstance(Map info) throws DAOException {
         logger.debug("修改费用明细信息Instance 入参 info : {}",info);
+
+        paymentOrders().requireLegacyDetailUpdatesAllowed(info);
 
         int saveFlag = sqlSessionTemplate.update("feeDetailServiceDaoImpl.updateFeeDetailInfoInstance",info);
 
@@ -126,14 +140,21 @@ public class FeeDetailServiceDaoImpl extends BaseServiceDao implements IFeeDetai
     }
 
     @Override
+    @Transactional(rollbackFor=Exception.class)
     public void saveFeeDetail(Map feeDetail) throws DAOException {
         logger.debug("保存明细 入参 info : {}",feeDetail);
+
+        paymentOrders().requireLegacyWriteAllowed(feeDetail);
 
         int saveFlag = sqlSessionTemplate.update("feeDetailServiceDaoImpl.saveFeeDetail",feeDetail);
 
         if(saveFlag < 1){
             throw new DAOException(ResponseConstant.RESULT_PARAM_ERROR,"保存明细 数据失败："+ JSONObject.toJSONString(feeDetail));
         }
+    }
+
+    private PaymentOrderRepository paymentOrders() {
+        PaymentOrderRepository orders=new PaymentOrderRepository();orders.setSessionTemplate(sqlSessionTemplate);return orders;
     }
 
 

@@ -129,7 +129,7 @@
             and t.accept_user_id= #{acceptUserId}
         </if>
         <if test="acceptUserName !=null and acceptUserName != ''">
-            and t.accept_user_name like '%${acceptUserName}%'
+            and t.accept_user_name like concat('%', #{acceptUserName}, '%')
         </if>
         <if test="statusCd !=null and statusCd != ''">
             and t.status_cd= #{statusCd}
@@ -144,13 +144,13 @@
             and t.res_id= #{resId}
         </if>
         <if test="resName !=null and resName != ''">
-            and t.res_name like '%${resName}%'
+            and t.res_name like concat('%', #{resName}, '%')
         </if>
         <if test="startUserId !=null and startUserId != ''">
             and t.start_user_id= #{startUserId}
         </if>
         <if test="startUserName !=null and startUserName != ''">
-            and t.start_user_name like '%${startUserName}%'
+            and t.start_user_name like concat('%', #{startUserName}, '%')
         </if>
         <if test="ausId !=null and ausId != ''">
             and t.aus_id= #{ausId}
@@ -234,7 +234,7 @@
             and t.accept_user_id= #{acceptUserId}
         </if>
         <if test="acceptUserName !=null and acceptUserName != ''">
-            and t.accept_user_name like '%${acceptUserName}%'
+            and t.accept_user_name like concat('%', #{acceptUserName}, '%')
         </if>
         <if test="statusCd !=null and statusCd != ''">
             and t.status_cd= #{statusCd}
@@ -249,13 +249,13 @@
             and t.res_id= #{resId}
         </if>
         <if test="resName !=null and resName != ''">
-            and t.res_name like '%${resName}%'
+            and t.res_name like concat('%', #{resName}, '%')
         </if>
         <if test="startUserId !=null and startUserId != ''">
             and t.start_user_id= #{startUserId}
         </if>
         <if test="startUserName !=null and startUserName != ''">
-            and t.start_user_name like '%${startUserName}%'
+            and t.start_user_name like concat('%', #{startUserName}, '%')
         </if>
         <if test="ausId !=null and ausId != ''">
             and t.aus_id= #{ausId}

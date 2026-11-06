@@ -163,7 +163,7 @@
             and rs.return_visit_flag = '003'
         </if>
         <if test="repairName !=null and repairName != ''">
-            and t.repair_name like '%${repairName}%'
+            and t.repair_name like concat('%', #{repairName}, '%')
         </if>
         <if test="appointmentTime !=null ">
             and t.appointment_time= #{appointmentTime}
@@ -301,7 +301,7 @@
             AND td.`status_cd` = rru.state
         </if>
         <if test="repairName !=null and repairName != ''">
-            and t.repair_name like '%${repairName}%'
+            and t.repair_name like concat('%', #{repairName}, '%')
         </if>
         <if test="appointmentTime !=null ">
             and t.appointment_time= #{appointmentTime}

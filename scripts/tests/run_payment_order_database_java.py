@@ -23,6 +23,8 @@ def main():
     sources = [Path(__file__).with_name('PaymentOrderDatabaseTest.java'),
         local.BACK / 'java110-interface/src/main/java/com/java110/intf/fee/IFeePaymentOrderInnerServiceSMO.java',
         local.BACK / 'service-fee/src/main/java/com/java110/fee/dao/PaymentOrderRepository.java',
+        local.BACK / 'service-fee/src/main/java/com/java110/fee/dao/impl/FeeDetailServiceDaoImpl.java',
+        local.BACK / 'service-fee/src/main/java/com/java110/fee/dao/impl/FeeServiceDaoImpl.java',
         local.BACK / 'service-fee/src/main/java/com/java110/fee/smo/impl/FeePaymentOrderInnerServiceSMOImpl.java']
     subprocess.run([str(java.with_name('javac.exe')), '-encoding', 'UTF-8', '-source', '8', '-target', '8',
         '-cp', cp, '-d', str(output)] + list(map(str, sources)), check=True)
@@ -30,7 +32,7 @@ def main():
     local.mysql_run('CREATE DATABASE `' + database + '` CHARACTER SET utf8mb4')
     try:
         for table in ['bill', 'bill_owe_fee', 'pay_fee', 'pay_fee_config', 'owner_app_user',
-                      'building_owner', 'small_wechat', 'pay_fee_detail', 'fee_receipt', 'fee_receipt_detail']:
+                      'building_owner', 'small_wechat', 'pay_fee_detail', 'business_pay_fee_detail', 'fee_receipt', 'fee_receipt_detail']:
             local.mysql_run('CREATE TABLE `' + table + '` LIKE TT.`' + table + '`', database=database)
         # The production review migration is owned by the main repair task. Add only to this clone.
         if not local.mysql_run("SHOW COLUMNS FROM bill LIKE 'review_state'", database=database, capture=True):

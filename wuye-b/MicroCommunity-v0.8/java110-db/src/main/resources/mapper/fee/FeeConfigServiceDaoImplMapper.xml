@@ -51,7 +51,7 @@
             and t.fee_flag= #{feeFlag}
         </if>
         <if test="feeName !=null and feeName != ''">
-            and t.fee_name like '%${feeName}%'
+            and t.fee_name like concat('%', #{feeName}, '%')
         </if>
         <if test="billType !=null and billType != ''">
             and t.bill_type= #{billType}
@@ -168,7 +168,7 @@
             and t.fee_flag= #{feeFlag}
         </if>
         <if test="feeName !=null and feeName != ''">
-            and t.fee_name like '%${feeName}%'
+            and t.fee_name like concat('%', #{feeName}, '%')
         </if>
         <if test="startTime !=null ">
             and t.start_time= #{startTime}
@@ -300,7 +300,7 @@
             and t.fee_flag= #{feeFlag}
         </if>
         <if test="feeName !=null and feeName != ''">
-            and t.fee_name like '%${feeName}%'
+            and t.fee_name like concat('%', #{feeName}, '%')
         </if>
         <if test="startTime !=null ">
             and t.start_time= #{startTime}

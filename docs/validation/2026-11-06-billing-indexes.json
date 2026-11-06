@@ -1,0 +1,248 @@
+{
+  "date": "2026-11-06",
+  "indexesAdded": 7,
+  "backupVerifiedBytes": 96099247,
+  "dataCountsAndChecksumsUnchanged": true,
+  "plansAfter": {
+    "bill_list": [
+      [
+        "1",
+        "SIMPLE",
+        "t",
+        "NULL",
+        "ref",
+        "idx_bill_review",
+        "idx_bill_review",
+        "92",
+        "const",
+        "1",
+        "25.00",
+        "Using index condition; Using filesort"
+      ],
+      [
+        "1",
+        "SIMPLE",
+        "c",
+        "NULL",
+        "eq_ref",
+        "config_id,config_id_2",
+        "config_id",
+        "92",
+        "tt.t.config_id",
+        "1",
+        "100.00",
+        "Using where"
+      ]
+    ],
+    "bill_owe_list": [
+      [
+        "1",
+        "SIMPLE",
+        "t",
+        "NULL",
+        "ref",
+        "idx_billing_owe_bill,idx_billing_owe_owner",
+        "idx_billing_owe_bill",
+        "92",
+        "const",
+        "1",
+        "20.00",
+        "Using index condition; Using where; Using filesort"
+      ],
+      [
+        "1",
+        "SIMPLE",
+        "b",
+        "NULL",
+        "ref",
+        "idx_bill_review,idx_billing_identity",
+        "idx_bill_review",
+        "260",
+        "const,const,const,tt.t.bill_id",
+        "1",
+        "100.00",
+        "Using where; Using index"
+      ],
+      [
+        "1",
+        "SIMPLE",
+        "pf",
+        "NULL",
+        "eq_ref",
+        "fee_id,fee_id_2",
+        "fee_id",
+        "92",
+        "tt.t.fee_id",
+        "1",
+        "100.00",
+        "Using where"
+      ],
+      [
+        "1",
+        "SIMPLE",
+        "pfc",
+        "NULL",
+        "eq_ref",
+        "config_id,config_id_2",
+        "config_id",
+        "92",
+        "tt.pf.config_id",
+        "1",
+        "100.00",
+        "Using where"
+      ],
+      [
+        "1",
+        "SIMPLE",
+        "td",
+        "NULL",
+        "ref",
+        "idx_billing_dictionary",
+        "idx_billing_dictionary",
+        "500",
+        "const,const,tt.pf.fee_type_cd",
+        "1",
+        "100.00",
+        "Using where; Using index"
+      ]
+    ],
+    "payment_snapshots": [
+      [
+        "1",
+        "SIMPLE",
+        "bof",
+        "NULL",
+        "ref",
+        "idx_billing_owe_bill,idx_billing_owe_owner",
+        "idx_billing_owe_bill",
+        "92",
+        "const",
+        "1",
+        "20.00",
+        "Using index condition; Using where; Using filesort"
+      ],
+      [
+        "1",
+        "SIMPLE",
+        "b",
+        "NULL",
+        "ref",
+        "idx_bill_review,idx_billing_identity",
+        "idx_bill_review",
+        "260",
+        "const,const,const,tt.bof.bill_id",
+        "1",
+        "100.00",
+        "Using where; Using index"
+      ],
+      [
+        "1",
+        "SIMPLE",
+        "oau",
+        "NULL",
+        "ref",
+        "idx_billing_owner_identity",
+        "idx_billing_owner_identity",
+        "231",
+        "const,const,const,const",
+        "1",
+        "100.00",
+        "Using where; Using index"
+      ],
+      [
+        "1",
+        "SIMPLE",
+        "bo",
+        "NULL",
+        "eq_ref",
+        "member_id,idx_owner_id,i_bo_owner_id",
+        "member_id",
+        "92",
+        "tt.oau.member_id",
+        "1",
+        "20.00",
+        "Using where; FirstMatch(b)"
+      ],
+      [
+        "1",
+        "SIMPLE",
+        "pf",
+        "NULL",
+        "eq_ref",
+        "fee_id,fee_id_2",
+        "fee_id",
+        "92",
+        "tt.bof.fee_id",
+        "1",
+        "8.33",
+        "Using where"
+      ],
+      [
+        "1",
+        "SIMPLE",
+        "pfc",
+        "NULL",
+        "eq_ref",
+        "config_id,config_id_2",
+        "config_id",
+        "92",
+        "tt.pf.config_id",
+        "1",
+        "14.29",
+        "Using where"
+      ]
+    ],
+    "snapshot_by_id": [
+      [
+        "1",
+        "SIMPLE",
+        "bill_owe_fee",
+        "NULL",
+        "ref",
+        "idx_billing_owe_identity,idx_billing_owe_bill,idx_billing_owe_owner",
+        "idx_billing_owe_identity",
+        "276",
+        "const,const,const",
+        "1",
+        "100.00",
+        "Using index"
+      ]
+    ],
+    "room_fees": [
+      [
+        "1",
+        "SIMPLE",
+        "pay_fee",
+        "NULL",
+        "ref",
+        "idx_billing_payer",
+        "idx_billing_payer",
+        "192",
+        "const,const,const",
+        "1",
+        "100.00",
+        "Using index"
+      ]
+    ],
+    "dictionary_lookup": [
+      [
+        "1",
+        "SIMPLE",
+        "t_dict",
+        "NULL",
+        "ref",
+        "idx_billing_dictionary",
+        "idx_billing_dictionary",
+        "500",
+        "const,const,const",
+        "1",
+        "100.00",
+        "NULL"
+      ]
+    ]
+  },
+  "limitations": [
+    "Non-unique lookup indexes only; no tables or financial records deleted.",
+    "Small existing datasets; plans show lookup choice, not concurrency capacity or a latency speedup."
+  ]
+}

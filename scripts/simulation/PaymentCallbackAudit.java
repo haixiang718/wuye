@@ -41,6 +41,7 @@ public class PaymentCallbackAudit {
         final ReentrantLock lock=new ReentrantLock();
         @Override public Map<String,Object> find(Map<String,Object> key,boolean lock){return copy(orders.get(key.get("orderId")));}
         @Override public boolean merchantMatches(Map<String,Object> scope){return APP.equals(scope.get("appId"))&&MCH.equals(scope.get("mchId"));}
+        @Override public boolean hasCollectedOverlap(Map<String,Object> snapshot){return !unpaid;}
         @Override public String reservation(Map<String,Object> snapshot){return reservations.get(snapshot.get("communityId")+":"+snapshot.get("feeId"));}
         @Override public List<Map<String,Object>> snapshots(Map<String,Object> scope){return unpaid?new ArrayList<>(Arrays.asList(copy(snapshot))):new ArrayList<>();}
         @Override public Map<String,Object> lockSnapshot(Map<String,Object> key){return unpaid?copy(snapshot):null;}
@@ -123,6 +124,7 @@ public class PaymentCallbackAudit {
         field.set(placement,new IFeePaymentOrderInnerServiceSMO(){
             public Map<String,Object> create(Map<String,Object> ignored){throw new PlacementBoundary();}
             public Map<String,Object> query(Map<String,Object> ignored){throw new AssertionError("Unexpected order query");}
+            public Boolean isOnlinePaymentDetail(Map<String,Object> ignored){throw new AssertionError("Unexpected refund query");}
             public Map<String,Object> confirm(Map<String,Object> ignored){throw new AssertionError("Unexpected posting");}
             public List<Map<String,Object>> pendingV3(Map<String,Object> ignored){throw new AssertionError("Unexpected pending recovery");}
             public Map<String,Object> close(Map<String,Object> ignored){throw new AssertionError("Unexpected close");}
@@ -156,6 +158,16 @@ public class PaymentCallbackAudit {
         reset("SINGLE");check("single_standard_xml_with_query_wid",single.confirmPayFee(xml(valid()),WID).contains("CDATA[SUCCESS]")&&repository.count("insertDetail")==1);
         reset("ARREARS");check("arrears_standard_xml_with_query_wid",owe.confirmPayFee(xml(valid()),WID).contains("CDATA[SUCCESS]")&&repository.count("insertDetail")==1);
         reset("SINGLE");check("single_valid_map_can_reach_confirmation",single.confirmPayFee(valid())==1&&repository.count("insertDetail")==1);
+        for(String type:Arrays.asList("SINGLE","ARREARS")) {
+            for(String version:Arrays.asList("V3","UNKNOWN","")) {
+                reset(type);repository.orders.get("simulation-order").put("providerVersion",version);
+                String reply="SINGLE".equals(type)?single.confirmPayFee(xml(valid()),WID):owe.confirmPayFee(xml(valid()),WID);
+                check("v2_callback_rejects_"+type+"_"+version,reply.contains("CDATA[FAIL]")&&downstream==0&&repository.writes.isEmpty());
+            }
+            reset(type);repository.orders.get("simulation-order").remove("providerVersion");
+            String reply="SINGLE".equals(type)?single.confirmPayFee(xml(valid()),WID):owe.confirmPayFee(xml(valid()),WID);
+            check("v2_callback_rejects_missing_version_"+type,reply.contains("CDATA[FAIL]")&&downstream==0&&repository.writes.isEmpty());
+        }
         reset("SINGLE");Map<String,Object> bad=valid();bad.put("sign","INVALID-SYNTHETIC");boolean denied=false;try{single.confirmPayFee(bad);}catch(IllegalArgumentException expected){denied=true;}check("invalid_signature_rejected",denied&&downstream==0);
         reset("SINGLE");bad=notification("1",APP,MCH);bad.put("wId",WID);check("incorrect_amount_must_not_confirm",single.confirmPayFee(bad)==0&&downstream==0);
         reset("SINGLE");bad=notification("100","wx-wrong-app","wrong-merchant");bad.put("wId",WID);check("incorrect_app_and_merchant_must_not_confirm",single.confirmPayFee(bad)==0&&downstream==0);
@@ -180,7 +192,7 @@ public class PaymentCallbackAudit {
         reset("SINGLE");Map<String,Object> request=map("communityId","simulation-community","userId","simulation-user","appId",APP,"mchId",MCH,"orderType","SINGLE","feeId","simulation-fee","receivedAmount","0.01","cycles","999");Map<String,Object> created=service.create(request);check("create_uses_snapshot_ignores_client_price",Long.parseLong(created.get("totalFee").toString())==100&&created.get("payload").toString().contains("simulation-owe"));
         check("repeat_placement_reuses_order",created.get("orderId").equals(service.create(request).get("orderId"))&&repository.orders.size()==2);
         repository.snapshot.put("deadlineTime","2026-12-01 00:00:00");boolean changedPeriod=false;try{service.create(request);}catch(IllegalStateException expected){changedPeriod=true;}check("changed_pending_period_rejected_before_provider",changedPeriod);repository.snapshot.put("deadlineTime","2026-11-01 00:00:00");
-        Map<String,Object> different=new HashMap<>(request);different.put("orderType","ARREARS");boolean overlap=false;try{service.create(different);}catch(IllegalStateException expected){overlap=true;}check("overlapping_payment_cannot_create_second_order",overlap&&repository.orders.size()==2);
+        Map<String,Object> different=new HashMap<>(request);different.put("orderType","ARREARS");different.put("roomId","simulation-room");different.put("oweIds",Arrays.asList("simulation-owe"));boolean overlap=false;try{service.create(different);}catch(IllegalStateException expected){overlap=true;}check("overlapping_payment_cannot_create_second_order",overlap&&repository.orders.size()==2);
         repository.unpaid=false;boolean unpublished=false;try{service.create(request);}catch(IllegalArgumentException expected){unpublished=true;}check("no_payable_snapshot_rejected",unpublished);
         reset("SINGLE");repository.snapshot.put("billAmountOwed","2.00");check("changed_bill_snapshot_rolls_back",single.confirmPayFee(valid())==0&&repository.writes.isEmpty());
         Map<String,Object> foreign=binding("synthetic-open");foreign.put("communityId","other-community");check("placement_rejects_other_community_openid",!placementReachedCreate(Arrays.asList(foreign)));

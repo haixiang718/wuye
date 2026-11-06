@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-06",
+  "backendBuildModules": 12,
+  "backendBuildPassed": true,
+  "servicesUpdated": [
+    "order",
+    "business",
+    "api",
+    "front",
+    "job"
+  ],
+  "nodeServicesUpdated": [
+    "management",
+    "ownerH5",
+    "domainGateway"
+  ],
+  "runtimeChecksPassed": 21,
+  "financialChecksumsUnchanged": true,
+  "paymentsInitiated": 0,
+  "refundsInitiated": 0,
+  "messagesSent": 0,
+  "compiledH5PhoneWidths": [
+    360,
+    390,
+    430
+  ],
+  "scope": "Targeted regression and local runtime/public asset checks; not capacity certification or exhaustive penetration testing.",
+  "postedPilotRecognizedByReadOnlyRefundGuard": true,
+  "emptySelectionRejected": true,
+  "refundsTriggered": 0,
+  "paymentsTriggered": 0
+}

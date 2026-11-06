@@ -10,12 +10,15 @@ import com.java110.dto.fee.FeeDetailDto;
 import com.java110.dto.fee.FeeDto;
 import com.java110.intf.fee.IFeeDetailInnerServiceSMO;
 import com.java110.intf.fee.IFeeInnerServiceSMO;
+import com.java110.intf.fee.IFeePaymentOrderInnerServiceSMO;
 import com.java110.utils.constant.ServiceCodeReturnPayFeeConstant;
 import com.java110.utils.util.Assert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 保存小区侦听
@@ -32,6 +35,7 @@ public class SaveReturnPayFeeListener extends AbstractServiceApiPlusListener {
 
     @Autowired
     private IFeeInnerServiceSMO feeInnerServiceSMOImpl;
+    @Autowired private IFeePaymentOrderInnerServiceSMO feePaymentOrderInnerServiceSMO;
     @Override
     protected void validate(ServiceDataFlowEvent event, JSONObject reqJson) {
         //Assert.hasKeyAndValue(reqJson, "configId", "请求报文中未包含configId");
@@ -47,9 +51,11 @@ public class SaveReturnPayFeeListener extends AbstractServiceApiPlusListener {
         List<FeeDetailDto> feeDetailDtos = feeDetailInnerServiceSMOImpl.queryFeeDetails(feeDetailDto);
 
         Assert.listOnlyOne(feeDetailDtos,"不存在该缴费记录");
-
-
-
+        FeeDetailDto detail=feeDetailDtos.get(0);
+        Map<String,Object> scope=new HashMap<>();
+        scope.put("communityId",detail.getCommunityId());scope.put("feeId",detail.getFeeId());scope.put("detailId",detail.getDetailId());
+        if(!Boolean.FALSE.equals(feePaymentOrderInnerServiceSMO.isOnlinePaymentDetail(scope)))
+            throw new IllegalArgumentException("微信账单缴费暂不支持后台退费，请联系财务核实原支付订单");
     }
 
     @Override

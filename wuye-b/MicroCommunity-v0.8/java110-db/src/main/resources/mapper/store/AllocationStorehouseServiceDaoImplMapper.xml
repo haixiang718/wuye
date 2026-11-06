@@ -149,7 +149,7 @@
             and t.sh_id_z= #{shIdz}
         </if>
         <if test="resName !=null and resName != ''">
-            and t.res_name like '%${resName}%'
+            and t.res_name like concat('%', #{resName}, '%')
         </if>
         <if test="startUserId !=null and startUserId != ''">
             and t.start_user_id= #{startUserId}
@@ -270,7 +270,7 @@
             and t.sh_id_z= #{shIdz}
         </if>
         <if test="resName !=null and resName != ''">
-            and t.res_name like '%${resName}%'
+            and t.res_name like concat('%', #{resName}, '%')
         </if>
         <if test="startUserId !=null and startUserId != ''">
             and t.start_user_id= #{startUserId}

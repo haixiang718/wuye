@@ -96,7 +96,7 @@
         d1.table_columns = 'return_visit_flag'
         where 1 =1
         <if test="repairTypeName !=null and repairTypeName != ''">
-            and t.repair_type_name like '%${repairTypeName}%'
+            and t.repair_type_name like concat('%', #{repairTypeName}, '%')
         </if>
         <if test="repairType !=null and repairType != ''">
             and t.repair_type= #{repairType}
@@ -184,7 +184,7 @@
         'repair_way'
         where 1 =1
         <if test="repairTypeName !=null and repairTypeName != ''">
-            and t.repair_type_name like '%${repairTypeName}%'
+            and t.repair_type_name like concat('%', #{repairTypeName}, '%')
         </if>
         <if test="repairType !=null and repairType != ''">
             and t.repair_type= #{repairType}

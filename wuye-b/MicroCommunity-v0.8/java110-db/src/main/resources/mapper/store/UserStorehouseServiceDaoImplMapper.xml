@@ -94,7 +94,7 @@
         left join resource_store_specification rss on rs.rss_id = rss.rss_id
         where t.stock &gt; 0
         <if test="resName !=null and resName != ''">
-            and t.res_name like '%${resName}%'
+            and t.res_name like concat('%', #{resName}, '%')
         </if>
         <if test="statusCd !=null and statusCd != ''">
             and t.status_cd= #{statusCd}
@@ -168,7 +168,7 @@
         left join resource_store_specification rss on rs.rss_id = rss.rss_id
         where 1 = 1 and t.stock &gt; 0
         <if test="resName !=null and resName != ''">
-            and t.res_name like '%${resName}%'
+            and t.res_name like concat('%', #{resName}, '%')
         </if>
         <if test="statusCd !=null and statusCd != ''">
             and t.status_cd= #{statusCd}

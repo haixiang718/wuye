@@ -11,6 +11,7 @@ const node = fs.existsSync(portable) ? portable : process.execPath;
 if (mode === 'serve') {
   const http = require('node:http');
   const output = path.join(app, 'unpackage/dist/build/h5');
+  const staticAssets = require('../wuye-f/MicroCommunityWeb-v0.8/lib/static-assets.cjs').createStaticAssets(output);
   const types = {'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf'};
   http.createServer((req, res) => {
     let name;
@@ -21,12 +22,15 @@ if (mode === 'serve') {
       res.end('window.__WUYE_WECHAT_TEST__ = {paymentEnabled:false};');
       return;
     }
-    const file = path.resolve(output, '.' + (name === '/' ? '/index.html' : name));
-    if (!file.startsWith(output + path.sep)) { res.writeHead(403).end(); return; }
-    fs.stat(file, (err, info) => {
-      if (err || !info.isFile()) { res.writeHead(404).end(); return; }
-      res.writeHead(200, {'Content-Type':types[path.extname(file)] || 'application/octet-stream','Cache-Control':'no-cache'});
-      fs.createReadStream(file).pipe(res);
+    staticAssets(req, res, error => {
+      if (error) { res.writeHead(500, {'Cache-Control':'no-store'}).end(); return; }
+      const file = path.resolve(output, '.' + (name === '/' ? '/index.html' : name));
+      if (!file.startsWith(output + path.sep)) { res.writeHead(403).end(); return; }
+      fs.stat(file, (err, info) => {
+        if (err || !info.isFile()) { res.writeHead(404).end(); return; }
+        res.writeHead(200, {'Content-Type':types[path.extname(file)] || 'application/octet-stream','Cache-Control':'no-cache','Content-Length':info.size});
+        if (req.method === 'HEAD') res.end(); else fs.createReadStream(file).pipe(res);
+      });
     });
   }).listen(Number(process.env.OWNER_H5_PORT || 8000), '127.0.0.1', () => console.log('Owner H5: http://127.0.0.1:' + (process.env.OWNER_H5_PORT || 8000)));
 } else if (mode === 'build' || mode === 'dev') {

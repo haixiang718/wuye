@@ -15,6 +15,9 @@ public interface IFeePaymentOrderInnerServiceSMO {
     Map<String,Object> create(@RequestBody Map<String,Object> request);
     @RequestMapping(value = "/query", method = RequestMethod.POST)
     Map<String,Object> query(@RequestBody Map<String,Object> request);
+    /** Server-side receipt/order association; legacy refunds cannot reverse online money. */
+    @RequestMapping(value = "/isOnlinePaymentDetail", method = RequestMethod.POST)
+    Boolean isOnlinePaymentDetail(@RequestBody Map<String,Object> request);
     @RequestMapping(value = "/confirm", method = RequestMethod.POST)
     Map<String,Object> confirm(@RequestBody Map<String,Object> request);
     /**

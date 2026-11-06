@@ -3,12 +3,14 @@ package com.java110.fee.dao.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.java110.core.base.dao.BaseServiceDao;
 import com.java110.fee.dao.IFeeServiceDao;
+import com.java110.fee.dao.PaymentOrderRepository;
 import com.java110.utils.constant.ResponseConstant;
 import com.java110.utils.exception.DAOException;
 import com.java110.utils.util.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -102,8 +104,11 @@ public class FeeServiceDaoImpl extends BaseServiceDao implements IFeeServiceDao 
      * @throws DAOException DAO异常
      */
     @Override
+    @Transactional(rollbackFor=Exception.class)
     public void updateFeeInfoInstance(Map info) throws DAOException {
         logger.debug("修改费用信息Instance 入参 info : {}", info);
+
+        paymentOrders().requireLegacyFeeUpdatesAllowed(info);
 
         int saveFlag = sqlSessionTemplate.update("feeServiceDaoImpl.updateFeeInfoInstance", info);
 
@@ -252,12 +257,18 @@ public class FeeServiceDaoImpl extends BaseServiceDao implements IFeeServiceDao 
     }
 
     @Override
+    @Transactional(rollbackFor=Exception.class)
     public int updateBillOweFees(Map info) throws DAOException {
+        paymentOrders().requireLegacyWriteAllowed(info);
         logger.debug("保存欠费费用信息 入参 info : {}", info);
 
         int saveFlag = sqlSessionTemplate.insert("feeServiceDaoImpl.updateBillOweFees", info);
 
         return saveFlag;
+    }
+
+    private PaymentOrderRepository paymentOrders() {
+        PaymentOrderRepository orders=new PaymentOrderRepository();orders.setSessionTemplate(sqlSessionTemplate);return orders;
     }
 
     /**

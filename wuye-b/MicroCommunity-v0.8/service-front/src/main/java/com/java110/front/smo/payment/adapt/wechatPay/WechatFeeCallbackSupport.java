@@ -39,7 +39,9 @@ public abstract class WechatFeeCallbackSupport {
         if(id==null)return 0;
         Map<String,Object> order;
         try { order=queryPaymentOrder(id); }catch(Exception unavailable){return 0;}
-        if(order==null || !appId.equals(value(order,"appId")) || value(order,"communityId")==null)return 0;
+        // A legacy shared-key signature must never authorize a public-key V3 order.
+        if(order==null || !"V2".equals(value(order,"providerVersion"))
+                || !appId.equals(value(order,"appId")) || value(order,"communityId")==null)return 0;
         SmallWeChatDto merchant=getSmallWechat(appId,value(order,"communityId"));
         if(merchant==null || !appId.equals(merchant.getAppId()))return 0;
         SortedMap<String,String> signed=new TreeMap<>();

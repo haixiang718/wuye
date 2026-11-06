@@ -11,6 +11,7 @@ import com.java110.order.smo.IOIdServiceSMO;
 import com.java110.utils.util.BeanConvertUtil;
 import com.java110.utils.util.DateUtil;
 import com.java110.utils.util.StringUtil;
+import com.java110.utils.util.RollbackSqlLiteral;
 import com.java110.vo.ResultVo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,142 +140,55 @@ public class OIdServiceSMOImpl implements IOIdServiceSMO {
      * @param orderItemDto
      * @return
      */
-    private JSONArray generateParam(OrderItemDto orderItemDto) {
-        JSONArray params = null;
-        switch (orderItemDto.getAction()) {
-            case "ADD":
-                params = generateDeleteSql(orderItemDto);
-                break;
-            case "MOD":
-                params = generateUpdateSql(orderItemDto);
-                break;
-            case "DEL":
-                params = generateInsertSql(orderItemDto);
-                break;
-        }
-
-        return params;
-    }
-
-    /**
-     * 生成insert语句
-     *
-     * @param orderItemDto
-     * @return
-     */
-    private JSONArray generateInsertSql(OrderItemDto orderItemDto) {
-        JSONArray params = new JSONArray();
-        JSONObject param = null;
-        String sql = "";
-        String logText = orderItemDto.getLogText();
-
-        JSONObject logTextObj = JSONObject.parseObject(logText);
-        JSONArray preValues = logTextObj.getJSONArray("preValue");
-        for (int preValueIndex = 0; preValueIndex < preValues.size(); preValueIndex++) {
-            sql = "insert into " + orderItemDto.getActionObj() + " ";
-            param = new JSONObject();
-            JSONObject keyValue = preValues.getJSONObject(preValueIndex);
-            if (keyValue.isEmpty()) {
-                continue;
-            }
-            String keySql = "( ";
-            String valueSql = " values (";
-            for (String key : keyValue.keySet()) {
-                keySql += (key + ",");
-                valueSql += (keyValue.getString(key) + ",");
-            }
-            if (keySql.endsWith(",")) {
-                keySql = keySql.substring(0, keySql.length() - 1);
-            }
-            if (valueSql.endsWith(",")) {
-                valueSql = valueSql.substring(0, valueSql.length() - 1);
-            }
-            sql = sql + keySql + ") " + valueSql + ") ";
-            param.put("fallBackSql", sql);
-            params.add(param);
-        }
-
-        return params;
-    }
-
-    private JSONArray generateUpdateSql(OrderItemDto orderItemDto) {
-        JSONArray params = new JSONArray();
-        JSONObject param = null;
-        String sql = "";
-        String logText = orderItemDto.getLogText();
-
-        JSONObject logTextObj = JSONObject.parseObject(logText);
-        JSONArray preValues = logTextObj.getJSONArray("preValue");
-        JSONArray afterValues = logTextObj.getJSONArray("afterValue");
-
-        for (int preValueIndex = 0; preValueIndex < preValues.size(); preValueIndex++) {
-            sql = "update " + orderItemDto.getActionObj() + " set ";
-            param = new JSONObject();
-            JSONObject keyValue = preValues.getJSONObject(preValueIndex);
-            JSONObject afterKeyValue = afterValues.getJSONObject(preValueIndex);
-            if (keyValue.isEmpty() || afterKeyValue.isEmpty()) {
-                continue;
-            }
-            String whereSql = " where 1=1 ";
-            for (String key : keyValue.keySet()) {
-                sql += (key + "=" + keyValue.getString(key) + ",");
-                if ("''".equals(afterKeyValue.getString(key))) { //条件中不拼写 为空的结果
-                    continue;
+    private JSONArray generateParam(OrderItemDto item) {
+        String table = RollbackSqlLiteral.tableIdentifier(item.getActionObj());
+        JSONObject log = JSONObject.parseObject(item.getLogText());
+        JSONArray before = log.getJSONArray("preValue");
+        JSONArray after = log.getJSONArray("afterValue");
+        if (before == null || after == null) throw new IllegalArgumentException("Missing compensation row arrays");
+        JSONArray result = new JSONArray();
+        String action = item.getAction();
+        if ("MOD".equals(action) && before.size() != after.size()) throw new IllegalArgumentException("Mismatched compensation rows");
+        if (!"ADD".equals(action) && !"MOD".equals(action) && !"DEL".equals(action)) throw new IllegalArgumentException("Unknown compensation action");
+        int count = "ADD".equals(action) ? after.size() : before.size();
+        for (int i = 0; i < count; i++) {
+            JSONObject previous = "ADD".equals(action) ? null : before.getJSONObject(i);
+            JSONObject current = "DEL".equals(action) ? null : after.getJSONObject(i);
+            StringBuilder sql = new StringBuilder();
+            if ("DEL".equals(action)) {
+                if (previous == null || previous.isEmpty()) throw new IllegalArgumentException("Empty compensation row");
+                StringBuilder columns = new StringBuilder();
+                StringBuilder values = new StringBuilder();
+                for (String key : previous.keySet()) {
+                    if (columns.length() > 0) { columns.append(','); values.append(','); }
+                    columns.append(RollbackSqlLiteral.identifier(key));
+                    values.append(RollbackSqlLiteral.fromLog(previous.get(key)));
                 }
-                whereSql += (" and " + key + " = " + afterKeyValue.getString(key));
-            }
-            if (sql.endsWith(",")) {
-                sql = sql.substring(0, sql.length() - 1);
-            }
-
-            if (sql.endsWith(whereSql)) { // 说明没有条件 不做回退 回退整个表是有问题的
-                continue;
-            }
-
-            sql += whereSql;
-
-            param.put("fallBackSql", sql);
-            params.add(param);
-        }
-
-        return params;
-    }
-
-    /**
-     * 生成删除语句
-     *
-     * @param orderItemDto
-     */
-    private JSONArray generateDeleteSql(OrderItemDto orderItemDto) {
-        JSONArray params = new JSONArray();
-        JSONObject param = null;
-        String sql = "";
-        String logText = orderItemDto.getLogText();
-
-        JSONObject logTextObj = JSONObject.parseObject(logText);
-        JSONArray afterValues = logTextObj.getJSONArray("afterValue");
-        String whereSql = " where 1=1 ";
-        for (int preValueIndex = 0; preValueIndex < afterValues.size(); preValueIndex++) {
-            sql = "delete from " + orderItemDto.getActionObj() + whereSql;
-            param = new JSONObject();
-            JSONObject keyValue = afterValues.getJSONObject(preValueIndex);
-            if (keyValue.isEmpty()) {
-                continue;
-            }
-            for (String key : keyValue.keySet()) {
-                if (!StringUtil.isEmpty(keyValue.getString(key))) {
-                    sql += (" and " + key + "=" + keyValue.getString(key));
+                sql.append("INSERT INTO ").append(table).append('(').append(columns).append(") VALUES (").append(values).append(')');
+            } else {
+                if (current == null || current.isEmpty()) throw new IllegalArgumentException("Missing compensation predicate");
+                if ("MOD".equals(action)) {
+                    if (previous == null || previous.isEmpty()) throw new IllegalArgumentException("Empty compensation row");
+                    sql.append("UPDATE ").append(table).append(" SET ");
+                    boolean first = true;
+                    for (String key : previous.keySet()) {
+                        if (!first) sql.append(','); first = false;
+                        sql.append(RollbackSqlLiteral.identifier(key)).append('=').append(RollbackSqlLiteral.fromLog(previous.get(key)));
+                    }
+                } else {
+                    sql.append("DELETE FROM ").append(table);
                 }
+                sql.append(" WHERE ");
+                boolean first = true;
+                for (String key : current.keySet()) {
+                    if (!first) sql.append(" AND "); first = false;
+                    sql.append(RollbackSqlLiteral.identifier(key)).append(" <=> ").append(RollbackSqlLiteral.fromLog(current.get(key)));
+                }
+                sql.append(" LIMIT 1");
             }
-            if (sql.endsWith(whereSql)) { // 说明没有条件 不做回退 回退整个表是有问题的
-                continue;
-            }
-            sql += " limit 1";//防止程序异常删除 尴尬 根据业务场景 没有需要删除多余 1条的场景
-            param.put("fallBackSql", sql);
-            params.add(param);
+            JSONObject command = new JSONObject(); command.put("fallBackSql", sql.toString()); result.add(command);
         }
-
-        return params;
+        return result;
     }
 
     @Override

@@ -4,6 +4,19 @@
     <sql id="orderColumns">order_id orderId, community_id communityId,user_id userId,app_id appId,mch_id mchId,order_type orderType,provider_version providerVersion,total_fee totalFee,payload,state,transaction_id transactionId</sql>
     <select id="queryOrder" parameterType="Map" resultType="Map">select <include refid="orderColumns"/> from payment_order where order_id=#{orderId}</select>
     <select id="lockOrder" parameterType="Map" resultType="Map">select <include refid="orderColumns"/> from payment_order where order_id=#{orderId} for update</select>
+    <select id="isOnlinePaymentDetail" parameterType="Map" resultType="string">
+            select po.order_id from pay_fee_detail d
+            inner join fee_receipt_detail rd on rd.detail_id=d.detail_id and rd.fee_id=d.fee_id and rd.community_id=d.community_id
+            inner join fee_receipt r on r.receipt_id=rd.receipt_id and r.community_id=rd.community_id
+            inner join bill_owe_fee bof on bof.community_id=rd.community_id and bof.fee_id=rd.fee_id
+                and rd.start_time=bof.fee_end_time and rd.end_time=bof.deadline_time and rd.amount=bof.bill_amount_owed
+            inner join payment_order_item item on item.owe_id=bof.owe_id
+            inner join payment_order po on po.order_id=item.order_id and po.community_id=r.community_id
+                and r.amount=po.total_fee/100
+            where d.detail_id=#{detailId} and d.fee_id=#{feeId} and d.community_id=#{communityId}
+            and po.state='POSTED' and po.provider_version in ('V2','V3')
+            limit 1 for update
+    </select>
     <select id="pendingV3" parameterType="Map" resultType="Map">
         select <include refid="orderColumns"/> from payment_order
         where provider_version='V3' and state='CREATED' and app_id=#{appId} and mch_id=#{mchId}
@@ -21,6 +34,32 @@
         from small_wechat where obj_id=#{communityId} and obj_type='1000' and appId=#{appId} and status_cd='0'
     </select>
     <select id="reservation" parameterType="Map" resultType="string">select order_id from payment_order_reservation where community_id=#{communityId} and fee_id=#{feeId}</select>
+    <select id="lockFee" parameterType="Map" resultType="string">
+        select fee_id from pay_fee where community_id=#{communityId} and fee_id=#{feeId} for update
+    </select>
+    <select id="lockedReservation" parameterType="Map" resultType="string">
+        select order_id from payment_order_reservation where community_id=#{communityId} and fee_id=#{feeId} for update
+    </select>
+    <select id="lockLegacyFeeUpdates" parameterType="Map" resultType="Map">
+        select community_id communityId,fee_id feeId from pay_fee where 1=1
+        <if test="feeId != null and feeId != ''">and fee_id=#{feeId}</if>
+        <if test="bId != null and bId != ''">and b_id=#{bId}</if>
+        order by community_id,fee_id for update
+    </select>
+    <select id="lockLegacyDetailUpdates" parameterType="Map" resultType="Map">
+        select community_id communityId,fee_id feeId,detail_id detailId from pay_fee_detail where 1=1
+        <if test="detailId != null and detailId != ''">and detail_id=#{detailId}</if>
+        <if test="bId != null and bId != ''">and b_id=#{bId}</if>
+        order by community_id,fee_id,detail_id for update
+    </select>
+    <select id="collectedOverlap" parameterType="Map" resultType="string">
+        select detail_id from pay_fee_detail
+        where community_id=#{communityId} and fee_id=#{feeId} and status_cd='0' and received_amount &gt; 0
+        and coalesce(state,'1400') not in ('1100','1300')
+        and (end_time is null or end_time &gt; #{feeEndTime})
+        and (start_time is null or start_time &lt; #{deadlineTime})
+        limit 1 for update
+    </select>
     <sql id="snapshotColumns">
         bof.owe_id oweId,bof.bill_id billId,bof.fee_id feeId,bof.bill_amount_owed billAmountOwed,
         DATE_FORMAT(bof.fee_end_time,'%Y-%m-%d %H:%i:%s') feeEndTime,

@@ -2,400 +2,236 @@ package com.java110.db;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLObject;
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
+import com.alibaba.druid.sql.ast.expr.SQLVariantRefExpr;
+import com.alibaba.druid.sql.ast.statement.*;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
+import com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter;
 import com.java110.core.client.RestTemplate;
 import com.java110.core.factory.Java110TransactionalFactory;
-import com.java110.db.dao.IQueryServiceDAO;
 import com.java110.dto.order.OrderItemDto;
 import com.java110.utils.constant.ServiceConstant;
 import com.java110.utils.factory.ApplicationContextFactory;
 import com.java110.utils.factory.LogicalServiceContext;
-import com.java110.utils.util.DateUtil;
+import com.java110.utils.util.RollbackSqlLiteral;
 import com.java110.utils.util.StringUtil;
 import org.apache.ibatis.executor.Executor;
-import org.apache.ibatis.mapping.BoundSql;
-import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.ParameterMapping;
-import org.apache.ibatis.mapping.SqlCommandType;
+import org.apache.ibatis.mapping.*;
 import org.apache.ibatis.plugin.*;
-import org.apache.ibatis.reflection.MetaObject;
+import org.apache.ibatis.reflection.property.PropertyTokenizer;
+import org.apache.ibatis.scripting.defaults.DefaultParameterHandler;
 import org.apache.ibatis.session.Configuration;
-import org.apache.ibatis.type.TypeHandlerRegistry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
-
-import java.sql.Timestamp;
-import java.text.DateFormat;
+import java.sql.*;
 import java.util.*;
 
-@Intercepts({
-        @Signature(type = Executor.class, method = "update", args = {MappedStatement.class,
-                Object.class})
-})
+/** Capture compensation data without converting bound parameters into executable SQL. */
+@Intercepts(@Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}))
 public class Java110MybatisInterceptor implements Interceptor {
-    private static Logger logger = LoggerFactory.getLogger(Java110MybatisInterceptor.class);
-
-    IQueryServiceDAO queryServiceDAOImpl;
-    RestTemplate restTemplate;
-
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
-        if (StringUtil.isEmpty(Java110TransactionalFactory.getOId())) { //未开启事务
-            return invocation.proceed();
-        }
-        MappedStatement mappedStatement = (MappedStatement) invocation.getArgs()[0];
-        SqlCommandType sqlCommandType = mappedStatement.getSqlCommandType();
-        Object parameter = null;
-        if (invocation.getArgs().length > 1) {
-            parameter = invocation.getArgs()[1];
-        }
-
-        BoundSql boundSql = mappedStatement.getBoundSql(parameter);
-        Configuration configuration = mappedStatement.getConfiguration();
-        Map<String, Object> sqlValue = new HashMap<>();
-        //获取sql语句
-        String sql = showSql(configuration, boundSql, sqlValue, sqlCommandType);
-        restTemplate = ApplicationContextFactory.getBean("restTemplate", RestTemplate.class);
-        switch (sqlCommandType) {
-            case INSERT:
-                dealInsertSql(mappedStatement, parameter, sql, sqlValue);
-                break;
-            case UPDATE:
-                dealUpdateSql(mappedStatement, parameter, sql, sqlValue);
-                break;
-            case DELETE:
-                dealDeleteSql(mappedStatement, parameter, sql, sqlValue);
-                break;
-        }
+        if (StringUtil.isEmpty(Java110TransactionalFactory.getOId())) return invocation.proceed();
+        MappedStatement mapped = (MappedStatement) invocation.getArgs()[0];
+        Object parameter = invocation.getArgs()[1];
+        Connection connection = ((Executor) invocation.getTarget()).getTransaction().getConnection();
+        JSONObject log = captureLog(mapped, parameter, connection);
+        OrderItemDto item = new OrderItemDto();
+        item.setbId("-1");
+        item.setAction(log.getString("action"));
+        item.setActionObj(log.getString("table"));
+        log.remove("action");
+        log.remove("table");
+        item.setLogText(log.toJSONString());
+        item.setServiceName(LogicalServiceContext.resolve(ApplicationContextFactory.getApplicationName()));
+        item.setoId(Java110TransactionalFactory.getOId());
+        RestTemplate rest = ApplicationContextFactory.getBean("restTemplate", RestTemplate.class);
+        ResponseEntity<String> response = rest.exchange(ServiceConstant.SERVICE_ORDER_URL + "/order/oIdApi/createOrderItem",
+            HttpMethod.POST, new HttpEntity<String>(item.toString(), new HttpHeaders()), String.class);
+        if (response.getStatusCode() != HttpStatus.OK) throw new IllegalArgumentException("Unable to register compensation log");
         return invocation.proceed();
     }
 
-    /**
-     * 处理删除sql
-     *
-     * @param mappedStatement
-     * @param parameter
-     */
-    private void dealDeleteSql(MappedStatement mappedStatement, Object parameter, String sql, Map<String, Object> sqlValue) {
-
-        String tmpTable = sql.substring(sql.indexOf("into") + 4, sql.indexOf("("));
-        String tmpWhere = sql.substring(sql.indexOf("where"));
-        //插入操作时之前的 没有数据 所以 preValue 为空对象
-        JSONArray preValues = new JSONArray();
-
-        String execSql = "select * from " + tmpTable + " " + tmpWhere;
-
-        queryServiceDAOImpl = ApplicationContextFactory.getBean("queryServiceDAOImpl", IQueryServiceDAO.class);
-        List<Map<String, Object>> deleteDatas = queryServiceDAOImpl.executeSql(execSql, null);
-
-        if (deleteDatas != null && deleteDatas.size() > 0) {
-            for (Map<String, Object> map : deleteDatas) {
-                dealReturnMap(map);
-                preValues.add(map);
+    /** Uses the Executor transaction connection and the original MyBatis type handlers. */
+    public JSONObject captureLog(MappedStatement mapped, Object parameter, Connection connection) throws SQLException {
+        BoundSql original = mapped.getBoundSql(parameter);
+        List<SQLStatement> statements = SQLUtils.parseStatements(original.getSql(), "mysql");
+        if (statements.size() != 1) throw new IllegalArgumentException("Compensation requires one SQL statement");
+        SQLStatement statement = statements.get(0);
+        JSONArray before = new JSONArray();
+        JSONArray after = new JSONArray();
+        String table;
+        String action;
+        if (statement instanceof SQLUpdateStatement) {
+            SQLUpdateStatement update = (SQLUpdateStatement) statement;
+            if (update.getWhere() == null || update.getFrom() != null) throw new IllegalArgumentException("Unsupported compensation UPDATE");
+            table = tableName(update.getTableSource());
+            List<String> columns = new ArrayList<>();
+            Query query = new Query(original, mapped);
+            String alias = update.getTableSource().getAlias();
+            query.sql.append("SELECT ").append(alias == null ? RollbackSqlLiteral.identifier(table) : RollbackSqlLiteral.identifier(alias)).append(".*");
+            for (SQLUpdateSetItem item : update.getItems()) {
+                columns.add(columnName(item.getColumn()));
+                query.sql.append(", ");
+                query.append(item.getValue());
+                query.sql.append(" AS `__java110_rollback_after_").append(columns.size() - 1).append("`");
             }
-        }
-
-        JSONArray afterValues = new JSONArray();
-
-        JSONObject logText = new JSONObject();
-        logText.put("preValue", preValues);
-        logText.put("afterValue", afterValues);
-
-        OrderItemDto orderItemDto = new OrderItemDto();
-        orderItemDto.setbId("-1");
-        orderItemDto.setAction("DEL");
-        orderItemDto.setActionObj(tmpTable.trim());
-        orderItemDto.setLogText(logText.toJSONString());
-        orderItemDto.setServiceName(LogicalServiceContext.resolve(ApplicationContextFactory.getApplicationName()));
-        orderItemDto.setoId(Java110TransactionalFactory.getOId());
-
-        String url = ServiceConstant.SERVICE_ORDER_URL + "/order/oIdApi/createOrderItem";
-        HttpHeaders httpHeaders = new HttpHeaders();
-        HttpEntity httpEntity = new HttpEntity(orderItemDto.toString(), httpHeaders);
-        ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, httpEntity, String.class);
-
-        if (responseEntity.getStatusCode() != HttpStatus.OK) {
-            throw new IllegalArgumentException("注册事务回滚日志失败" + responseEntity);
-        }
-    }
-
-    /**
-     * 处理修改 sql
-     *
-     * @param mappedStatement
-     * @param parameter
-     */
-    private void dealUpdateSql(MappedStatement mappedStatement, Object parameter, String sql, Map<String, Object> sqlValue) {
-        //RestTemplate restTemplate = ApplicationContextFactory.getBean("restTemplate", RestTemplate.class);
-
-        String tmpTable = sql.substring(sql.indexOf("update") + 6, sql.indexOf("set"));
-        String tmpWhere = sql.substring(sql.indexOf("where"));
-
-        //插入操作时之前的 没有数据 所以 preValue 为空对象
-        JSONArray preValues = new JSONArray();
-        JSONArray afterValues = new JSONArray();
-        JSONObject afterVaule = null;
-        String execSql = "select * from " + tmpTable + " " + tmpWhere;
-        queryServiceDAOImpl = ApplicationContextFactory.getBean("queryServiceDAOImpl", IQueryServiceDAO.class);
-        List<Map<String, Object>> deleteDatas = queryServiceDAOImpl.executeSql(execSql, null);
-
-        if (deleteDatas != null && deleteDatas.size() > 0) {
-            for (Map<String, Object> map : deleteDatas) {
-                dealReturnMap(map);
-                preValues.add(map);
-                afterVaule = new JSONObject();
-                afterVaule.putAll(map);
-                afterVaule.putAll(sqlValue);
-                afterValues.add(afterVaule);
+            query.sql.append(" FROM "); query.append(update.getTableSource());
+            query.sql.append(" WHERE "); query.append(update.getWhere());
+            if (update.getOrderBy() != null) { query.sql.append(' '); query.append(update.getOrderBy()); }
+            if (update instanceof MySqlUpdateStatement && ((MySqlUpdateStatement) update).getLimit() != null) {
+                query.sql.append(' '); query.append(((MySqlUpdateStatement) update).getLimit());
             }
-        }
-
-        JSONObject logText = new JSONObject();
-        logText.put("preValue", preValues);
-        logText.put("afterValue", afterValues);
-
-        OrderItemDto orderItemDto = new OrderItemDto();
-        orderItemDto.setbId("-1");
-        orderItemDto.setAction("MOD");
-        orderItemDto.setActionObj(tmpTable.trim());
-        orderItemDto.setLogText(logText.toJSONString());
-        orderItemDto.setServiceName(LogicalServiceContext.resolve(ApplicationContextFactory.getApplicationName()));
-        orderItemDto.setoId(Java110TransactionalFactory.getOId());
-
-        String url = ServiceConstant.SERVICE_ORDER_URL + "/order/oIdApi/createOrderItem";
-        HttpHeaders httpHeaders = new HttpHeaders();
-        HttpEntity httpEntity = new HttpEntity(orderItemDto.toString(), httpHeaders);
-        ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, httpEntity, String.class);
-
-        if (responseEntity.getStatusCode() != HttpStatus.OK) {
-            throw new IllegalArgumentException("注册事务回滚日志失败" + responseEntity);
-        }
-    }
-
-    private void dealReturnMap(Map<String, Object> map) {
-        for (String key : map.keySet()) {
-            Object value = map.get(key);
-            if (value instanceof String) {
-                map.put(key, "'" + map.get(key) + "'");
-            } else if (value instanceof Date) {
-                String tmpValue = DateUtil.getFormatTimeString((Date) value, DateUtil.DATE_FORMATE_STRING_A);
-                map.put(key, "'" + tmpValue + "'");
-            } else if (value instanceof Timestamp) {
-                Date date = new Date(((Timestamp) value).getTime());
-                String tmpValue = DateUtil.getFormatTimeString(date, DateUtil.DATE_FORMATE_STRING_A);
-                map.put(key, "'" + tmpValue + "'");
-            } else if (value instanceof Double) {
-                map.put(key, "'" + map.get(key) + "'");
-            } else {
-                if (value != null) {
-                    map.put(key, "'" + value.toString() + "'");
-                } else {
-                    map.put(key, "''");
+            query.sql.append(" FOR UPDATE");
+            for (Map<String,Object> row : query.rows(connection)) {
+                Map<String,Object> projected = new LinkedHashMap<>();
+                for (int i = 0; i < columns.size(); i++) {
+                    String column = columns.get(i);
+                    for (String existing : row.keySet()) if (existing.equalsIgnoreCase(column)) { column = existing; break; }
+                    projected.put(column, row.remove("__java110_rollback_after_" + i));
                 }
+                Map<String,Object> next = new LinkedHashMap<>(row); next.putAll(projected);
+                dealReturnMap(row); dealReturnMap(next);
+                before.add(row); after.add(next);
             }
-        }
-    }
-
-    /**
-     * 处理insert 语句
-     *
-     * @param mappedStatement
-     * @param parameter
-     */
-    private void dealInsertSql(MappedStatement mappedStatement, Object parameter, String sql, Map<String, Object> sqlValue) {
-
-        // RestTemplate restTemplate = ApplicationContextFactory.getBean("restTemplate", RestTemplate.class);
-
-        //插入操作时之前的 没有数据 所以 preValue 为空对象
-        JSONArray preValues = new JSONArray();
-
-        JSONArray afterValues = new JSONArray();
-
-        String tmpTable = sql.substring(sql.toLowerCase().indexOf("into") + 4, sql.indexOf("("));
-//        String tmpKey = sql.substring(sql.indexOf("(") + 1, sql.indexOf(")"));
-//        String[] tmpKeys = tmpKey.split(",");
-//        int valuePos = 0;
-//        if (sql.contains("VALUES")) {
-//            valuePos = sql.indexOf("VALUES") + 6;
-//        } else {
-//            valuePos = sql.indexOf("values") + 6;
-//        }
-//        String sqlValues = sql.substring(valuePos);
-//        //说明批操作
-//
-//        String[] sqlVauleses = sqlValues.split("\\)");
-//        JSONObject afterValue = null;
-//        for (String sqlV : sqlVauleses) {
-//            String tmpValue = sqlV.substring(sqlV.lastIndexOf("(") + 1);
-//            String[] tmpValues = tmpValue.split(",");
-//            afterValue = new JSONObject();
-//
-//            if (tmpKeys.length != tmpValues.length) {
-//                throw new IllegalArgumentException("sql 错误 key 和value 个数不等" + sql);
-//            }
-//
-//            if (tmpKeys.length < 1) {
-//                throw new IllegalArgumentException("sql 错误 未找到key" + sql);
-//            }
-//            for (int keyIndex = 0; keyIndex < tmpKeys.length; keyIndex++) {
-//                if ("''".equals(tmpValues[keyIndex])) {
-//                    continue;
-//                }
-//                afterValue.put(tmpKeys[keyIndex], tmpValues[keyIndex]);
-//            }
-//
-//        }
-
-        afterValues.add(sqlValue);
-
-        JSONObject logText = new JSONObject();
-        logText.put("preValue", preValues);
-        logText.put("afterValue", afterValues);
-
-        OrderItemDto orderItemDto = new OrderItemDto();
-        orderItemDto.setbId("-1");
-        orderItemDto.setAction("ADD");
-        orderItemDto.setActionObj(tmpTable.trim());
-        orderItemDto.setLogText(logText.toJSONString());
-        orderItemDto.setServiceName(LogicalServiceContext.resolve(ApplicationContextFactory.getApplicationName()));
-        orderItemDto.setoId(Java110TransactionalFactory.getOId());
-
-        String url = ServiceConstant.SERVICE_ORDER_URL + "/order/oIdApi/createOrderItem";
-        HttpHeaders httpHeaders = new HttpHeaders();
-        HttpEntity httpEntity = new HttpEntity(orderItemDto.toString(), httpHeaders);
-        ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, httpEntity, String.class);
-
-        if (responseEntity.getStatusCode() != HttpStatus.OK) {
-            throw new IllegalArgumentException("注册事务回滚日志失败" + responseEntity);
-        }
-
-    }
-
-    @Override
-    public Object plugin(Object target) {
-
-        return Plugin.wrap(target, this);
-
-    }
-
-    @Override
-    public void setProperties(Properties properties) {
-
-    }
-
-    public String showSql(Configuration configuration, BoundSql boundSql, Map<String, Object> sqlValue, SqlCommandType sqlCommandType) {
-        Object parameterObject = boundSql.getParameterObject();
-        List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
-        String sql = boundSql.getSql().replaceAll("[\\s]+", " ").toLowerCase();
-        String orgSql = sql;// 原始sql
-
-        List<String> values = new ArrayList<>();
-        if (parameterMappings.size() > 0 && parameterObject != null) {
-            TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
-            if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
-                sql = sql.replaceFirst("\\?", getParameterValue(parameterObject));
-                values.add(getParameterValue(parameterObject));
+            action = "MOD";
+        } else if (statement instanceof SQLDeleteStatement) {
+            SQLDeleteStatement delete = (SQLDeleteStatement) statement;
+            if (delete.getWhere() == null || delete.getFrom() != null || delete.getUsing() != null) throw new IllegalArgumentException("Unsupported compensation DELETE");
+            table = tableName(delete.getTableSource());
+            Query query = new Query(original, mapped);
+            query.sql.append("SELECT * FROM "); query.append(delete.getTableSource());
+            query.sql.append(" WHERE "); query.append(delete.getWhere());
+            if (delete instanceof MySqlDeleteStatement) {
+                MySqlDeleteStatement mysql = (MySqlDeleteStatement) delete;
+                if (mysql.getOrderBy() != null) { query.sql.append(' '); query.append(mysql.getOrderBy()); }
+                if (mysql.getLimit() != null) { query.sql.append(' '); query.append(mysql.getLimit()); }
+            }
+            query.sql.append(" FOR UPDATE");
+            for (Map<String,Object> row : query.rows(connection)) { dealReturnMap(row); before.add(row); }
+            action = "DEL";
+        } else if (statement instanceof SQLInsertStatement) {
+            SQLInsertStatement insert = (SQLInsertStatement) statement;
+            table = tableName(insert.getTableSource());
+            if (insert.getColumns().isEmpty() || (insert instanceof MySqlInsertStatement && !((MySqlInsertStatement) insert).getDuplicateKeyUpdate().isEmpty())) {
+                throw new IllegalArgumentException("Compensation INSERT requires explicit columns and no upsert");
+            }
+            List<String> columns = new ArrayList<>();
+            for (SQLExpr column : insert.getColumns()) columns.add(columnName(column));
+            Query query = new Query(original, mapped);
+            if (insert.getQuery() != null) {
+                query.append(insert.getQuery());
             } else {
-                MetaObject metaObject = configuration.newMetaObject(parameterObject);
-                for (ParameterMapping parameterMapping : parameterMappings) {
-                    String propertyName = parameterMapping.getProperty();
-                    if (metaObject.hasGetter(propertyName)) {
-                        Object obj = metaObject.getValue(propertyName);
-                        sql = sql.replaceFirst("\\?", getParameterValue(obj));
-                        values.add(getParameterValue(obj));
-                    } else if (boundSql.hasAdditionalParameter(propertyName)) {
-                        Object obj = boundSql.getAdditionalParameter(propertyName);
-                        sql = sql.replaceFirst("\\?", getParameterValue(obj));
-                        values.add(getParameterValue(obj));
+                for (SQLInsertStatement.ValuesClause tuple : insert.getValuesList()) {
+                    if (tuple.getValues().size() != columns.size()) throw new IllegalArgumentException("Invalid INSERT column count");
+                    if (query.sql.length() > 0) query.sql.append(" UNION ALL ");
+                    query.sql.append("SELECT ");
+                    for (int i = 0; i < columns.size(); i++) {
+                        if (i > 0) query.sql.append(',');
+                        query.append(tuple.getValues().get(i));
+                        query.sql.append(" AS ").append(RollbackSqlLiteral.identifier(columns.get(i)));
                     }
                 }
             }
-        }
-
-        if (sqlCommandType == SqlCommandType.INSERT) {
-            String tmpKey = orgSql.substring(orgSql.indexOf("(") + 1, orgSql.indexOf(")"));
-            String[] tmpKeys = tmpKey.split(",");
-
-//            if (values.size() < tmpKeys.length) {
-//                throw new IllegalArgumentException("sql 错误 key 和value 个数不等" + sql);
-//            }
-            for (int keyIndex = 0; keyIndex < tmpKeys.length; keyIndex++) {
-                String key = tmpKeys[keyIndex].trim();
-                String value = "";
-                if (values.size() - 1 < keyIndex) {
-                    continue;
-                }
-                value = values.get(keyIndex);
-                if ("''".equals(value)) {
-                    continue;
-                }
-                sqlValue.put(key, value);
+            for (Map<String,Object> row : query.rows(connection, columns)) {
+                dealReturnMap(row); after.add(row);
             }
-        } else if (sqlCommandType == SqlCommandType.UPDATE) {
-            String tmpKey = orgSql.substring(sql.indexOf("set") + 3, orgSql.indexOf("where"));
-            String[] tmpKeys = tmpKey.split(",");
-//            if (values.size() < tmpKeys.length) {
-//                throw new IllegalArgumentException("sql 错误 key 和value 个数不等" + sql);
-//            }
-            for (int keyIndex = 0; keyIndex < tmpKeys.length; keyIndex++) {
-                String tmpSetKey = tmpKeys[keyIndex];
-                String[] keyValues = tmpSetKey.split("=");
-                String key = "";
-                if (keyValues.length != 2) {
-                    throw new IllegalArgumentException("update 语句可能有问题，没有 set 中出错 " + sql);
-                }
-                if (keyValues[0].contains(".")) {
-                    key = keyValues[0].substring(keyValues[0].indexOf(".") + 1).trim();
-                } else {
-                    key = keyValues[0].trim();
-                }
-                String value = "";
-                if (values.size() - 1 < keyIndex) {
-                    continue;
-                }
-                value = values.get(keyIndex);
-                if ("''".equals(value)) {
-                    continue;
-                }
-                sqlValue.put(key, value);
-            }
-
-        } else if (sqlCommandType == SqlCommandType.DELETE) {
-
-        }
-
-
-        return sql;
-    }
-
-    private String getParameterValue(Object obj) {
-        String value = null;
-        if (obj instanceof String) {
-            value = "'" + obj.toString() + "'";
-        } else if (obj instanceof Date) {
-            DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
-            value = "'" + formatter.format(obj) + "'";
-//	            System.out.println(value);
+            action = "ADD";
         } else {
-            if (obj != null) {
-                value = obj.toString();
-            } else {
-                value = "''";
+            throw new IllegalArgumentException("Unsupported compensation SQL statement");
+        }
+        JSONObject result = new JSONObject();
+        result.put("table", table); result.put("action", action);
+        result.put("preValue", before); result.put("afterValue", after);
+        return result;
+    }
+
+    private static String columnName(SQLExpr expression) {
+        String name;
+        if (expression instanceof SQLIdentifierExpr) name = ((SQLIdentifierExpr) expression).getName();
+        else if (expression instanceof SQLPropertyExpr) name = ((SQLPropertyExpr) expression).getName();
+        else throw new IllegalArgumentException("Invalid compensation column");
+        String quoted = RollbackSqlLiteral.identifier(name);
+        return quoted.substring(1, quoted.length() - 1);
+    }
+
+    private static String tableName(SQLTableSource source) {
+        if (!(source instanceof SQLExprTableSource) || !(((SQLExprTableSource) source).getExpr() instanceof SQLIdentifierExpr)) {
+            throw new IllegalArgumentException("Compensation requires a single local table");
+        }
+        return columnName(((SQLExprTableSource) source).getExpr());
+    }
+
+    private void dealReturnMap(Map<String,Object> row) {
+        for (Map.Entry<String,Object> entry : row.entrySet()) entry.setValue(RollbackSqlLiteral.value(entry.getValue()));
+    }
+
+    private static final class Query {
+        final StringBuilder sql = new StringBuilder();
+        final List<ParameterMapping> mappings = new ArrayList<>();
+        final BoundSql original;
+        final MappedStatement mapped;
+        Query(BoundSql original, MappedStatement mapped) { this.original = original; this.mapped = mapped; }
+        void append(SQLObject part) {
+            part.accept(new SQLASTVisitorAdapter() {
+                @Override public boolean visit(SQLVariantRefExpr parameter) {
+                    if (!"?".equals(parameter.getName()) || parameter.getIndex() < 0 || parameter.getIndex() >= original.getParameterMappings().size()) {
+                        throw new IllegalArgumentException("Invalid compensation parameter");
+                    }
+                    mappings.add(original.getParameterMappings().get(parameter.getIndex()));
+                    return false;
+                }
+            });
+            sql.append(SQLUtils.toSQLString(part, "mysql"));
+        }
+        List<Map<String,Object>> rows(Connection connection) throws SQLException {
+            return rows(connection, null);
+        }
+        List<Map<String,Object>> rows(Connection connection, List<String> targetColumns) throws SQLException {
+            BoundSql bound = new BoundSql(mapped.getConfiguration(), sql.toString(), mappings, original.getParameterObject());
+            for (ParameterMapping mapping : mappings) {
+                String root = new PropertyTokenizer(mapping.getProperty()).getName();
+                if (original.hasAdditionalParameter(root)) bound.setAdditionalParameter(root, original.getAdditionalParameter(root));
             }
-
+            List<Map<String,Object>> result = new ArrayList<>();
+            try (PreparedStatement statement = connection.prepareStatement(bound.getSql())) {
+                new DefaultParameterHandler(mapped, original.getParameterObject(), bound).setParameters(statement);
+                try (ResultSet rows = statement.executeQuery()) {
+                    ResultSetMetaData metadata = rows.getMetaData();
+                    if (targetColumns != null && metadata.getColumnCount() != targetColumns.size()) throw new IllegalArgumentException("Invalid INSERT projection");
+                    while (rows.next()) {
+                        Map<String,Object> row = new LinkedHashMap<>();
+                        for (int i = 1; i <= metadata.getColumnCount(); i++) {
+                            String label = targetColumns == null ? metadata.getColumnLabel(i) : targetColumns.get(i - 1);
+                            if (row.containsKey(label)) throw new IllegalArgumentException("Ambiguous compensation projection");
+                            row.put(label, rows.getObject(i));
+                        }
+                        result.add(row);
+                    }
+                }
+            }
+            return result;
         }
-        return value;
     }
 
-
-    public static void main(String[] args) {
-        String tmpKey = " prime_rate,detail_id,receivable_amount,cycles,remark,status_cd,received_amount,community_id,b_id,fee_id,state";
-        String tmpValue = "'1.00','912020080411040001','1500.0','1.0',,'0','1500.0','7020181217000001','-1',,";
-        String[] tmpKeys = tmpKey.split(",");
-        String[] tmpValues = tmpValue.split(",");
-
-        if (tmpKeys.length != tmpValues.length) {
-            throw new IllegalArgumentException("sql 错误 key 和value 个数不等");
+    /** Kept for callers that inspect SQL; this never renders parameter values into SQL. */
+    public String showSql(Configuration config, BoundSql bound, Map<String,Object> values, SqlCommandType command) {
+        Object parameter = bound.getParameterObject();
+        for (ParameterMapping mapping : bound.getParameterMappings()) {
+            String name = mapping.getProperty();
+            Object value = bound.hasAdditionalParameter(name) ? bound.getAdditionalParameter(name)
+                : parameter == null ? null : config.getTypeHandlerRegistry().hasTypeHandler(parameter.getClass()) ? parameter
+                : config.newMetaObject(parameter).getValue(name);
+            values.put(name, RollbackSqlLiteral.value(value));
         }
+        return bound.getSql();
     }
+    @Override public Object plugin(Object target) { return Plugin.wrap(target, this); }
+    @Override public void setProperties(Properties properties) { }
 }

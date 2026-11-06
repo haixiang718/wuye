@@ -173,7 +173,7 @@
         'sign_type'
         where 1 =1
         <if test="inspectionPlanName !=null and inspectionPlanName != ''">
-            and t.inspection_plan_name like '%${inspectionPlanName}%'
+            and t.inspection_plan_name like concat('%', #{inspectionPlanName}, '%')
         </if>
         <if test="inspectionRouteId !=null and inspectionRouteId != ''">
             and t.inspection_route_id= #{inspectionRouteId}
@@ -270,7 +270,7 @@
         from inspection_plan t
         where 1 =1
         <if test="inspectionPlanName !=null and inspectionPlanName != ''">
-            and t.inspection_plan_name like '%${inspectionPlanName}%'
+            and t.inspection_plan_name like concat('%', #{inspectionPlanName}, '%')
         </if>
         <if test="inspectionRouteId !=null and inspectionRouteId != ''">
             and t.inspection_route_id= #{inspectionRouteId}
