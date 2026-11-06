@@ -1,6 +1,14 @@
 # 微信支付 V3 接入与运维
 
-## 当前验收状态（2026-11-04）
+## 当前验收状态（2026-11-06）
+
+**已完成指定业主的 0.01 元真实支付及自动入账验收。** 用户手机确认支付成功；随后通过官方 SDK 验签查单确认 `SUCCESS`、`JSAPI`、人民币 1 分，公众号、商户、订单及微信交易号与本地记录一致。
+
+数据库核对：唯一成功订单为 `POSTED`，欠费明细状态为已缴 `2000`，账单实收为 `0.01`；缴费明细一条、收据明细一条、收据一份，金额均为 `0.01`；一次性费用已完成、缴费截止时间已推进，费用占用已释放。前两笔失败尝试均保留为 `CLOSED`，未产生交易号或重复入账。脱敏证据见 `validation/2026-11-06-wechat-pay-v3-live-acceptance.json`。
+
+支付授权目录经用户确认添加保存后，本次手机支付通过。该结果仅覆盖一个指定账号的一笔小额 JSAPI 支付，保持试点限额及账号限制；不代表全量收款、退款、平台账单对账或长期独立部署验收完成。
+
+## 首轮联调与修复记录（2026-11-04）
 
 已部署 V3 JSAPI 下单、签名通知、主动查单、确认关单和入账补偿。当前仅开放指定测试账号，单笔上限 **1 分**，未向全部业主开放收款。
 
@@ -9,6 +17,12 @@
 该次联调发现微信未支付查单响应可能不含 `trade_type`。已修正为：成功交易必须是 `JSAPI`；未成功交易允许该字段缺省，字段存在时仍校验。用户随后关闭旧订单，微信验签查单确认 `CLOSED`，但关闭结果还可能完全不含 `amount`。已补充允许这种关闭结果释放对应订单占用；提供金额时仍校验匹配，成功交易仍必须包含正确金额。H5 已增加持续错误弹窗，以便记录收银台失败原因，不能据此认定最初的微信收银台报错已经解决。
 
 上述两处修复均已构建部署。后台查单补偿已将原测试订单同步为 `CLOSED`，数据库核对订单占用为 0，微信交易号为空，没有入账。待手机重新发起 0.01 元订单验收。
+
+## JSAPI cashier authorization directory
+
+The phone retry showed WeChat's native "current page URL is not registered" error for `https://h5.jiaanfuwu.cn/#/pages/roomFee/roomFee`. Configure the associated WeChat Pay merchant's **JSAPI payment authorization directory** as `https://h5.jiaanfuwu.cn/` (including the final slash). This is separate from the official account's JS interface security domain and OAuth domain. Do not add the hash route or payment callback as an authorization directory.
+
+At this diagnostic check the first pilot order was CLOSED and the next was CREATED; neither had a transaction ID and no pilot order was POSTED. Cashier acceptance remains pending merchant configuration and another user-confirmed CNY 0.01 attempt.
 
 ## 业务链路
 
@@ -64,6 +78,6 @@
 
 本地验证包含官方 SDK 的签名/解密测试、业务协议审计、隔离 MySQL 订单生命周期、H5、网关和构建检查。真实微信只读查单已确认商户认证和响应签名有效。最新针对问题的回归为业务检查 87 项、SDK 18 项、H5 116 项通过，公网 H5 入口资源与本机构建一致。关闭结果字段缺省的修复已独立复查，包含错误商户/公众号/订单不得释放占用的测试。
 
-0.01 元测试账单为独立手工验收数据，详见 `WECHAT-PAY-V3-PILOT-PREPARATION.md`，并不验证正常出账和审核链路。尚待用户重新实付后，核对微信交易结果、本地 `POSTED`、账单已缴、缴费明细与收据金额一致且无重复。
+0.01 元测试账单为独立手工验收数据，详见 `WECHAT-PAY-V3-PILOT-PREPARATION.md`，并不验证正常出账和审核链路。2026-11-06 已通过用户真实付款及微信验签查单核对本地 `POSTED`、账单已缴、缴费明细与收据金额一致且无重复；未对真实交易额外重放通知或执行关闭操作，重复请求幂等及并发竞态的证据仍来自隔离测试。
 
 退款、自动退款回写、微信账单下载对账、全量收款开放、支付服务整体迁移及长期运维监控不在本次已完成验收范围内。付款记录和测试收据也属于审计历史，支付后不得直接删除。

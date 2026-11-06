@@ -16,6 +16,7 @@ REQUIRED = {
     'account_detail': {'detail_type', 'amount', 'order_id', 'obj_id', 'detail_id', 'acct_id', 'rel_acct_id', 'remark', 'status_cd', 'b_id', 'obj_type', 'create_time'},
     'business_account_detail': {'detail_type', 'amount', 'operate', 'order_id', 'obj_id', 'detail_id', 'acct_id', 'rel_acct_id', 'remark', 'b_id', 'obj_type'},
     'contract': {'contract_parent_id', 'obj_name', 'obj_person_name', 'obj_person_id', 'start_user_id', 'b_id'},
+    'contract_room': {'cr_id','b_id','contract_id','store_id','room_id','room_name','owner_id','owner_name','status_cd','create_time'},
 }
 
 

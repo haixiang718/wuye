@@ -18,7 +18,7 @@
 - [x] Ingress: allow exact payment callback independent of access gate; total switch for new payment routes, preserve raw body/headers, deny other paths. Add gateway tests; update nginx source and verify generated config.
 - [x] Runtime: prepare private notify/pilot settings, update launcher configuration without writing secrets to commands, stage build and test. Deploy only verified builds and retain rollback.
 - [x] Review: independent code review; fix material findings; run targeted payment, SQL, H5 and gateway suites plus project build.
-- [ ] Acceptance: create or identify an isolated 0.01 test bill with explicit owner identity, let user perform real phone payment, verify merchant result and local accounting. Until this step is completed report real payment as unverified.
+- [x] Acceptance: create or identify an isolated 0.01 test bill with explicit owner identity, let user perform real phone payment, verify merchant result and local accounting. Until this step is completed report real payment as unverified.
 
 Never include existing unrelated dirty files in the payment commit. Do not enable universal owner collection automatically.
 
@@ -28,3 +28,7 @@ Never include existing unrelated dirty files in the payment commit. Do not enabl
 - Actual signed NOTPAY responses can omit trade_type. Actual signed CLOSED responses can also omit amount. Both protocol cases now have regression coverage; SUCCESS retains mandatory trade type, currency, amount and transaction validation.
 - Latest offline regression: SDK 18 tests, orchestration 87 checks, H5 116 tests. CLOSED relaxation independently reviewed.
 - H5 now retains the native failure message after an authenticated unpaid query. Await phone retry and verify the resulting provider and accounting evidence before checking Acceptance.
+
+## Real payment accepted (2026-11-06)
+
+User completed CNY 0.01 payment. Official SDK signed query verified SUCCESS / JSAPI / CNY 1 fen and matched merchant, AppID, order and local transaction ID. One POSTED order, bill paid, receipt and payment detail each exactly once; previous attempts CLOSED; no remaining reservation. See docs/validation/2026-11-06-wechat-pay-v3-live-acceptance.json. Pilot scope remains restricted; refunds, platform reconciliation and independent production hosting remain outside acceptance.

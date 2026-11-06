@@ -29,8 +29,8 @@ def query(database, sql):
     return local.mysql_run(sql, database=database, capture=True)
 
 
-def statements():
-    text = re.sub(r'^\s*--[^\n]*', '', SOURCE.read_text(encoding='utf-8'), flags=re.M)
+def statements(source=None):
+    text = re.sub(r'^\s*--[^\n]*', '', (source or SOURCE).read_text(encoding='utf-8'), flags=re.M)
     return [part.strip() for part in text.split(';') if part.strip()]
 
 
@@ -76,7 +76,7 @@ def check_column(table, column, actual, expected):
         raise MigrationError(f'Incompatible {table}.{column}: {actual}, expected {expected}; no automatic conversion')
 
 
-def plan(database='TT'):
+def plan(database='TT', source=None):
     validate_database(database)
     pending = []
     schemas = {}
@@ -84,7 +84,7 @@ def plan(database='TT'):
         if table not in schemas:
             schemas[table] = inspect(database, table)
         return schemas[table]
-    for statement in statements():
+    for statement in statements(source):
         create = re.match(r'CREATE TABLE IF NOT EXISTS `(\w+)`', statement, re.I)
         alter = re.match(r'ALTER TABLE `(\w+)` ADD COLUMN `(\w+)` (.+)', statement, re.I)
         add_index = re.match(r'ALTER TABLE `(\w+)` ADD INDEX `(\w+)` \((.+)\)', statement, re.I)
@@ -193,10 +193,10 @@ def migration_lock():
         lock.unlink()
 
 
-def apply(database='TT', backup_root=None):
+def apply(database='TT', backup_root=None, source=None):
     validate_database(database)
     with migration_lock():
-        pending = plan(database)  # Check all incompatible structures before any mutation or backup.
+        pending = plan(database, source)  # Check all incompatible structures before any mutation or backup.
         before = contract_snapshot(database)
         backup = None
         if pending:
@@ -205,7 +205,7 @@ def apply(database='TT', backup_root=None):
             (folder / 'applied.sql').write_text(';\n'.join(pending) + ';\n', encoding='utf-8')
             for statement in pending:
                 query(database, statement)
-        if plan(database):
+        if plan(database, source):
             raise MigrationError('Schema migration did not complete; rerun the additive migration')
         after = contract_snapshot(database, before['columns'])
         if before != after:

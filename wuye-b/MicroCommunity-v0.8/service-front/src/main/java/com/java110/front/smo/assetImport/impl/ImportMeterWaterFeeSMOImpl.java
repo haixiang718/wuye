@@ -50,23 +50,27 @@ public class ImportMeterWaterFeeSMOImpl extends BaseComponentSMO implements IImp
 
     @Override
     public ResponseEntity<String> importExcelData(IPageData pd, MultipartFile uploadFile) throws Exception {
-
-        try {
-            ComponentValidateResult result = this.validateStoreStaffCommunityRelationship(pd, restTemplate);
-
-            //InputStream is = uploadFile.getInputStream();
-
-            Workbook workbook = ImportExcelUtils.createWorkbook(uploadFile);  //工作簿
-
-            List<ImportExportMeterWaterDto> rooms = new ArrayList<ImportExportMeterWaterDto>();
-
-            //获取楼信息
+        // Keep authentication/authorization failures separate from workbook validation.
+        ComponentValidateResult result = this.validateStoreStaffCommunityRelationship(pd, restTemplate);
+        List<ImportExportMeterWaterDto> rooms = new ArrayList<>();
+        try (Workbook workbook = ImportExcelUtils.createWorkbook(uploadFile)) {
             getRooms(workbook, rooms);
-            // 保存数据
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>("模板数据有误：" + e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            logger.error("抄表文件解析失败", e);
+            return new ResponseEntity<>("无法读取抄表文件，请使用本页下载的 XLSX 模板并检查必填列。", HttpStatus.BAD_REQUEST);
+        }
+        if (rooms.isEmpty()) {
+            return new ResponseEntity<>("文件中没有可导入的抄表数据。", HttpStatus.BAD_REQUEST);
+        }
+        try {
             return dealExcelData(pd, rooms, result);
         } catch (Exception e) {
-            logger.error("导入失败 ", e);
-            return new ResponseEntity<String>("非常抱歉，您填写的模板数据有误：" + e.getMessage(), HttpStatus.BAD_REQUEST);
+            logger.error("抄表导入服务异常", e);
+            // A later batch can fail after an earlier one was saved. Do not promise
+            // rollback or encourage a blind retry; never render SQL/paths to residents.
+            return new ResponseEntity<>("抄表导入服务异常，请联系管理员核对导入结果后再重试。", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

@@ -1,0 +1,79 @@
+{
+  "date": "2026-11-06",
+  "scope": "One explicitly selected owner; one manually prepared CNY 0.01 JSAPI bill; real user-confirmed phone payment",
+  "passed": true,
+  "userReportedPaid": true,
+  "provider": {
+    "amount": {
+      "payer_total": 1,
+      "total": 1,
+      "currency": "CNY",
+      "payer_currency": "CNY"
+    },
+    "merchantMatches": true,
+    "sdkSignedQuerySucceeded": true,
+    "appMatches": true,
+    "providerState": "SUCCESS",
+    "tradeType": "JSAPI",
+    "orderMatches": true,
+    "hasProviderTransaction": true,
+    "transactionMatchesLocal": true
+  },
+  "accounting": {
+    "orders": [
+      {
+        "state": "CLOSED",
+        "totalFen": 1,
+        "hasTransaction": false,
+        "providerVersion": "V3"
+      },
+      {
+        "state": "CLOSED",
+        "totalFen": 1,
+        "hasTransaction": false,
+        "providerVersion": "V3"
+      },
+      {
+        "state": "POSTED",
+        "totalFen": 1,
+        "hasTransaction": true,
+        "providerVersion": "V3"
+      }
+    ],
+    "bill": [
+      "2000",
+      "0.01",
+      "0.01",
+      "PUBLISHED"
+    ],
+    "fee": [
+      "2009001",
+      "1"
+    ],
+    "details": [
+      "1",
+      "0.01",
+      "0.01"
+    ],
+    "receiptDetails": [
+      "1",
+      "0.01",
+      "1"
+    ],
+    "receipts": [
+      "1",
+      "0.01"
+    ],
+    "reservations": [
+      "0"
+    ]
+  },
+  "allOwnerCollectionEnabled": false,
+  "pilotMaximumFen": 1,
+  "limitations": [
+    "Normal bill generation and review are outside this manually prepared payment fixture.",
+    "No live callback replay or concurrency injection; idempotence and races covered by isolated tests.",
+    "Refunds and provider bill reconciliation not accepted.",
+    "Cloud HTTPS ingress still depends on local business services and reverse tunnel."
+  ]
+}
