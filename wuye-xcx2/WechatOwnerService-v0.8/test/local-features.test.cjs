@@ -20,7 +20,7 @@ test('disabled routes are absent from registered pages and preserved routes rema
   const pages = jsonc(read('pages.json')).pages.map(page=>page.path);
   assert.ok(pages.length > 10);
   for (const route of pages) assert.equal(policy.isDisabledRoute(route), false, route);
-  const keep = owner ? ['pages/roomFeeListNew/roomFeeListNew','pages/payParkingFeeList/payParkingFeeList','pages/viewBindOwner/viewBindOwner','pages/roomRenovation/roomRenovation'] : ['pages/roomPayFee/roomPayFee','pages/meterReading/meterReading','pages/roomRenovation/roomRenovation'];
+  const keep = owner ? ['pages/roomFeeListNew/roomFeeListNew','pages/payParkingFeeList/payParkingFeeList','pages/viewBindOwner/viewBindOwner','pages/tempParkingFee/tempParkingFee'] : ['pages/roomPayFee/roomPayFee','pages/meterReading/meterReading','pages/roomRenovation/roomRenovation'];
   for (const route of keep) assert.ok(pages.includes(route), route);
   for (const route of ['/pages/repair/repair','../complaint/complaint','/PAGES/%6eotice/index','/pages/applicationKey/applicationKey','/pages/resourceStoreManage/resourceStoreManage']) assert.equal(policy.isDisabledRoute(route), true, route);
 });
@@ -31,7 +31,7 @@ test('navigation and request boundaries block disabled operations and preserve c
   policy.install({addInterceptor:(name, handler)=>interceptors[name]=handler});
   for (const name of ['navigateTo','redirectTo','reLaunch','switchTab']) {
     assert.equal(interceptors[name].invoke({url:'/pages/repair/repair'}), false);
-    assert.notEqual(interceptors[name].invoke({url:'/pages/roomRenovation/roomRenovation'}), false);
+    assert.notEqual(interceptors[name].invoke({url:'/pages/roomFeeListNew/roomFeeListNew'}), false);
   }
   for (const url of ['/app/advert.listAdvertPhoto','http://127.0.0.1:8012/app/inspectionTask.listInspectionTasks','/app/machine/openDoor','/app/auditUser.listAuditComplaints','/callComponent/resourceStore.listStorehouses']) {
     let failure;
@@ -60,7 +60,10 @@ test('real menu API filters disabled server/static entries and retains fee, park
     const api = loadApi('api/index/indexApi.js',['getCategoryList'],{localFeatures:policy});
     const menus = Object.values(api.getCategoryList()).flat();
     for (const item of menus) assert.equal(policy.isDisabledRoute(item.href), false, item.href);
-    for (const keep of ['/pages/roomFeeListNew/roomFeeListNew','/pages/payParkingFeeList/payParkingFeeList','/pages/familyList/familyList']) assert.ok(menus.some(item=>item.href===keep), keep);
+    for (const keep of ['/pages/roomFeeListNew/roomFeeListNew','/pages/payParkingFeeList/payParkingFeeList','/pages/tempParkingFee/tempParkingFee']) assert.ok(menus.some(item=>item.href===keep), keep);
+    assert.equal(menus.length,3);
+    assert.doesNotMatch(read('pages/my/my.vue').split('</template>')[0],/房屋装修/);
+    for (const page of ['family','familyList','hireRoom','applyparking','applyRoom','roomRenovation','myRenovation','contractFeeList','questionAnswer']) assert.equal(policy.isDisabledRoute('/pages/'+page+'/index'),true,page);
   } else {
     const api = loadApi('api/index/index.js',['loadCategoryMenus'],{localFeatures:policy});
     const urls = ['/pages/repairOrder/repairOrder','/pages/roomPayFee/roomPayFee','/pages/meterReading/meterReading'];

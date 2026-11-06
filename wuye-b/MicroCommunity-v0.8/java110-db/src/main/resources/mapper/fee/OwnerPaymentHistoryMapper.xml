@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="OwnerPaymentHistory">
+    <sql id="scope">
+        FROM pay_fee_detail t
+        JOIN pay_fee pf ON pf.fee_id=t.fee_id AND pf.community_id=t.community_id AND pf.status_cd='0'
+        WHERE t.community_id=#{communityId} AND t.status_cd='0' AND t.state='1400'
+        <if test="feeId != null and feeId != ''">AND t.fee_id=#{feeId}</if>
+        AND EXISTS (
+            SELECT 1 FROM owner_app_user a
+            JOIN building_owner bo ON bo.member_id=a.member_id AND bo.community_id=a.community_id AND bo.status_cd='0'
+            WHERE a.user_id=#{userId} AND a.community_id=t.community_id AND a.status_cd='0' AND a.state='12000'
+            AND (
+                (pf.payer_obj_type='3333' AND EXISTS (
+                    SELECT 1 FROM building_owner_room_rel rr
+                    JOIN building_room r ON r.room_id=rr.room_id AND r.community_id=t.community_id AND r.status_cd='0'
+                    WHERE rr.owner_id=bo.owner_id AND rr.room_id=pf.payer_obj_id AND rr.status_cd='0' AND rr.state='2001'
+                ))
+                OR (pf.payer_obj_type IN ('6666','parking') AND EXISTS (
+                    SELECT 1 FROM owner_car c WHERE c.owner_id=bo.member_id AND c.community_id=t.community_id AND c.status_cd='0'
+                    AND ((pf.payer_obj_type='6666' AND c.car_id=pf.payer_obj_id) OR (pf.payer_obj_type='parking' AND c.ps_id=pf.payer_obj_id))
+                ))
+            )
+        )
+    </sql>
+    <select id="count" parameterType="Map" resultType="int">
+        SELECT COUNT(*) <include refid="scope"/>
+    </select>
+    <select id="list" parameterType="Map" resultType="Map">
+        SELECT t.detail_id detailId,t.fee_id feeId,t.received_amount receivedAmount,t.cycles,
+            DATE_FORMAT(t.start_time,'%Y-%m-%d') startTime,DATE_FORMAT(t.end_time,'%Y-%m-%d') endTime,
+            DATE_FORMAT(t.create_time,'%Y-%m-%d %H:%i:%s') createTime,t.remark,
+            COALESCE((SELECT MAX(NULLIF(fa.value,'')) FROM pay_fee_attrs fa WHERE fa.fee_id=pf.fee_id AND fa.spec_cd='390002' AND fa.status_cd='0'),
+                (SELECT MAX(fc.fee_name) FROM pay_fee_config fc WHERE fc.config_id=pf.config_id AND fc.community_id=pf.community_id AND fc.status_cd='0'), '费用') feeName,
+            CASE WHEN pf.payer_obj_type='3333' THEN COALESCE((
+                SELECT CONCAT_WS('-',f.floor_num,u.unit_num,r.room_num) FROM building_room r
+                LEFT JOIN building_unit u ON u.unit_id=r.unit_id AND u.status_cd='0'
+                LEFT JOIN f_floor f ON f.floor_id=u.floor_id AND f.status_cd='0'
+                WHERE r.room_id=pf.payer_obj_id AND r.community_id=pf.community_id AND r.status_cd='0' LIMIT 1),pf.payer_obj_id)
+            ELSE COALESCE((SELECT MAX(c.car_num) FROM owner_car c WHERE c.community_id=pf.community_id AND c.status_cd='0'
+                AND ((pf.payer_obj_type='6666' AND c.car_id=pf.payer_obj_id) OR (pf.payer_obj_type='parking' AND c.ps_id=pf.payer_obj_id))),pf.payer_obj_id)
+            END payerObjName
+        <include refid="scope"/>
+        ORDER BY t.create_time DESC,t.detail_id DESC LIMIT #{offset},#{row}
+    </select>
+</mapper>

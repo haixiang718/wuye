@@ -1,168 +1,90 @@
 <template>
-	<view>
-		<view  class="block__title">缴费历史</view>
-		<view v-if="noData == false">
-			<view v-for="(item,index) in feeDetails" :key="index" class="bg-white margin-bottom margin-right-xs radius margin-left-xs padding">
-				<view class="flex padding-bottom-xs solid-bottom justify-between">
-					<view>缴费金额</view>
-					<view class="text-gray">{{item.receivedAmount}}元</view>
-				</view>
-				<view class="flex margin-top justify-between">
-					<view class="text-gray">费用名称</view>
-					<view class="text-gray">{{item.feeName}}</view>
-				</view>
-				<view class="flex margin-top-xs justify-between">
-					<view class="text-gray">缴费编码</view>
-					<view class="text-gray">{{item.detailId}}</view>
-				</view>
-				<view class="flex margin-top-xs justify-between">
-					<view class="text-gray">缴费周期</view>
-					<view class="text-gray">{{item.cycles}}个月</view>
-				</view>
-				<view class="flex margin-top-xs justify-between">
-					<view class="text-gray">起始时间</view>
-					<view class="text-gray">{{item.startTime}}</view>
-				</view>
-				<view class="flex margin-top-xs justify-between">
-					<view class="text-gray">结束时间</view>
-					<view class="text-gray">{{item.endTime}}</view>
-				</view>
-				<view class="flex margin-top-xs justify-between">
-					<view class="text-gray">缴费时间</view>
-					<view class="text-gray">{{item.createTime}}</view>
-				</view>
-				<view class="flex margin-top-xs justify-between">
-					<view class="text-gray">备注</view>
-					<view class="text-gray">{{item.remark}}</view>
-				</view>
-			</view>
-		</view>
-		<view v-else>
-			<no-data-page></no-data-page>
-		</view>
-
-	</view>
+  <view class="history-page">
+    <!-- #ifdef H5 -->
+    <wechat-binding-gate />
+    <!-- #endif -->
+    <view v-if="!wechatPropertyLocked">
+      <view class="history-heading">缴费历史<text class="history-subtitle">当前小区 · 已缴费用</text></view>
+      <view v-for="item in feeDetails" :key="item.detailId" class="history-card">
+        <view class="history-top"><view class="history-name">{{item.feeName || '费用'}}</view><view class="history-amount">¥{{money(item.receivedAmount) || '金额待核实'}}</view></view>
+        <view class="history-row"><text>房屋 / 车辆</text><text>{{item.payerObjName || '—'}}</text></view>
+        <view class="history-row"><text>缴费时间</text><text>{{item.createTime || '—'}}</text></view>
+        <view class="history-row"><text>费用账期</text><text>{{date(item.startTime)}} 至 {{date(item.endTime)}}</text></view>
+        <view class="history-row"><text>缴费编码</text><text>{{item.detailId}}</text></view>
+        <view v-if="item.remark" class="history-row"><text>备注</text><text>{{item.remark}}</text></view>
+      </view>
+      <view v-if="loading" class="history-state">正在加载缴费记录…</view>
+      <view v-else-if="error" class="history-state"><view>{{error}}</view><button class="cu-btn line-green margin-top" @click="retry">重新加载</button></view>
+      <view v-else-if="noData" class="history-state">暂无缴费记录</view>
+      <view v-else-if="feeDetails.length" class="history-state"><button v-if="hasMore" class="cu-btn line-green" @click="loadMore">加载更多</button><text v-else>已显示全部记录</text></view>
+    </view>
+  </view>
 </template>
-
 <script>
-	const context = require('../../context/Java110Context.js');
-	import {formatDate}  from '../../utils/DateUtil.js'
-
-	const constant = context.constant;
-	import noDataPage from '@/components/no-data-page/no-data-page.vue'
-
-
-	const util = context.util;
-	export default {
-		data() {
-			return {
-				feeDetails: [],
-				ownerId: '',
-				communityId: '',
-				noData: false
-			}
-		},
-		components: {
-			noDataPage
-		},
-
-		/**
-		 * 生命周期函数--监听页面加载
-		 */
-		onLoad: function(options) {
-			context.onLoad(options);
-			let _that = this;
-			context.getOwner(function(_owner) {
-				_that.ownerId = _owner.memberId;
-				_that.communityId = _owner.communityId;
-				_that._loadFeeDetail();
-			});
-
-			
-		},
-		methods: {
-			_loadFeeDetail: function() {
-				let _that = this;
-				let _objData = {
-					page: 1,
-					row: 30,
-					ownerId: this.ownerId,
-					communityId: this.communityId
-				}
-				context.request({
-					url: constant.url.queryFeeDetail,
-					header: context.getHeaders(),
-					method: "GET",
-					data: _objData, //动态数据
-					success: function(res) {
-						console.log(res);
-						if (res.statusCode == 200) {
-							//成功情况下跳转
-							let _feeDetails = res.data.feeDetails;
-							if (_feeDetails == null || _feeDetails == undefined) {
-								_feeDetails = [];
-							} else {
-								_feeDetails.forEach(function(_feeDetail) {
-									let _tmpCreateTime = _feeDetail.createTime.replace(/\-/g, "/")
-									let _createTime = new Date(_tmpCreateTime);
-									_feeDetail.createTime = formatDate(_createTime);
-									if(_feeDetail.hasOwnProperty("startTime")){
-										let _tmpStartTime = _feeDetail.startTime.replace(/\-/g, "/")
-										let _startTime = new Date(_tmpStartTime);
-										_feeDetail.startTime = formatDate(_startTime);
-									}
-									
-									if(_feeDetail.hasOwnProperty("endTime")){
-										let _tmpEndTime = _feeDetail.endTime.replace(/\-/g, "/")
-										let _endTime = new Date(_tmpEndTime);
-										_feeDetail.endTime = formatDate(_endTime);
-									}
-									
-								});
-							}
-
-							if (_feeDetails.length < 1) {
-								_that.noData = true;
-							}
-							console.log(_feeDetails, _feeDetails.length, _that.noData);
-							_that.feeDetails = _feeDetails;
-						}
-					},
-					fail: function(e) {
-						wx.showToast({
-							title: "服务器异常了",
-							icon: 'none',
-							duration: 2000
-						})
-					}
-				});
-			}
-		}
-	}
+const context = require('../../context/Java110Context.js');
+import {getCurOwner} from '../../api/owner/ownerApi.js';
+import feeDisplay from '../../utils/fee-display.js';
+export default {
+  data() {
+    return {feeDetails:[],communityId:'',feeId:'',page:0,row:20,total:0,noData:false,loading:false,error:'',requestId:0,initialized:false,active:false};
+  },
+  computed: {hasMore() {return this.page * this.row < this.total;}},
+  onLoad(options) {
+    this.active=true;
+    if(options.fee) {try {this.feeId=JSON.parse(options.fee).feeId || '';} catch (_) {this.error='费用信息无效，请从缴费历史重新进入';return;}}
+    this._sessionChanged=()=>{this.requestId++;this.feeDetails=[];this.page=0;this.loading=false;this.noData=false;if(this.initialized && this.active)this.reload();};
+    if(uni.$on)uni.$on('owner-wechat-session-changed',this._sessionChanged);
+    context.onLoad(options,()=>{this.initialized=true;if(this.active)this.reload();});
+    // #ifndef H5
+    this.initialized=true;this.reload();
+    // #endif
+  },
+  onShow() {this.active=true;if(this.initialized)this.reload();},
+  onHide() {this.active=false;this.requestId++;this.loading=false;this.feeDetails=[];},
+  onUnload() {this.active=false;this.requestId++;if(uni.$off)uni.$off('owner-wechat-session-changed',this._sessionChanged);},
+  onReachBottom() {this.loadMore();},
+  onPullDownRefresh() {return this.reload().finally(()=>uni.stopPullDownRefresh());},
+  methods: {
+    money:feeDisplay.money,date:feeDisplay.date,
+    reload() {this.requestId++;this.feeDetails=[];this.page=0;this.total=0;this.noData=false;this.error='';this.loading=false;return this.loadPage(1);},
+    retry() {return this.page ? this.loadPage(this.page+1) : this.reload();},
+    loadMore() {if(!this.loading && this.page * this.row < this.total)return this.loadPage(this.page+1);},
+    async loadPage(page) {
+      if(this.loading)return;
+      const id=++this.requestId;
+      this.loading=true;this.error='';
+      try {
+        if(this.wechatDirect && this.wechatPropertyLocked)throw new Error('请先绑定房产后查看');
+        const owner=await getCurOwner();
+        if(id!==this.requestId)return;
+        if(!owner || !owner.communityId)throw new Error('请先绑定房产后查看');
+        this.communityId=owner.communityId;
+        const data={communityId:this.communityId,page,row:this.row};
+        if(this.feeId)data.feeId=this.feeId;
+        const response=await new Promise((resolve,reject)=>context.request({url:context.constant.url.queryFeeDetail,method:'GET',data,
+          success:resolve,fail:()=>reject(new Error('网络连接失败，请稍后重试'))}));
+        if(id!==this.requestId)return;
+        const body=response.data || {};
+        if(response.statusCode!==200 || body.code!=0 || !Array.isArray(body.feeDetails))throw new Error(response.statusCode===403?'房产绑定已失效，请重新绑定后查看':'缴费记录加载失败，请稍后重试');
+        this.feeDetails=page===1?body.feeDetails:this.feeDetails.concat(body.feeDetails);
+        this.total=Number(body.total)||0;this.page=page;this.noData=this.feeDetails.length===0;
+      } catch(error) {
+        if(id===this.requestId){this.error=error && error.message || '缴费记录加载失败，请稍后重试';this.noData=false;}
+      } finally {if(id===this.requestId)this.loading=false;}
+    }
+  }
+};
 </script>
-
-<style>
-	.solid-bottom::after {
-		border-bottom: 2upx solid rgba(0, 0, 0, 0.1);
-	}
-
-	.ppf_item {
-		padding: 0rpx 0rpx 0rpx 0rpx;
-	}
-
-	.block__title {
-		margin: 0;
-		font-weight: 400;
-		font-size: 14px;
-		color: rgba(69, 90, 100, .6);
-		padding: 40rpx 30rpx 20rpx;
-	}
-
-	.button_up_blank {
-		height: 40rpx;
-	}
-
-	.block__bottom {
-		height: 180rpx;
-	}
+<style scoped>
+.history-page{padding:24rpx;}
+.history-heading{font-size:32rpx;font-weight:600;margin:8rpx 0 28rpx;}
+.history-subtitle{display:block;font-size:24rpx;color:#7b8493;font-weight:400;margin-top:8rpx;}
+.history-card{background:#fff;border-radius:16rpx;padding:28rpx;margin-bottom:20rpx;}
+.history-top{display:flex;justify-content:space-between;gap:20rpx;border-bottom:1px solid #edf0f4;padding-bottom:22rpx;margin-bottom:20rpx;align-items:flex-start;}
+.history-name{font-size:30rpx;min-width:0;overflow-wrap:anywhere;}
+.history-amount{font-size:34rpx;color:#14836b;font-weight:600;flex-shrink:0;}
+.history-row{display:flex;justify-content:space-between;gap:24rpx;font-size:24rpx;margin-top:14rpx;color:#737e8c;}
+.history-row text:first-child{flex-shrink:0;}
+.history-row text:last-child{text-align:right;color:#384454;overflow-wrap:anywhere;min-width:0;}
+.history-state{text-align:center;color:#7b8493;padding:32rpx 0;}
 </style>

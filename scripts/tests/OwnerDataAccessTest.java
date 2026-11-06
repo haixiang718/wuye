@@ -20,6 +20,7 @@ public class OwnerDataAccessTest {
     private String forwardedUrl;
     private HttpHeaders forwardedHeaders;
     private JSONObject billQuery;
+    private JSONObject historyQuery;
     private final RestTemplate template=new RestTemplate(){
         @Override public <T> T postForObject(String url,Object body,Class<T> type,Object... vars){
             String reply;
@@ -28,6 +29,10 @@ public class OwnerDataAccessTest {
             else if(url.endsWith("/queryOwnerAppUsers"))reply="[{\"appUserId\":\"binding-me\",\"userId\":\"me\",\"communityId\":\"community\",\"ownerId\":\"owner-me\",\"memberId\":\"family-member\",\"state\":\""+(approved?"12000":"10000")+"\"}]";
             else if(url.endsWith("/queryRoomsByOwner"))reply="[{\"roomId\":\"room-1\"},{\"roomId\":\"room-2\"}]";
             else if(url.endsWith("/queryBillOweFeeCount"))reply="1";
+            else if(url.endsWith("/queryOwnerPaymentHistory")) {
+                historyQuery=JSON.parseObject(String.valueOf(((HttpEntity<?>)body).getBody()));
+                reply="{\"code\":0,\"total\":1,\"records\":1,\"feeDetails\":[{\"detailId\":\"paid-1\",\"receivedAmount\":\"0.01\",\"feeName\":\"Paid fee\"}]}";
+            }
             else if(url.endsWith("/queryBillOweFees")) {
                 billQuery=JSON.parseObject(String.valueOf(((HttpEntity<?>)body).getBody()));
                 reply="[{\"oweId\":\"owe-1\",\"billId\":\"bill-1\",\"feeId\":\"fee-own\",\"ownerId\":\"owner-me\",\"communityId\":\"community\",\"payObjId\":\"room-2\",\"payerObjType\":\"3333\",\"feeName\":\"Published fee\",\"billAmountOwed\":\"0.01\",\"feeEndTime\":\"2026-10-01\",\"deadlineTime\":\"2026-11-01\",\"reviewState\":\"PUBLISHED\",\"state\":\"1000\"}]";
@@ -84,6 +89,21 @@ public class OwnerDataAccessTest {
     @Test public void unscopedFeeListIsRejected()throws Exception{forbidden("fee.listFee","{\"communityId\":\"community\"}");}
     @Test public void otherFeeHistoryIsRejected()throws Exception{forbidden("fee.queryFeeDetail","{\"communityId\":\"community\",\"feeId\":\"fee-other\"}");}
     @Test public void ownFeeHistoryIsAllowed()throws Exception{assertEquals(HttpStatus.OK,call("fee.queryFeeDetail","{\"communityId\":\"community\",\"feeId\":\"fee-own\"}").getStatusCode());}
+    @Test public void allOwnedPaymentHistoryDoesNotRequireOneUnpaidFee()throws Exception{
+        ResponseEntity<String> response=call("fee.queryFeeDetail","{\"communityId\":\"community\",\"page\":1,\"row\":20}");
+        assertEquals(HttpStatus.OK,response.getStatusCode());
+        assertEquals("paid-1",JSON.parseObject(response.getBody()).getJSONArray("feeDetails").getJSONObject(0).getString("detailId"));
+        assertEquals(0,forwarded);assertEquals("me",historyQuery.getString("userId"));
+    }
+    @Test public void historyNeverForwardsClientChosenOwnerOrFilters()throws Exception{
+        call("fee.queryFeeDetail","{\"communityId\":\"community\",\"ownerId\":\"other\",\"userId\":\"other\",\"statusCd\":\"1\",\"state\":\"1000\",\"page\":2,\"row\":20}");
+        assertNotNull(historyQuery);assertEquals("me",historyQuery.getString("userId"));
+        assertFalse(historyQuery.containsKey("ownerId"));assertFalse(historyQuery.containsKey("statusCd"));assertFalse(historyQuery.containsKey("state"));
+        assertEquals(2,historyQuery.getIntValue("page"));assertEquals(20,historyQuery.getIntValue("row"));
+    }
+    @Test public void pendingOwnerCannotReadAllHistory()throws Exception{approved=false;forbidden("fee.queryFeeDetail","{\"communityId\":\"community\"}");assertNull(historyQuery);}
+    @Test public void historyRejectsInvalidPagination()throws Exception{forbidden("fee.queryFeeDetail","{\"communityId\":\"community\",\"page\":0,\"row\":10000}");assertNull(historyQuery);}
+    @Test public void managementHistoryKeepsExistingEndpoint()throws Exception{level="01";call("fee.queryFeeDetail","{\"communityId\":\"community\"}");assertEquals(1,forwarded);assertNull(historyQuery);}
     @Test public void pendingBindingCannotReadFees()throws Exception{approved=false;forbidden("fee.listFee","{\"communityId\":\"community\",\"payerObjId\":\"room-1\",\"payerObjType\":\"3333\"}");}
     @Test public void otherCommunityIsRejected()throws Exception{forbidden("room.queryRoomsByOwner","{\"communityId\":\"other-community\",\"ownerId\":\"owner-me\"}");}
     @Test public void ownerCannotCallManagementApi()throws Exception{forbidden("fee.pushBill","{\"communityId\":\"community\"}");}

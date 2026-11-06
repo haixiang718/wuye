@@ -5,6 +5,7 @@ import com.java110.core.base.smo.BaseServiceSMO;
 import com.java110.dto.PageDto;
 import com.java110.dto.fee.FeeDetailDto;
 import com.java110.fee.dao.IFeeDetailServiceDao;
+import com.java110.fee.dao.OwnerPaymentHistoryRepository;
 import com.java110.intf.fee.IFeeDetailInnerServiceSMO;
 import com.java110.intf.user.IUserInnerServiceSMO;
 import com.java110.po.fee.PayFeeDetailPo;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @ClassName FloorInnerServiceSMOImpl
@@ -26,6 +28,13 @@ import java.util.List;
  **/
 @RestController
 public class FeeDetailInnerServiceSMOImpl extends BaseServiceSMO implements IFeeDetailInnerServiceSMO {
+
+    @Autowired private OwnerPaymentHistoryRepository ownerPaymentHistoryRepository;
+
+    @Override
+    public Map<String,Object> queryOwnerPaymentHistory(@RequestBody Map<String,Object> scope) {
+        return ownerPaymentHistoryRepository.history(scope);
+    }
 
     @Autowired
     private IFeeDetailServiceDao feeDetailServiceDaoImpl;

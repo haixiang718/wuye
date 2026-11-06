@@ -51,12 +51,6 @@
 					<text class="text-grey">缴费历史</text>
 				</view>
 			</view>
-			<view class="cu-item arrow" @click="myRenovation()">
-				<view class="content">
-					<text class="cuIcon-form text-green"></text>
-					<text class="text-grey">房屋装修</text>
-				</view>
-			</view>
 			<view class="cu-item arrow" @click="myParking()">
 				<view class="content">
 					<text class="cuIcon-formfill text-orange"></text>
@@ -194,19 +188,6 @@
 
 			onGotUserInfo: function(e) {
 				console.log("nickname=" + JSON.stringify(e.detail.userInfo));
-			},
-			myRenovation: function() {
-				if (!this.ckeckUserInfo()) {
-					this.vc.navigateTo({
-						url: '../showlogin/showlogin'
-					}, () => {
-						this.refreshPageLoginInfo();
-					});
-					return;
-				}
-				this.vc.navigateTo({
-					url: '../myRenovation/myRoomList'
-				});
 			},
 			myHouse: function() {
 				if (!this.ckeckUserInfo()) {

@@ -30,7 +30,8 @@ public class OwnerDataAccessService {
         String code = service.startsWith("/") ? service.substring(1) : service;
         boolean list = "fee.listFee".equals(code);
         boolean arrears = "feeApi/listOweFees".equals(code);
-        if (!list && !arrears) return null;
+        boolean history = "fee.queryFeeDetail".equals(code);
+        if (!list && !arrears && !history) return null;
         String userId = pd == null ? null : pd.getUserId();
         require(userId != null && !userId.isEmpty() && !"-1".equals(userId));
         JSONArray users = query("user-service/userApi/getUsers", object("userId",userId));
@@ -39,8 +40,23 @@ public class OwnerDataAccessService {
         if (!"02".equals(level) && !"03".equals(level)) return null;
         if (!query("store-service/storeApi/getStoreUserInfo",object("userId",userId)).isEmpty()) return null;
         String community = params.getString("communityId");
+        require(community != null && !community.isEmpty());
         Set<String> owners = approvedOwners(userId,community);
         require(!owners.isEmpty());
+        if (history) {
+            JSONObject scope = object("userId",userId);
+            scope.put("communityId",community);
+            int page = params.getInteger("page") == null ? 1 : params.getIntValue("page");
+            int row = params.getInteger("row") == null ? 30 : params.getIntValue("row");
+            require(page > 0 && row > 0 && row <= 100 && (long)(page - 1) * row <= Integer.MAX_VALUE);
+            scope.put("page",page); scope.put("row",row);
+            if (params.getString("feeId") != null && !params.getString("feeId").isEmpty()) scope.put("feeId",params.getString("feeId"));
+            HttpHeaders headers = new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+            String result = restTemplate.postForObject("http://fee-service/feeDetailApi/queryOwnerPaymentHistory",
+                    new HttpEntity<>(scope.toJSONString(),headers),String.class);
+            require(result != null);
+            return new ResponseEntity<>(result,HttpStatus.OK);
+        }
         JSONObject scoped = object("communityId",community);
         scoped.put("ownerIds",owners); scoped.put("reviewState","PUBLISHED");
         scoped.put("curBill","T"); scoped.put("outstandingOnly","T");
@@ -156,6 +172,7 @@ public class OwnerDataAccessService {
             require(ownsObject(community, owners, members, params.getString("payerObjType"), params.getString("payerObjId"))); return;
         }
         if ("fee.queryFeeDetail".equals(code) || "feeDiscount/computeFeeDiscount".equals(code)) {
+            if ("fee.queryFeeDetail".equals(code) && (params.getString("feeId") == null || params.getString("feeId").isEmpty())) return;
             require(params.getString("feeId") != null && !params.getString("feeId").isEmpty());
             JSONObject q = object("feeId", params.getString("feeId")); q.put("communityId", community);
             JSONArray fees = query("fee-service/feeApi/queryFees", q);

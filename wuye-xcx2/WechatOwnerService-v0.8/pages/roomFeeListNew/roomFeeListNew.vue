@@ -26,10 +26,9 @@
 			<view class="cu-list menu" v-if="moreRooms.length > 0" v-for="(fee, idx) in moreRooms" :key="idx" :data-item="fee"
 			 @click="payFee(fee)">
 				<view class="cu-item arrow">
-					<view class="content padding-tb-sm">
-						<view>
-							<view class="text-cut" style="width:220px">{{fee.feeName}}</view>
-						</view>
+					<view class="content padding-tb-sm bill-content">
+						<view class="bill-heading"><view class="bill-name">{{fee.feeName}}</view><view class="bill-amount">待缴 <text v-if="money(fee.amount)">¥{{money(fee.amount)}}</text><text v-else>金额待核实</text></view></view>
+						<view class="bill-period">账期 {{date(fee.feeEndTime)}} 至 {{date(fee.deadlineTime)}}</view>
 					</view>
 				</view>
 			</view>
@@ -52,6 +51,7 @@
 	const context = require("../../context/Java110Context.js");
 	const constant = context.constant;
 	import noDataPage from '@/components/no-data-page/no-data-page.vue'
+	import feeDisplay from '../../utils/fee-display.js';
 
 	import {
 		getRooms
@@ -90,6 +90,8 @@
 		 */
 		onShow: function() {return this.loadRoomBills();},
 		methods: {
+			money: feeDisplay.money,
+			date: feeDisplay.date,
 			loadRoomBills: function() {
 			let _that = this;
 			if(this.wechatDirect && this.wechatPropertyLocked){this.rooms=[];this.moreRooms=[];this.noData=true;return;}
@@ -188,6 +190,11 @@
 </script>
 <style>
 	@import "./roomFeeListNew.css";
+	.bill-content{min-width:0;width:100%;}
+	.bill-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:20rpx;}
+	.bill-name{min-width:0;font-size:30rpx;overflow-wrap:anywhere;}
+	.bill-amount{flex-shrink:0;color:#d45235;font-size:28rpx;font-weight:600;}
+	.bill-period{font-size:24rpx;color:#7b8493;margin-top:12rpx;white-space:normal;}
 
 	.solid-bottom::after {
 		border-bottom: 2upx solid rgba(0, 0, 0, 0.1);

@@ -11,7 +11,7 @@ function page(rooms = [{ roomId: 'room-1' }, { roomId: 'room-2' }], operations =
         .replace(/import\s[\s\S]*?from\s*['"][^'"]+['"];?/g, '')
         .replace('export default', 'module.exports =');
     const sandbox = {
-        module: { exports: {} }, noDataPage: {},
+        module: { exports: {} }, noDataPage: {}, feeDisplay: require('../utils/fee-display'),
         require: () => ({ constant: {}, onLoad: options => loads.push(options) }),
         uni: { showToast: options => toasts.push(options) },
         getRooms: operations.getRooms || (async () => ({ rooms, owner: { communityId: 'community-1', communityName: '小区' } })),

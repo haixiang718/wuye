@@ -8,6 +8,9 @@ const disabledServices = new Set([
   'resourcestore','resourcestoretypemanage','resourcesupplier','storehouse','machine','machineauth',
   'machinetranslate','machinerecord','applicationkey','addownerrepair'
 ]);
+['family','familylist','hireroom','applyparking','applyroom','applyroomdetail','roomrenovation','roomrenovationdetail',
+ 'myrenovation','myroomrenovationrecord','myroomrenovationrecorddetail','contractfee','contractfeelist','contractowefee',
+ 'questionanswer','questionanswerdetail','callproperty'].forEach(page=>disabledPages.add(page));
 const parkingOperations = new Set(['machinetranslate.machinegetfreeparkingspace', 'machinetranslate.machineuploadcarlog', 'machinetranslate.machineroadgateopen', 'machinetranslate.machineheartbeart', 'machinetranslate.machinegettaskinfo', 'machinetranslate.machinecmdresult']);
 const disabledOperations = new Set([
   'index.queryindextodotask','index/queryindextodotask',

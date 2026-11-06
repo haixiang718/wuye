@@ -34,10 +34,7 @@ export function getRoomFees(_objData,_tmpRoom) {
 				if (res.statusCode == 200) {
 					//成功情况下跳转
 					let _roomFees = res.data.fees;
-					if (_roomFees.length < 1) {
-						//_that.noData = true;
-						reject();
-					}
+					if (!Array.isArray(_roomFees)) { reject(); return; }
 					_roomFees.forEach(function(_roomFee) {
 						_tmpRoom = JSON.parse(JSON.stringify(_tmpRoom));
 						_tmpRoom.endTime = dateTimeStringToDateString(_roomFee.endTime);

@@ -4,56 +4,20 @@
 			<uni-notice-bar showIcon="true" scrollable="true" single="true" speed="30" text="欢迎访问HC智慧家园"></uni-notice-bar>
 		</view>
 
-		<scroll-view @scrolltolower="lower" class="scroll-restaurants-list" scroll-y="true" style="height:100%">
-			<swiper class="categoryList padding-top-xs bg-white" indicator-dots="true" indicator-color="rgba(228,228,228,1)"
-			 indicator-active-color="#FECA49">
-				<block v-for="(item, index) in categoryList" :key="index">
-					<swiper-item>
-						<block v-for="(item, index2) in item" :key="index2">
-							<view class="category-info" v-if="item.href != 'callProperty'">
-								<navigator @tap="toPage(item.href)">
-									<image :src="item.src" class="category-image"></image>
-									<view class="category-text">{{item.name}}</view>
-								</navigator>
-							</view>
-							<view class="category-info" v-if="item.href == 'callProperty'">
-								<view @tap="callPropertyTel()">
-									<image :src="item.src" class="category-image"></image>
-									<view class="category-text">{{item.name}}</view>
-								</view>
-							</view>
-						</block>
-					</swiper-item>
-				</block>
-			</swiper>
-
-
-
-		</scroll-view>
-		<view class="cu-modal" :class="callPropertyModal==true?'show':''">
-			<view class="cu-dialog">
-				<view class="cu-bar bg-white justify-end">
-					<view class="content">拨打电话</view>
-					<view class="action" @tap="_cancleCall()">
-						<text class="cuIcon-close text-red"></text>
-					</view>
-				</view>
-				<view class="padding-xl">
-					您确认拨打,{{property.communityName}}物业客服电话<br />{{property.sCommunityTel}}
-				</view>
-				<view class="cu-bar bg-white justify-end">
-					<view class="action margin-0 flex-sub  solid-left" @tap="_cancleCall()">取消</view>
-					<view class="action margin-0 flex-sub text-green solid-left" @tap="_doCall()">拨号</view>
-				</view>
-			</view>
-		</view>
+        <view class="home-services bg-white">
+            <view v-for="(items,group) in categoryList" :key="group" class="home-grid">
+                <view v-for="item in items" :key="item.href" class="home-service" @tap="toPage(item.href)">
+                    <image :src="item.src" class="category-image"></image>
+                    <view class="category-text">{{item.name}}</view>
+                </view>
+            </view>
+        </view>
 	</view>
 </template>
 
 <script>
 	import uniNoticeBar from '@/components/uni-notice-bar/uni-notice-bar.vue'
 	import {getCategoryList} from '../../api/index/indexApi.js'
-	import {getProperty} from '../../api/property/propertyApi.js'
 
 	import {getCurOwner} from '../../api/owner/ownerApi.js'
 
@@ -62,8 +26,6 @@
 		data() {
 			return {
 				communityId: '',
-				property: {},
-				callPropertyModal: false,
 				categoryList: {},
 				selected: 0,
 				mask1Hidden: true,
@@ -137,41 +99,6 @@
 					url: '../bindOwner/bindOwner'
 				});
 			},
-			callPropertyTel: function() { //拨打电话
-				let _that = this;
-				if (!hasLogin()) {
-					this.vc.navigateTo({
-						url: '../showlogin/showlogin'
-					});
-					return;
-				}
-				uni.getStorage({
-					key: 'ownerInfo',
-					success: function (res) {
-						console.log(res.data);
-						_that.property = res.data;
-						_that.callPropertyModal = true;
-					}
-				});
-			},
-			_doCall: function() {
-				let _that = this;
-				uni.makePhoneCall({
-					// 手机号
-					phoneNumber: _that.property.sCommunityTel,
-					// 成功回调
-					success: (res) => {
-						console.log('调用成功!')
-					},
-					// 失败回调
-					fail: (res) => {
-						console.log('调用失败!')
-					}
-				});
-			},
-			_cancleCall: function() {
-				this.callPropertyModal = false;
-			},
 			toPage: function(pageUrl) {
 				this.vc.navigateTo({
 					url: pageUrl
@@ -182,6 +109,9 @@
 </script>
 <style>
 	@import "./index.css";
+.home-services{padding:32rpx 12rpx;border-radius:16rpx;margin:20rpx;}
+.home-grid{display:flex;}
+.home-service{flex:1;min-width:0;text-align:center;padding:16rpx 0;}
 
 	.bock-icon {
 		height: 34upx;

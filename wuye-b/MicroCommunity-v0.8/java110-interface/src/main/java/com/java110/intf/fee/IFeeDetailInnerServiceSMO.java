@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @ClassName IFeeDetailInnerServiceSMO
@@ -21,6 +22,10 @@ import java.util.List;
 @FeignClient(name = "fee-service", configuration = {FeignConfiguration.class})
 @RequestMapping("/feeDetailApi")
 public interface IFeeDetailInnerServiceSMO {
+
+    /** Authenticated resident history, independently scoped to approved property relationships. */
+    @RequestMapping(value = "/queryOwnerPaymentHistory", method = RequestMethod.POST)
+    Map<String,Object> queryOwnerPaymentHistory(@RequestBody Map<String,Object> scope);
 
     /**
      * <p>查询小区楼信息</p>
