@@ -121,9 +121,6 @@
             _queryOwnerMethod: function () {
                 vc.component._listOwnerData(DEFAULT_PAGE, DEFAULT_ROWS);
             },
-            _openAddOwnerRoom: function (_owner) {
-                vc.jumpToPage("/admin.html#/pages/property/addOwnerRoomBinding?ownerId=" + _owner.ownerId);
-            },
             _openHireParkingSpace: function (_owner) {
                 vc.jumpToPage("/admin.html#/pages/property/hireParkingSpace?ownerId=" + _owner.ownerId);
             },

@@ -27,6 +27,7 @@
                     roomType: '1010301'
                 },
                 currentPage: DEFAULT_PAGE,
+                binding: {room: null, communityId: '', saving: false},
                 listColumns: []
             }
         },
@@ -42,6 +43,9 @@
             //vc.component._loadDataByParam();
         },
         _initEvent: function () {
+            vc.on('room', 'chooseOwner', function (owner) {
+                $that._bindRoomOwner(owner);
+            });
             vc.on('room', 'chooseFloor', function (_param) {
                 vc.component.roomInfo.conditions.floorId = _param.floorId;
                 vc.component.roomInfo.conditions.floorName = _param.floorName;
@@ -59,6 +63,53 @@
             });
         },
         methods: {
+            _roomHasOwner: function (room) {
+                return !!(room && (room.ownerId || room.ownerName));
+            },
+            _openBindRoomOwner: function (room) {
+                if ($that.roomInfo.binding.saving) return;
+                if (!vc.hasPrivilege('502019091322800001')) {vc.toast('没有房产绑定权限'); return;}
+                if (!room || !room.roomId || !room.floorId) {vc.toast('房屋信息不完整，请重新查询'); return;}
+                if ($that._roomHasOwner(room)) {vc.toast('该房屋已绑定业主，请先核对现有关系'); return;}
+                $that.roomInfo.binding = {room: Object.assign({}, room), communityId: vc.getCurrentCommunity().communityId, saving: false};
+                vc.emit('searchOwner', 'openSearchOwnerModel', {});
+            },
+            _bindRoomOwner: function (owner) {
+                var binding = $that.roomInfo.binding;
+                if (!binding.room || binding.saving) return;
+                if (!vc.hasPrivilege('502019091322800001')) {vc.toast('没有房产绑定权限'); return;}
+                if (binding.communityId !== vc.getCurrentCommunity().communityId
+                    || (owner && owner.communityId && owner.communityId !== binding.communityId)) {
+                    binding.room = null; vc.toast('小区已变化，请重新选择房屋和业主'); return;
+                }
+                if (!owner || !owner.ownerId) {vc.toast('请先选择业主'); return;}
+                var room = binding.room;
+                var name = [room.floorNum, room.unitNum, room.roomNum].join('-');
+                if (!window.confirm('确认将房屋“' + name + '”绑定到业主“' + (owner.name || owner.ownerId) + '”？')) {
+                    binding.room = null; return;
+                }
+                binding.saving = true;
+                var params = {communityId: binding.communityId, data: [
+                    {flowComponent: 'viewFloorInfo', floorId: room.floorId},
+                    {flowComponent: 'sellRoomSelectRoom', roomId: room.roomId},
+                    {flowComponent: 'viewOwnerInfo', ownerId: owner.ownerId}
+                ]};
+                var finish = function (message) {
+                    binding.saving = false; binding.room = null; vc.toast(message);
+                    if (binding.communityId === vc.getCurrentCommunity().communityId) {
+                        $that.listRoom($that.roomInfo.currentPage, DEFAULT_ROW);
+                    }
+                };
+                vc.http.post('addOwnerRoomBinding', 'binding', JSON.stringify(params), {emulateJSON: true}, function (json, res) {
+                    var result;
+                    try {result = JSON.parse(json);} catch (e) {finish('绑定结果未确认，请重新查询房屋状态后核对'); return;}
+                    if (res.status === 200 && result && result.code !== undefined && result.code == 0) {
+                        finish(binding.communityId === vc.getCurrentCommunity().communityId ? '房产绑定成功' : '原小区房产绑定成功，请切回原小区核对');
+                        return;
+                    }
+                    finish((result && result.msg) || '房产绑定未完成，请查询房屋状态后核对');
+                }, function () {finish('绑定结果未确认，请重新查询房屋状态后核对');});
+            },
             listRoom: function (_page, _row) {
                 vc.component.roomInfo.conditions.page = _page;
                 vc.component.roomInfo.conditions.row = _row;

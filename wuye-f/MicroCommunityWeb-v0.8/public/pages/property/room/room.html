@@ -136,6 +136,11 @@
                                 {{item}}
                             </td>
                             <td class="text-center">
+                                <div class="btn-group" v-if="!_roomHasOwner(room) && vc.hasPrivilege('502019091322800001')">
+                                    <button class="btn-white btn btn-xs" :disabled="roomInfo.binding.saving"
+                                            v-on:click="_openBindRoomOwner(room)">房产绑定</button>
+                                </div>
+                                <span v-if="_roomHasOwner(room)" class="text-muted m-r-xs">已绑定</span>
                                 <div class="btn-group" v-if="vc.hasPrivilege('502020082493857941')">
                                     <button class="btn-white btn btn-xs" v-on:click="_openEditRoomModel(room)">修改
                                     </button>
@@ -165,4 +170,5 @@
     <!-- 删除员工权限 -->
     <vc:create path="property/editRoom"></vc:create>
     <vc:create path="property/deleteRoom"></vc:create>
+    <vc:create path="property/searchOwner" emitChooseOwner="room" emitLoadData="room"></vc:create>
 </div>
