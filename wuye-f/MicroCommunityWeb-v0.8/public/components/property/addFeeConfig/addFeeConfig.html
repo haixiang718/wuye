@@ -11,7 +11,7 @@
                                 <label class="col-sm-2 col-form-label">费用类型</label>
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="addFeeConfigInfo.feeTypeCd">
-                                        <option selected disabled value="">必填，请选择费用类型</option>
+                                        <option selected disabled value="" hidden>必填，请选择费用类型</option>
                                         <option v-for="(item,index) in addFeeConfigInfo.feeTypeCds" :key="index"
                                                 v-bind:value="item.statusCd">
                                             {{item.name}}
@@ -30,7 +30,7 @@
                                 <label class="col-sm-2 col-form-label">费用标识</label>
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="addFeeConfigInfo.feeFlag">
-                                        <option selected disabled value="">必填，请选择费用标识</option>
+                                        <option selected disabled value="" hidden>必填，请选择费用标识</option>
                                         <option v-for="(item,index) in addFeeConfigInfo.feeFlags" :key="index"
                                                 :value="item.statusCd">{{item.name}}
                                         </option>
@@ -41,7 +41,7 @@
                                 <label class="col-sm-2 col-form-label">付费类型</label>
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="addFeeConfigInfo.paymentCd">
-                                        <option selected disabled value="">必填，请选择付费类型</option>
+                                        <option selected disabled value="" hidden>必填，请选择付费类型</option>
                                         <option v-for="(item,index) in addFeeConfigInfo.paymentCds" :key="index"
                                                 :value="item.statusCd">{{item.name}}
                                         </option>
@@ -59,7 +59,7 @@
                                 <label class="col-sm-2 col-form-label">出账规则</label>
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="addFeeConfigInfo.billType">
-                                        <option selected disabled value="">必填，请选择出账规则</option>
+                                        <option selected disabled value="" hidden>必填，请选择出账规则</option>
                                         <option v-for="(item,index) in addFeeConfigInfo.billTypes" :key="index"
                                                 :value="item.statusCd">{{item.name}}
                                         </option>
@@ -85,7 +85,7 @@
                                 <label class="col-sm-2 col-form-label">计算公式</label>
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="addFeeConfigInfo.computingFormula">
-                                        <option selected disabled value="">必填，请选择计算公式</option>
+                                        <option selected disabled value="" hidden>必填，请选择计算公式</option>
                                         <option v-for="(item,index) in addFeeConfigInfo.computingFormulas" :key="index"
                                                 v-if="item.statusCd != '4004'" v-bind:value="item.statusCd">
                                             {{item.name}}

@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const pagePath = path.join(__dirname, '../public/pages/property/billOweManage/billOweManage');
-const bill = (extra = {}) => ({ oweId: 'owe-1', state: '1000', billAmountOwed: '125.50',
+const bill = (extra = {}) => ({ oweId: 'owe-1', state: '1000', reviewState: 'PUBLISHED', billAmountOwed: '125.50',
     amountOwed: '50.00', ownerName: '张三', payerObjName: '1栋-101', ...extra });
 
 function page(confirmResult = true) {
@@ -36,7 +36,8 @@ test('only unpaid bill rows with positive outstanding amounts can be pushed', ()
     assert.equal(component._canPushBill(bill()), true);
     assert.equal(component._canPushBill(bill({ state: 3000 })), true);
     for (const extra of [{ state: '2000' }, { state: 'unknown' }, { billAmountOwed: '0' },
-        { billAmountOwed: '-1' }, { billAmountOwed: 'bad' }, { billAmountOwed: Infinity }]) {
+        { billAmountOwed: '-1' }, { billAmountOwed: 'bad' }, { billAmountOwed: Infinity },
+        { reviewState: 'DRAFT' }, { reviewState: 'REJECTED' }, { reviewState: undefined }]) {
         assert.equal(component._canPushBill(bill(extra)), false);
     }
 });
@@ -62,6 +63,8 @@ test('paid and zero outstanding bills cannot send even when action is called dir
     const p = page();
     p.component._pushBill(bill({ state: '2000' }));
     p.component._pushBill(bill({ billAmountOwed: 0 }));
+    p.component._pushBill(bill({ reviewState: 'DRAFT' }));
+    p.component._pushBill(bill({ reviewState: 'REJECTED' }));
     assert.equal(p.posts.length, 0);
     assert.equal(p.confirmations.length, 0);
 });

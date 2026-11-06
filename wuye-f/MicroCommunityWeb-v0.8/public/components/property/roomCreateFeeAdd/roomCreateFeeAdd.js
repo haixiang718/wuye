@@ -175,7 +175,15 @@
                             var _json = JSON.parse(json);
                             $('#roomCreateFeeAddModel').modal('hide');
                             $that.clearAddFeeConfigInfo();
-                            vc.toast("创建收费成功，总共[" + _json.totalRoom + "]房屋，成功[" + _json.successRoom + "],失败[" + _json.errorRoom + "]", 8000);
+                            var _generation = _json.approvalGeneration;
+                            var _message = "创建收费完成，总共[" + _json.totalRoom + "]房屋，成功[" + _json.successRoom + "],失败[" + _json.errorRoom + "]";
+                            if (_json.successRoom > 0) {
+                                _message += _generation && _generation.code === 0 ? '；应缴费用已进入账单审核，请核对后审核'
+                                    : _generation && _generation.code === 1 ? '；当前无可出账应缴金额，系统到期后自动检查送审'
+                                    : '；自动送审处理中，请在费用账单查看状态，异常会保留并重试';
+                            }
+                            vc.toast(_message, 10000);
+                            vc.emit('roomCreateFee', 'notify', {});
                             vc.emit('listRoomFee', 'notify', {});
                             vc.emit('simplifyRoomFee', 'notify', {});
                             return;

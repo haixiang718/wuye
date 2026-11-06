@@ -71,11 +71,14 @@ public class ManualBillGenerationTest {
             return service;
         }
         JSONObject call() throws Exception {
+            return call(false);
+        }
+        JSONObject call(boolean automatic) throws Exception {
             FeeConfigDto input=new FeeConfigDto();input.setCommunityId(config.getCommunityId());input.setConfigId(config.getConfigId());
             input.setBillType("unsupported-input");input.setPaymentCycle("999");input.setFeeName("untrusted-input");
             input.setAdditionalAmount("999999");input.setStatusCd("1");
             Object target=service();
-            try { return (JSONObject)target.getClass().getMethod("generate",FeeConfigDto.class).invoke(target,input); }
+            try { return (JSONObject)target.getClass().getMethod(automatic?"generateAutomatic":"generate",FeeConfigDto.class).invoke(target,input); }
             catch (InvocationTargetException e) { if (e.getCause() instanceof Exception) throw (Exception)e.getCause(); throw e; }
         }
     }
@@ -95,7 +98,7 @@ public class ManualBillGenerationTest {
         check(first.getJSONObject("data").getString("billId").equals(second.getJSONObject("data").getString("billId"))
             &&"PUBLISHED".equals(second.getJSONObject("data").getString("reviewState"))&&"2000".equals(m.details.get(0).getState()),
             "existing published and notified bill is preserved");
-        for(String type:Arrays.asList("001","002","003")) {
+        for(String type:Arrays.asList("001","002","003","004")) {
             m=new Memory();m.config.setBillType(type);m.expectedType=type;
             check(m.call().getIntValue("code")==0,"legacy type "+type+" still generates");
         }
@@ -123,6 +126,42 @@ public class ManualBillGenerationTest {
         check(m.call().getIntValue("code")==0&&m.bills.size()==3&&m.details.size()==3&&m.saves==3,
             "another new fee permits a second supplement even when first supplement is draft");
         check(m.call().getJSONObject("data").getBooleanValue("existing")&&m.saves==3,"multiple supplementary bills remain idempotent");
+    }
+    static void automaticReviewSafety() throws Exception {
+        Memory future=new Memory();future.config.setBillType("004");
+        future.fees.get(0).setFeeFlag(FeeDto.FEE_FLAG_ONCE);future.fees.get(0).setStartTime(BillingWorkflowAudit.month(1));
+        future.fees.get(0).setEndTime(BillingWorkflowAudit.month(1));
+        check(future.call().getIntValue("code")==1&&future.bills.isEmpty(),"future one-time fee waits until its billing start");
+        for(String state:Arrays.asList("DRAFT","REJECTED","PUBLISHED")) {
+            Memory m=new Memory();m.call();m.bills.get(0).setReviewState(state);
+            m.bills.get(0).setBillTime(BillingWorkflowAudit.format(BillingWorkflowAudit.month(-3)));
+            String old=com.alibaba.fastjson.JSON.toJSONString(m.bills.get(0));
+            check(m.call().getJSONObject("data").getBooleanValue("existing")&&m.bills.size()==1,
+                "unresolved old "+state+" bill is not replaced by the next automatic cycle");
+            check(old.equals(com.alibaba.fastjson.JSON.toJSONString(m.bills.get(0))),"old review state and amount preserved for "+state);
+            m.fees.add(m.fee("extra","room-extra"));
+            check(m.call().getIntValue("code")==0&&m.bills.size()==2&&"T".equals(m.bills.get(0).getCurBill()),
+                "new fee supplements unresolved old "+state+" without altering original");
+        }
+    }
+    static void invalidFeeDoesNotBlockOtherOwners() throws Exception {
+        Memory m=new Memory();m.fees.add(m.fee("bad-fee","room-2"));m.failSecondFee=true;
+        JSONObject r=m.call(true);
+        check(r.getIntValue("code")==202&&m.bills.size()==1&&m.details.size()==1,"automatic invoice saves valid room while retaining invalid room for retry");
+        check("fee-1".equals(m.details.get(0).getFeeId())&&BillingWorkflowAudit.amount(m.bills.get(0).getReceivable(),"100"),"partial draft contains only valid fee and its correct total");
+        m.failSecondFee=false;
+        check(m.call(true).getIntValue("code")==0&&m.bills.size()==2&&m.details.size()==2,"correcting invalid room automatically creates separate draft without duplicating valid room");
+    }
+    static void paidOwnerCanEnterNextPeriodWhileAnotherOwnerIsUnpaid() throws Exception {
+        Memory m=new Memory();m.fees.add(m.fee("other-fee","room-2"));m.call();
+        m.bills.get(0).setReviewState("PUBLISHED");m.bills.get(0).setBillTime(BillingWorkflowAudit.format(BillingWorkflowAudit.month(-3)));
+        m.details.get(0).setState("2000");m.details.get(0).setDeadlineTime(BillingWorkflowAudit.format(BillingWorkflowAudit.month(-1)));
+        m.details.get(0).setFeeEndTime(BillingWorkflowAudit.format(BillingWorkflowAudit.month(-2)));
+        m.fees.get(0).setStartTime(BillingWorkflowAudit.month(-2));m.fees.get(0).setEndTime(BillingWorkflowAudit.month(-1));
+        JSONObject next=m.call(true);
+        check(next.getIntValue("code")==0&&m.bills.size()==2&&m.details.size()==3,"paid owner gets next-period draft while another old owner remains unpaid");
+        check("fee-1".equals(m.details.get(2).getFeeId())&&"T".equals(m.bills.get(0).getCurBill()),"next-period draft preserves unpaid original snapshot");
+        check(m.call(true).getJSONObject("data").getBooleanValue("existing")&&m.details.size()==3,"next-period repeat is deduplicated by fee and frozen period");
     }
     static void supplementaryFailureAndConcurrency() throws Exception {
         final Memory m=new Memory();m.call();
@@ -177,7 +216,7 @@ public class ManualBillGenerationTest {
             if(mode==1)m.mismatchConfig=true;
             if(mode==2)m.inactive=true;
             if(mode==3)m.missingConfig=true;
-            if(mode==4)m.config.setBillType("004");
+            if(mode==4)m.config.setBillType("INVALID");
             boolean blocked=false;try{blocked=m.call().getIntValue("code")!=0;}catch(Exception expected){blocked=true;}
             check(blocked&&m.saves==0,"untrusted or unsupported config rejected, case "+mode);
         }
@@ -212,6 +251,9 @@ public class ManualBillGenerationTest {
     }
     public static void main(String[] args)throws Exception {
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));BillingWorkflowAudit.cache();
+        automaticReviewSafety();
+        invalidFeeDoesNotBlockOtherOwners();
+        paidOwnerCanEnterNextPeriodWhileAnotherOwnerIsUnpaid();
         supplementaryBills();supplementaryFailureAndConcurrency();sameSecondSiblingWinner();successAndDuplicate();emptyAndInvalid();failures();concurrency();
         System.out.println("Manual bill generation: "+checks+" checks passed. No database or notification calls.");
     }

@@ -1,9 +1,20 @@
 <div class="animated fadeInRight ecommerce admin-bills">
     <div class="admin-bill-flow" aria-label="账单处理流程">
         <strong>账单流程</strong>
-        <span>生成账单</span><i class="fa fa-angle-right" aria-hidden="true"></i>
+        <span>费用保存后自动出账</span><i class="fa fa-angle-right" aria-hidden="true"></i>
         <span>审核并推送</span><i class="fa fa-angle-right" aria-hidden="true"></i>
         <span>支付入账</span>
+    </div>
+    <div class="admin-bill-auto-help" role="note">
+        <p>费用保存后会自动生成待审核账单，通常数秒内可在此查询。请先核对明细，再审核并推送；实时出账也需审核。</p>
+        <p>出账失败会在后台保留并重试；稍后点击“查询”刷新。仍未出现时，可在“更多操作”中重新检查出账。</p>
+        <p role="status" aria-live="polite" aria-label="自动出账状态"
+           :class="{'text-warning': billManageInfo.automaticGeneration.failed > 0 || billManageInfo.automaticGeneration.state == 'UNAVAILABLE'}">{{_billAutomaticGenerationSummary()}}</p>
+        <div class="admin-bill-review-legend" aria-label="账单审核颜色说明">
+            <span><i class="bill-review-dot bill-review-draft" aria-hidden="true"></i>黄色：待审核</span>
+            <span><i class="bill-review-dot bill-review-published" aria-hidden="true"></i>绿色：已审核发布</span>
+            <span><i class="bill-review-dot bill-review-rejected" aria-hidden="true"></i>浅红色：审核不通过</span>
+        </div>
     </div>
     <div class="row">
         <div class="col-lg-12">
@@ -59,13 +70,15 @@
                     <h5>账单信息</h5>
                     <div class="ibox-tools" style="top:10px;">
                         <span class="admin-table-unit">金额单位：元</span>
-                        <button type="button" class="btn btn-primary btn-sm" v-on:click="_openBillGeneration()"
-                                :disabled="billManageInfo.generation.generating || billManageInfo.generation.loading">
-                            生成待审核账单
-                        </button>
                     </div>
                 </div>
                 <div class="ibox-content">
+                    <details class="admin-bill-recovery">
+                        <summary>更多操作</summary>
+                        <p class="text-muted">自动出账延迟时可按收费项目重新检查；只补充尚未出账的费用，不会自动审核或发送通知。</p>
+                        <button type="button" class="btn btn-white btn-sm" v-on:click="_openBillGeneration()"
+                                :disabled="billManageInfo.generation.generating || billManageInfo.generation.loading">重新检查出账</button>
+                    </details>
                     <div v-if="billManageInfo.generation.show" class="p-md border-bottom" role="region" aria-label="生成待审核账单">
                         <p>按收费项目整批汇总符合条件的费用，先生成待审核账单。核对后点击“审核并推送”，H5 立即可查，并在后台发送公众号缴费通知。</p>
                         <p class="text-muted">本期已有账单时，再次生成只收录尚未出账的新增费用，保存为独立的补充待审核账单。原账单保持不变，重复生成不会重复出账。</p>
@@ -84,6 +97,7 @@
                                     <option value="001">按年出账（001）</option>
                                     <option value="002">按月出账（002）</option>
                                     <option value="003">按日出账（003）</option>
+                                    <option value="004">实时出账，需审核（004）</option>
                                     <option value="005">一次性费用按月出账（005）</option>
                                 </select>
                             </div>
@@ -96,7 +110,7 @@
                             <label for="bill-generation-config">选择当前小区的收费项目</label>
                             <select id="bill-generation-config" class="custom-select" v-model="billManageInfo.generation.configId"
                                     :disabled="billManageInfo.generation.generating || billManageInfo.generation.loading">
-                                <option value="">请选择收费项目</option>
+                                <option value="" disabled hidden>请选择收费项目</option>
                                 <option v-for="feeConfig in billManageInfo.generation.configs" :key="feeConfig.configId" :value="feeConfig.configId">
                                     {{feeConfig.feeName}} / {{feeConfig.billTypeName || feeConfig.billType}} / {{feeConfig.configId}}
                                 </option>
@@ -120,6 +134,19 @@
                         <button type="button" class="btn btn-white btn-sm" v-on:click="billManageInfo.generation.show = false"
                                 :disabled="billManageInfo.generation.generating || billManageInfo.generation.loading">收起</button>
                         <p v-if="billManageInfo.generation.result" class="m-t-sm" role="status" aria-live="polite">{{billManageInfo.generation.result}}</p>
+                    </div>
+                    <div v-if="billManageInfo.rejection.billId" class="admin-bill-rejection p-md border-bottom" role="region" aria-label="账单审核不通过">
+                        <h5>审核不通过 <small>账单 {{billManageInfo.rejection.billId}}</small></h5>
+                        <label for="bill-rejection-reason">驳回原因（必填，最多 500 字）</label>
+                        <textarea id="bill-rejection-reason" class="form-control m-b-sm" rows="3"
+                                  v-model="billManageInfo.rejection.reason" maxlength="500" required
+                                  :disabled="billManageInfo.reviewing[billManageInfo.rejection.billId]" placeholder="请填写需要核对的问题"></textarea>
+                        <p class="text-muted">驳回后无法通知业主或在线支付；需明确重新提交同一快照后再审核。</p>
+                        <p class="text-muted">本操作保留账单原金额和明细快照，只记录审核结果与驳回原因。</p>
+                        <button type="button" class="btn btn-danger btn-sm" v-on:click="_rejectBill()"
+                                :disabled="billManageInfo.reviewing[billManageInfo.rejection.billId] || !billManageInfo.rejection.reason.trim()">确认审核不通过</button>
+                        <button type="button" class="btn btn-white btn-sm" v-on:click="billManageInfo.rejection.billId = ''"
+                                :disabled="billManageInfo.reviewing[billManageInfo.rejection.billId]">取消</button>
                     </div>
                     <div v-if="billManageInfo.notificationSelection" class="p-md border-bottom" role="region" aria-label="账单通知状态">
                         <h5>通知状态 <small>账单 {{billManageInfo.notificationSelection}}</small></h5>
@@ -154,7 +181,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr v-for="bill in billManageInfo.bills">
+                        <tr v-for="bill in billManageInfo.bills" :key="bill.billId" :class="_billReviewRowClass(bill)">
                             <td class="admin-bill-name">
                                 <span>{{bill.billName}}</span>
                                 <small>{{bill.billId}}</small>
@@ -166,9 +193,12 @@
                             <td class="text-center">{{bill.billTime}}</td>
                             <td class="text-center">{{bill.curBill == 'T'?'当期账单':'往期账单'}}</td>
                             <td class="text-center">
-                                <span class="admin-status" :class="bill.reviewState == 'PUBLISHED'?'is-published':'is-draft'">
-                                    {{bill.reviewState == 'PUBLISHED'?'已审核发布':'待审核'}}
+                                <span class="admin-status" :class="bill.reviewState == 'PUBLISHED'?'is-published':bill.reviewState == 'REJECTED'?'is-rejected':'is-draft'">
+                                    {{bill.reviewState == 'PUBLISHED'?'已审核发布':bill.reviewState == 'REJECTED'?'审核不通过':bill.reviewState == 'DRAFT'?'待审核':'状态待核对'}}
                                 </span>
+                                <small v-if="bill.reviewState == 'REJECTED'" class="admin-bill-review-reason d-block m-t-xs">驳回原因：{{bill.reviewRemark || bill.rejectReason || '请查看审核记录'}}</small>
+                                <small v-if="bill.reviewUserId || bill.reviewUserName" class="d-block m-t-xs">审核人：{{bill.reviewUserName || bill.reviewUserId}}</small>
+                                <small v-if="bill.reviewTime" class="d-block m-t-xs">审核时间：{{bill.reviewTime}}</small>
                                 <small v-if="bill.reviewState == 'PUBLISHED'" class="d-block m-t-xs">{{_billNotificationLabel(bill.billId)}}</small>
                             </td>
                             <td class="text-center">
@@ -177,6 +207,10 @@
                                             :disabled="billManageInfo.reviewing[bill.billId]" v-on:click="_reviewBill(bill)">
                                         {{billManageInfo.reviewing[bill.billId]?'处理中':'审核并推送'}}
                                     </button>
+                                    <button v-if="bill.reviewState == 'DRAFT' && bill.curBill == 'T'" class="btn-danger btn btn-xs"
+                                            :disabled="billManageInfo.reviewing[bill.billId]" v-on:click="_openBillRejection(bill)">审核不通过</button>
+                                    <button v-if="bill.reviewState == 'REJECTED' && bill.curBill == 'T'" class="btn-white btn btn-xs"
+                                            :disabled="billManageInfo.reviewing[bill.billId]" v-on:click="_resubmitBill(bill)">重新提交审核</button>
                                     <button v-if="bill.reviewState == 'PUBLISHED'" class="btn-white btn btn-xs"
                                             :disabled="billManageInfo.notificationLoading[bill.billId]" v-on:click="_showBillNotification(bill)">通知状态</button>
                                     <button v-if="_canRetryBillNotifications(bill)" class="btn-primary btn btn-xs"

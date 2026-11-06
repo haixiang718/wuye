@@ -35,9 +35,13 @@ public class BillReviewDatabaseTest {
         try(InputStream stream=Files.newInputStream(Paths.get(System.getProperty("schema.mapper")))) {
             new XMLMapperBuilder(stream,config,"FeeServiceDaoImplMapper.xml",config.getSqlFragments()).parse();
         }
+        try(InputStream stream=Files.newInputStream(Paths.get(System.getProperty("schema.store.mapper")))) {
+            new XMLMapperBuilder(stream,config,"StoreServiceDaoImplMapper.xml",config.getSqlFragments()).parse();
+        }
         mapper=new SqlSessionTemplate(new SqlSessionFactoryBuilder().build(config));
     }
     @Before public void fixture() {
+        if(sql.queryForObject("SELECT count(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='bill_review_record'",Integer.class)==1)sql.execute("TRUNCATE TABLE bill_review_record");
         for(String table:Arrays.asList("bill_owe_fee","bill","pay_fee","pay_fee_config"))sql.update("DELETE FROM "+table);
         sql.update("INSERT INTO pay_fee_config(config_id,b_id,community_id,fee_type_cd,square_price,additional_amount,start_time,end_time,fee_flag,fee_name,computing_formula,computing_formula_text,bill_type,payment_cycle,payment_cd,status_cd) VALUES ('config','audit','community','888','0','0.01','2026-11-01','2027-11-01','1003006','Audit fee','2002','Test','002','1','1200','0')");
         sql.update("INSERT INTO pay_fee(fee_id,b_id,fee_type_cd,community_id,payer_obj_id,income_obj_id,start_time,end_time,amount,user_id,fee_flag,state,config_id,payer_obj_type,status_cd) VALUES ('fee','audit','888','community','room','store','2026-11-01','2026-11-01','0.01','staff','1003006','2008001','config','3333','0')");
@@ -71,6 +75,88 @@ public class BillReviewDatabaseTest {
         Map<String,Object> again=review();again.put("reviewUserId","other");
         assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",again));
         assertEquals(time,sql.queryForObject("SELECT review_time FROM bill",Object.class));assertEquals("staff",sql.queryForObject("SELECT review_user_id FROM bill",String.class));
+    }
+    private Map<String,Object> transition(String next) {Map<String,Object> value=review();value.put("reviewState",next);return value;}
+    private void requireAudit() {
+        assertEquals("Audit table must be installed",1,sql.queryForObject("SELECT count(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='bill_review_record'",Integer.class).intValue());
+    }
+    @Test public void rejectionAndExplicitResubmissionUseConditionalTransitions() {
+        Object before=sql.queryForObject("SELECT bill_time FROM bill",Object.class);
+        assertEquals(1,mapper.update("feeServiceDaoImpl.reviewBill",transition("REJECTED")));
+        assertEquals("REJECTED",sql.queryForObject("SELECT review_state FROM bill",String.class));
+        assertTrue(visible(query()).isEmpty());assertEquals(0,total(query()));
+        assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",transition("PUBLISHED")));
+        assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",transition("REJECTED")));
+        assertEquals(1,mapper.update("feeServiceDaoImpl.reviewBill",transition("DRAFT")));
+        assertEquals("DRAFT",sql.queryForObject("SELECT review_state FROM bill",String.class));
+        assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",transition("DRAFT")));
+        assertEquals(1,mapper.update("feeServiceDaoImpl.reviewBill",transition("PUBLISHED")));
+        assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",transition("REJECTED")));
+        assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",transition("DRAFT")));
+        assertEquals(before,sql.queryForObject("SELECT bill_time FROM bill",Object.class));
+        assertEquals("1000",sql.queryForObject("SELECT state FROM bill_owe_fee",String.class));
+    }
+    @Test public void transitionAuditIsAppendOnlyAndRollsBackWithBill() {
+        requireAudit();
+        org.springframework.transaction.support.TransactionTemplate transaction=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(sql.getDataSource()));
+        transaction.execute(status->{mapper.update("feeServiceDaoImpl.reviewBill",transition("REJECTED"));status.setRollbackOnly();return null;});
+        assertEquals("DRAFT",sql.queryForObject("SELECT review_state FROM bill",String.class));
+        assertEquals(0,sql.queryForObject("SELECT count(*) FROM bill_review_record WHERE bill_id='bill'",Integer.class).intValue());
+        mapper.update("feeServiceDaoImpl.reviewBill",transition("REJECTED"));
+        mapper.update("feeServiceDaoImpl.reviewBill",transition("DRAFT"));
+        mapper.update("feeServiceDaoImpl.reviewBill",transition("PUBLISHED"));
+        List<Map<String,Object>> history=sql.queryForList("SELECT from_state,to_state,review_user_id,review_remark FROM bill_review_record WHERE bill_id='bill' ORDER BY record_id");
+        assertEquals(3,history.size());assertEquals("DRAFT",history.get(0).get("from_state"));assertEquals("REJECTED",history.get(0).get("to_state"));
+        assertEquals("staff",history.get(0).get("review_user_id"));assertEquals("Checked",history.get(0).get("review_remark"));
+        assertEquals("REJECTED",history.get(1).get("from_state"));assertEquals("DRAFT",history.get(1).get("to_state"));assertEquals("PUBLISHED",history.get(2).get("to_state"));
+        try{sql.update("UPDATE bill_review_record SET review_remark='rewrite'");fail("audit update accepted");}catch(org.springframework.dao.DataAccessException expected){}
+        try{sql.update("DELETE FROM bill_review_record");fail("audit delete accepted");}catch(org.springframework.dao.DataAccessException expected){}
+        assertEquals(3,sql.queryForObject("SELECT count(*) FROM bill_review_record WHERE bill_id='bill'",Integer.class).intValue());
+    }
+    @Test public void concurrentApproveAndRejectHaveExactlyOneWinnerAndAudit() throws Exception {
+        requireAudit();
+        java.util.concurrent.ExecutorService pool=java.util.concurrent.Executors.newFixedThreadPool(2);
+        java.util.concurrent.CountDownLatch start=new java.util.concurrent.CountDownLatch(1);
+        try {
+            java.util.concurrent.Future<Integer> approve=pool.submit(()->{start.await();return mapper.update("feeServiceDaoImpl.reviewBill",transition("PUBLISHED"));});
+            java.util.concurrent.Future<Integer> reject=pool.submit(()->{start.await();return mapper.update("feeServiceDaoImpl.reviewBill",transition("REJECTED"));});
+            start.countDown();assertEquals(1,approve.get(10,java.util.concurrent.TimeUnit.SECONDS)+reject.get(10,java.util.concurrent.TimeUnit.SECONDS));
+            assertEquals(1,sql.queryForObject("SELECT count(*) FROM bill_review_record WHERE bill_id='bill'",Integer.class).intValue());
+            assertEquals(sql.queryForObject("SELECT review_state FROM bill",String.class),sql.queryForObject("SELECT to_state FROM bill_review_record WHERE bill_id='bill'",String.class));
+        } finally {pool.shutdownNow();}
+    }
+    @Test public void employeePermissionUsesActualActiveStoreMembershipNotStoreOwnerId() throws Exception {
+        sql.update("DELETE FROM s_store_user");sql.update("DELETE FROM s_store");
+        sql.update("INSERT INTO s_store(store_id,user_id,name,status_cd,state) VALUES ('store','property-owner','Property','0','48001')");
+        sql.update("INSERT INTO s_store_user(store_user_id,store_id,user_id,status_cd) VALUES ('membership','store','staff','0')");
+        com.java110.api.bmo.fee.impl.BillReviewService service=new com.java110.api.bmo.fee.impl.BillReviewService();
+        for(Field field:service.getClass().getDeclaredFields())if(field.getType().isInterface()) {
+            field.setAccessible(true);field.set(service,Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{field.getType()},(p,m,a)->{
+                if(m.getName().equals("getStoreUserInfo"))return BeanConvertUtil.covertBeanList(mapper.selectList("storeServiceDaoImpl.getStoreUserInfo",BeanConvertUtil.beanCovertMap(a[0])),com.java110.dto.store.StoreUserDto.class);
+                if(m.getName().equals("getCommunityMembers")) {
+                    com.java110.dto.CommunityMemberDto relation=new com.java110.dto.CommunityMemberDto();relation.setCommunityId("community");relation.setMemberId("store");relation.setMemberTypeCd(com.java110.dto.CommunityMemberDto.MEMBER_TYPE_PROPERTY);relation.setAuditStatusCd(com.java110.dto.CommunityMemberDto.AUDIT_STATUS_NORMAL);return Collections.singletonList(relation);
+                }
+                if(m.getName().equals("queryBills"))return BeanConvertUtil.covertBeanList(mapper.selectList("feeServiceDaoImpl.queryBills",BeanConvertUtil.beanCovertMap(a[0])),BillDto.class);
+                if(m.getName().equals("reviewBill"))return mapper.update("feeServiceDaoImpl.reviewBill",BeanConvertUtil.beanCovertMap(a[0]));
+                throw new AssertionError(m.getName());
+            }));
+        }
+        assertEquals(403,service.reject("community","bill","Wrong","store","owner-without-membership").getIntValue("code"));
+        sql.update("UPDATE s_store_user SET status_cd='1'");
+        assertEquals(403,service.reject("community","bill","Wrong","store","staff").getIntValue("code"));
+        sql.update("UPDATE s_store_user SET status_cd='0'");
+        assertEquals(0,service.reject("community","bill","Wrong","store","staff").getIntValue("code"));
+        assertEquals("REJECTED",sql.queryForObject("SELECT review_state FROM bill",String.class));
+    }
+    @Test public void invalidOrBlankRejectionCannotChangeStateOrCreateAudit() {
+        requireAudit();
+        for(String reason:Arrays.asList(null,"","  ")) {
+            Map<String,Object> value=transition("REJECTED");value.put("reviewRemark",reason);
+            assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",value));
+        }
+        assertEquals(0,mapper.update("feeServiceDaoImpl.reviewBill",transition("UNKNOWN")));
+        assertEquals("DRAFT",sql.queryForObject("SELECT review_state FROM bill",String.class));
+        assertEquals(0,sql.queryForObject("SELECT count(*) FROM bill_review_record",Integer.class).intValue());
     }
     @Test public void communityOwnerObjectAndPaidFiltersMatchListAndCount() {
         mapper.update("feeServiceDaoImpl.reviewBill",review());

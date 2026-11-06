@@ -13,6 +13,7 @@ def main():
     for relative in [
         'java110-interface/src/main/java/com/java110/intf/job/IBillGenerateInnerServiceSMO.java',
         'service-job/src/main/java/com/java110/job/smo/impl/BillGenerateInnerServiceSMOImpl.java',
+        'service-job/src/main/java/com/java110/job/billing/AutomaticBillQueue.java',
     ]:
         source = verify.local.BACK / relative
         if source.exists():

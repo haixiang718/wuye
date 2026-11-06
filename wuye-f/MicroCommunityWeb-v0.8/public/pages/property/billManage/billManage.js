@@ -21,7 +21,9 @@
         data: {
             billManageInfo: {
                 bills: [],
+                automaticGeneration: { state: 'UNKNOWN', pending: 0, failed: 0, waiting: 0 },
                 reviewing: {},
+                rejection: { billId: '', communityId: '', reason: '' },
                 notifications: {},
                 notificationLoading: {},
                 notificationErrors: {},
@@ -108,7 +110,7 @@
                             return;
                         }
                         _generation.configs = _result.feeConfigs.filter(function (_config) {
-                            return ['001', '002', '003', '005'].indexOf(_config.billType) >= 0
+                            return ['001', '002', '003', '004', '005'].indexOf(_config.billType) >= 0
                                 && (!_config.communityId || _config.communityId == _generation.communityId);
                         });
                         _generation.page = _page;
@@ -130,7 +132,7 @@
                 var _selected = _generation.configs.filter(function (_config) {
                     return _config.configId == _generation.configId;
                 })[0];
-                if (!_selected || ['001', '002', '003', '005'].indexOf(_selected.billType) < 0) {
+                if (!_selected || ['001', '002', '003', '004', '005'].indexOf(_selected.billType) < 0) {
                     vc.toast('请先选择支持出账的收费项目');
                     return;
                 }
@@ -178,6 +180,89 @@
                 if (_bill.reviewState != 'DRAFT' || _bill.curBill != 'T' || _info.reviewing[_bill.billId]) return;
                 if (!window.confirm('确认已核对账单明细并审核推送？审核后 H5 可查看账单，并在后台发送公众号缴费通知。已通知的明细不会重复发送。')) return;
                 vc.component._submitBillPublication(_bill, false);
+            },
+            _billReviewRowClass: function (_bill) {
+                return { DRAFT: 'bill-review-draft', PUBLISHED: 'bill-review-published',
+                    REJECTED: 'bill-review-rejected' }[_bill.reviewState] || '';
+            },
+            _billAutomaticGenerationSummary: function () {
+                var _status = vc.component.billManageInfo.automaticGeneration;
+                if (_status.state == 'UNAVAILABLE') return '自动出账状态暂时无法查询，请稍后刷新；费用保存成功不受影响。';
+                if (_status.state != 'OK') return '自动出账状态待查询，请点击“查询”刷新账单。';
+                if (!_status.pending && !_status.failed && !_status.waiting) return '当前没有排队的自动出账任务，请核对下方待审核账单。';
+                return '自动出账：待处理 ' + _status.pending + ' 项，失败待重试 ' + _status.failed
+                    + ' 项，等待计费时间或资料补全 ' + _status.waiting + ' 项。后台会持续重试，请稍后点击“查询”刷新；'
+                    + '长期未出账可重新检查出账并核对收费条件。';
+            },
+            _canChangeBillReview: function (_bill, _state) {
+                var _community = vc.getCurrentCommunity();
+                return _bill && _community && _community.communityId && _bill.reviewState == _state
+                    && _bill.curBill == 'T' && (!_bill.communityId || _bill.communityId == _community.communityId)
+                    && !vc.component.billManageInfo.reviewing[_bill.billId];
+            },
+            _openBillRejection: function (_bill) {
+                if (!vc.component._canChangeBillReview(_bill, 'DRAFT')) return;
+                vc.component.billManageInfo.rejection = { billId: _bill.billId,
+                    communityId: vc.getCurrentCommunity().communityId, reason: '' };
+            },
+            _rejectBill: function (_bill) {
+                var _info = vc.component.billManageInfo;
+                var _rejection = _info.rejection;
+                _bill = _bill || _info.bills.filter(function (_row) { return _row.billId == _rejection.billId; })[0];
+                if (!vc.component._canChangeBillReview(_bill, 'DRAFT') || _rejection.billId != _bill.billId
+                    || _rejection.communityId != vc.getCurrentCommunity().communityId) return;
+                var _reason = _rejection.reason.trim();
+                if (!_reason || _reason.length > 500) { vc.toast('请填写驳回原因，最多 500 字'); return; }
+                if (!window.confirm('确认将账单 ' + _bill.billId + ' 审核不通过？驳回原因：' + _reason
+                    + '。驳回后需重新提交审核，期间无法通知业主或在线支付。')) return;
+                vc.component._submitBillReviewChange(_bill, 'REJECT', _reason);
+            },
+            _resubmitBill: function (_bill) {
+                if (!vc.component._canChangeBillReview(_bill, 'REJECTED')) return;
+                if (!window.confirm('确认将账单 ' + _bill.billId + ' 的同一账单快照重新提交审核？金额和明细保持原样，'
+                    + '提交后仍需审核并推送。若费用有误，请先核对欠费清单。')) return;
+                vc.component._submitBillReviewChange(_bill, 'RESUBMIT');
+            },
+            _submitBillReviewChange: function (_bill, _action, _reason) {
+                if (['REJECT', 'RESUBMIT'].indexOf(_action) < 0
+                    || !vc.component._canChangeBillReview(_bill, _action == 'REJECT' ? 'DRAFT' : 'REJECTED')) return;
+                if (_action == 'REJECT' && (!_reason || !_reason.trim() || _reason.trim().length > 500)) return;
+                var _info = vc.component.billManageInfo;
+                var _communityId = vc.getCurrentCommunity().communityId;
+                var _targetState = _action == 'REJECT' ? 'REJECTED' : 'DRAFT';
+                var _request = { communityId: _communityId, billId: _bill.billId, action: _action, notify: false };
+                if (_action == 'REJECT') _request.remark = _reason.trim();
+                _info.reviewing = Object.assign({}, _info.reviewing, { [_bill.billId]: true });
+                var _finish = function () {
+                    var _next = Object.assign({}, _info.reviewing); delete _next[_bill.billId]; _info.reviewing = _next;
+                };
+                vc.http.apiPost('/fee.reviewBill', JSON.stringify(_request), { emulateJSON: true }, function (json) {
+                    if (!_notificationScope(_info, _communityId)) return;
+                    _finish();
+                    try {
+                        var _result = JSON.parse(json);
+                        if (!_result || _result.code === undefined || _result.code === null || _result.code === '')
+                            throw new Error('Invalid review response');
+                        if (_result.code != 0) { vc.toast(_result.msg || '操作未完成，请刷新账单核对'); return; }
+                        var _data = _result.data;
+                        if (!_data || _data.billId != _bill.billId || _data.reviewState != _targetState)
+                            throw new Error('Unexpected review state');
+                        var _patch = { reviewState: _targetState };
+                        ['reviewRemark', 'rejectReason', 'reviewUserId', 'reviewUserName', 'reviewTime'].forEach(function (_field) {
+                            if (_data[_field] !== undefined) _patch[_field] = _data[_field];
+                        });
+                        if (_action == 'REJECT' && _patch.reviewRemark === undefined) _patch.reviewRemark = _reason;
+                        Object.assign(_bill, _patch);
+                        _info.bills.forEach(function (_row) { if (_row.billId == _bill.billId) Object.assign(_row, _patch); });
+                        if (_info.rejection.billId == _bill.billId) _info.rejection = { billId: '', communityId: '', reason: '' };
+                        if (_info.notificationSelection == _bill.billId) _info.notificationSelection = '';
+                        vc.toast(_result.msg || (_action == 'REJECT' ? '账单审核不通过，已记录驳回原因' : '已重新提交审核，待核对后审核并推送'));
+                        vc.component._listbills(_info.conditions.page || DEFAULT_PAGE, _info.conditions.row || DEFAULT_ROWS);
+                    } catch (e) { vc.toast('操作结果未知，请刷新账单核对后再操作'); }
+                }, function () {
+                    if (!_notificationScope(_info, _communityId)) return;
+                    _finish(); vc.toast('操作结果未知，请刷新账单核对，勿连续重复操作');
+                });
             },
             _retryBillNotifications: function (_bill) {
                 if (!vc.component._canRetryBillNotifications(_bill)) return;
@@ -330,6 +415,7 @@
                 if (!_community || !_community.communityId) return;
                 var _communityId = _community.communityId;
                 _info.notificationLoading = {};
+                _info.automaticGeneration = { state: 'UNKNOWN', pending: 0, failed: 0, waiting: 0 };
                 vc.component.billManageInfo.conditions.page = _page;
                 vc.component.billManageInfo.conditions.row = _rows;
                 vc.component.billManageInfo.conditions.communityId = vc.getCurrentCommunity().communityId;
@@ -338,11 +424,21 @@
                 };
 
                 //发送get请求
-                vc.http.apiGet('fee.listBill',
+                vc.http.apiGet('/fee.listBill',
                     param,
                     function (json, res) {
                         if (!_notificationScope(_info, _communityId) || _epoch != _notificationEpoch) return;
                         var _billManageInfo = JSON.parse(json);
+                        var _automatic = _billManageInfo.automaticGeneration;
+                        var _status = { state: 'UNKNOWN', pending: 0, failed: 0, waiting: 0 };
+                        if (_automatic && ['OK', 'UNAVAILABLE'].indexOf(_automatic.state) >= 0) {
+                            _status.state = _automatic.state;
+                            if (_status.state == 'OK') ['pending', 'failed', 'waiting'].forEach(function (_field) {
+                                var _count = Number(_automatic[_field]);
+                                _status[_field] = isFinite(_count) && _count >= 0 ? Math.floor(_count) : 0;
+                            });
+                        }
+                        _info.automaticGeneration = _status;
                         vc.component.billManageInfo.total = _billManageInfo.total;
                         vc.component.billManageInfo.records = _billManageInfo.records;
                         vc.component.billManageInfo.bills = _billManageInfo.data;

@@ -3,6 +3,7 @@ import com.java110.api.bmo.fee.impl.BillReviewService;
 import com.java110.core.context.*;
 import com.java110.dto.CommunityMemberDto;
 import com.java110.dto.fee.BillDto;
+import com.java110.dto.store.StoreUserDto;
 import com.java110.front.smo.api.impl.OwnerDataAccessService;
 import com.java110.front.controller.app.PaymentController;
 import org.junit.*;
@@ -21,10 +22,17 @@ public class BillPublicationTest {
     @Before public void setup() throws Exception {
         bill=new BillDto();bill.setBillId("bill");bill.setCommunityId("community");bill.setCurBill("T");bill.setReviewState("DRAFT");
         review=new BillReviewService();
-        for(String name:Arrays.asList("communityInnerServiceSMOImpl","feeInnerServiceSMOImpl")) {
+        for(String name:Arrays.asList("communityInnerServiceSMOImpl","feeInnerServiceSMOImpl","storeInnerServiceSMOImpl")) {
             Field f=BillReviewService.class.getDeclaredField(name);f.setAccessible(true);
             f.set(review,Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{f.getType()},(proxy,method,args)->{
-                if(method.getName().equals("getCommunityMembers"))return authorized?Collections.singletonList(new CommunityMemberDto()):Collections.emptyList();
+                if(method.getName().equals("getCommunityMembers")) {
+                    CommunityMemberDto member=new CommunityMemberDto();member.setCommunityId("community");member.setMemberId("store");member.setMemberTypeCd(CommunityMemberDto.MEMBER_TYPE_PROPERTY);member.setAuditStatusCd(CommunityMemberDto.AUDIT_STATUS_NORMAL);
+                    return authorized?Collections.singletonList(member):Collections.emptyList();
+                }
+                if(method.getName().equals("getStoreUserInfo")) {
+                    StoreUserDto member=new StoreUserDto();member.setStoreId("store");member.setStoreUserId("active-staff-membership");
+                    return Collections.singletonList(member);
+                }
                 if(method.getName().equals("queryBills"))return Collections.singletonList(bill);
                 if(method.getName().equals("reviewBill")) {
                     BillDto value=(BillDto)args[0];assertEquals("staff",value.getReviewUserId());

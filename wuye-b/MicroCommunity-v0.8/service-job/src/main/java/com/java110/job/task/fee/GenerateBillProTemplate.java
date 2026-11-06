@@ -78,6 +78,8 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
 
     @Autowired
     private IComputeFeeSMO computeFeeSMOImpl;
+    @Autowired private com.java110.intf.store.IContractInnerServiceSMO contractInnerServiceSMOImpl;
+    @Autowired private com.java110.intf.user.IOwnerInnerServiceSMO ownerInnerServiceSMOImpl;
 
 
     @Override
@@ -129,13 +131,21 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         public final BillDto bill;
         public final boolean existing;
         public final boolean supplemental;
+        public final boolean incomplete;
         GenerationResult(BillDto bill, boolean existing, boolean supplemental) {
+            this(bill,existing,supplemental,false);
+        }
+        GenerationResult(BillDto bill, boolean existing, boolean supplemental, boolean incomplete) {
             this.bill = bill; this.existing = existing; this.supplemental = supplemental;
+            this.incomplete = incomplete;
         }
     }
 
     public GenerationResult generateManual(FeeConfigDto config) throws Exception {
         return generate(config, true);
+    }
+    public GenerationResult generateAutomatic(FeeConfigDto config) throws Exception {
+        return generate(config,true,true);
     }
 
     /**
@@ -149,6 +159,9 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
     }
 
     private GenerationResult generate(FeeConfigDto feeConfigDto, boolean allowSupplement) throws Exception {
+        return generate(feeConfigDto,allowSupplement,false);
+    }
+    private GenerationResult generate(FeeConfigDto feeConfigDto, boolean allowSupplement, boolean isolateInvalidFees) throws Exception {
 
         //当前费用项是否
         BillDto tmpBillDto = new BillDto();
@@ -183,28 +196,32 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
                 }
             }
         }
-        // The original header anchors the period; a supplement never moves that boundary.
+        boolean unresolved = false;
+        List<BillOweFeeDto> currentDetails = new ArrayList<>();
+        for (BillDto current : billDtos) {
+            unresolved |= !BillDto.REVIEW_PUBLISHED.equals(current.getReviewState());
+            BillOweFeeDto detailQuery = new BillOweFeeDto();
+            detailQuery.setCommunityId(feeConfigDto.getCommunityId());detailQuery.setBillId(current.getBillId());
+            List<BillOweFeeDto> priorDetails = feeInnerServiceSMOImpl.queryBillOweFees(detailQuery);
+            if(priorDetails==null)throw new IllegalStateException("已出账费用查询失败，请重试");
+            for(BillOweFeeDto detail:priorDetails) {
+                if(!current.getBillId().equals(detail.getBillId())||!feeConfigDto.getCommunityId().equals(detail.getCommunityId())
+                    ||StringUtil.isEmpty(detail.getFeeId()))throw new IllegalStateException("已出账明细归属异常");
+                currentDetails.add(detail);
+                unresolved |= !BillOweFeeDto.STATE_FINISH_FEE.equals(detail.getState())
+                    && new BigDecimal(detail.getBillAmountOwed()).signum()>0;
+            }
+        }
+        // Unreviewed/rejected/unpaid snapshots stay actionable even across a cycle boundary.
         boolean supplemental = !billDtos.isEmpty()
-                && !DateUtil.getDateFromString(billDtos.get(0).getBillTime(), DateUtil.DATE_FORMATE_STRING_A).before(startTime);
+                && (unresolved || !DateUtil.getDateFromString(billDtos.get(0).getBillTime(), DateUtil.DATE_FORMATE_STRING_A).before(startTime));
         if (supplemental && !allowSupplement) {
             throw new TaskTemplateException(ResponseConstant.RESULT_CODE_ERROR, "已经出过账了");
         }
         BillDto latest = billDtos.isEmpty() ? null : billDtos.get(billDtos.size() - 1);
         Set<String> billedFees = new HashSet<>();
         if (supplemental) {
-            for (BillDto current : billDtos) {
-                BillOweFeeDto detailQuery = new BillOweFeeDto();
-                detailQuery.setCommunityId(feeConfigDto.getCommunityId());
-                detailQuery.setBillId(current.getBillId());
-                List<BillOweFeeDto> priorDetails = feeInnerServiceSMOImpl.queryBillOweFees(detailQuery);
-                if (priorDetails == null) throw new IllegalStateException("已出账费用查询失败，请重试");
-                for (BillOweFeeDto detail : priorDetails) {
-                    if (!current.getBillId().equals(detail.getBillId())
-                            || !feeConfigDto.getCommunityId().equals(detail.getCommunityId())
-                            || StringUtil.isEmpty(detail.getFeeId())) throw new IllegalStateException("已出账明细归属异常");
-                    billedFees.add(detail.getFeeId());
-                }
-            }
+            for(BillOweFeeDto detail:currentDetails)billedFees.add(detail.getFeeId());
         }
 
         String billId = GenerateCodeFactory.getGeneratorId(GenerateCodeFactory.CODE_PREFIX_billId);
@@ -235,13 +252,27 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         billDto.setReceipts("0");
         billDto.setCurReceivable("0");
         List<BillOweFeeDto> details = new ArrayList<>();
+        boolean incomplete = false;
         for (FeeDto tmpFeeDto : feeDtos) {
-            if (supplemental && billedFees.contains(tmpFeeDto.getFeeId())) continue;
-            generateFee(startTime, tmpFeeDto, billDto, feeConfigDto, details);
+            if (supplemental && covered(tmpFeeDto, currentDetails)) continue;
+            try {
+                if(isolateInvalidFees) {
+                    BillDto isolated= com.alibaba.fastjson.JSON.parseObject(com.alibaba.fastjson.JSON.toJSONString(billDto),BillDto.class);
+                    List<BillOweFeeDto> isolatedDetails=new ArrayList<>();
+                    generateFee(startTime,tmpFeeDto,isolated,feeConfigDto,isolatedDetails);
+                    details.addAll(isolatedDetails);
+                    billDto.setReceivable(isolated.getReceivable());billDto.setCurReceivable(isolated.getCurReceivable());billDto.setReceipts(isolated.getReceipts());
+                } else generateFee(startTime, tmpFeeDto, billDto, feeConfigDto, details);
+            }
+            catch(Exception invalid) {
+                if(!isolateInvalidFees)throw invalid;
+                incomplete=true;
+            }
         }
 
         // Finished, prepaid and zero-price fees must not produce a reviewable empty header.
         if (details.isEmpty()) {
+            if(incomplete)throw new IllegalStateException("部分费用资料未完整，请核查业主及计费信息");
             return new GenerationResult(supplemental ? latest : null, supplemental, false);
         }
 
@@ -269,7 +300,7 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
             }
             throw failure;
         }
-        return new GenerationResult(billDto, false, supplemental);
+        return new GenerationResult(billDto, false, supplemental, incomplete);
     }
 
     /** Resolve a concurrent/unknown save using the attempted fees, not header order. */
@@ -278,9 +309,15 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         for (BillOweFeeDto detail : attempted) {
             BillOweFeeDto query = new BillOweFeeDto();
             query.setCommunityId(config.getCommunityId());query.setFeeId(detail.getFeeId());query.setCurBill("T");
+            query.setFeeEndTime(detail.getFeeEndTime());
             List<BillOweFeeDto> matches = feeInnerServiceSMOImpl.queryBillOweFees(query);
-            if (matches == null || matches.size() != 1) return null;
-            BillOweFeeDto found = matches.get(0);
+            if (matches == null) return null;
+            BillOweFeeDto found = null;
+            for(BillOweFeeDto match:matches)if(detail.getFeeEndTime().equals(match.getFeeEndTime())
+                &&detail.getDeadlineTime().equals(match.getDeadlineTime())) {
+                if(found!=null)return null;found=match;
+            }
+            if(found==null)return null;
             if (!config.getCommunityId().equals(found.getCommunityId()) || !detail.getFeeId().equals(found.getFeeId())
                     || StringUtil.isEmpty(found.getBillId()) || (winner != null && !winner.equals(found.getBillId()))) return null;
             winner = found.getBillId();
@@ -311,6 +348,9 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
         if (FeeDto.STATE_FINISH.equals(feeDto.getState())) { //判断是否缴费结束
             return;
         }
+        Date now = new Date();
+        if(feeDto.getStartTime()==null||feeDto.getEndTime()==null)throw new IllegalArgumentException("费用计费日期缺失");
+        if(feeDto.getStartTime().after(now)||feeDto.getEndTime().after(now))return;
 
         // 当前时间 - 开始时间  = 月份
         // 月份/ 周期 = 轮数（向上取整）
@@ -360,6 +400,8 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
             getRoomInfo(billOweFeeDto, feeDto);
         } else if (FeeDto.PAYER_OBJ_TYPE_CAR.equals(feeDto.getPayerObjType())) {
             getParkingSpaceInfo(billOweFeeDto, feeDto);
+        } else if(FeeDto.PAYER_OBJ_TYPE_CONTRACT.equals(feeDto.getPayerObjType())) {
+            getContractInfo(billOweFeeDto,feeDto);
         } else {
             throw new IllegalArgumentException("当前出账不支持该付款对象类型");
         }
@@ -395,6 +437,16 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
             }
         }
         billDto.setReceipts(curReceipts.toPlainString());
+    }
+
+    private boolean covered(FeeDto fee, List<BillOweFeeDto> prior) throws Exception {
+        for(BillOweFeeDto detail:prior)if(fee.getFeeId().equals(detail.getFeeId())) {
+            if(!BillOweFeeDto.STATE_FINISH_FEE.equals(detail.getState()))return true;
+            if(fee.getEndTime()==null||StringUtil.isEmpty(detail.getDeadlineTime()))return true;
+            Date deadline=DateUtil.getDateFromString(detail.getDeadlineTime(),DateUtil.DATE_FORMATE_STRING_A);
+            if(fee.getEndTime().before(deadline))return true;
+        }
+        return false;
     }
 
     /**
@@ -466,6 +518,23 @@ public class GenerateBillProTemplate extends TaskSystemQuartz {
     private Date getDefaultStartTime(String billType) {
         return BillCycleWindow.start(billType, new Date());
 
+    }
+
+    private void getContractInfo(BillOweFeeDto detail, FeeDto fee) {
+        com.java110.dto.contract.ContractDto query=new com.java110.dto.contract.ContractDto();
+        query.setCommunityId(fee.getCommunityId());query.setContractId(fee.getPayerObjId());
+        List<com.java110.dto.contract.ContractDto> contracts=contractInnerServiceSMOImpl.queryContracts(query);
+        if(contracts==null||contracts.size()!=1)throw new IllegalArgumentException("费用未关联有效合同");
+        com.java110.dto.contract.ContractDto contract=contracts.get(0);
+        if(!fee.getCommunityId().equals(contract.getCommunityId())||!fee.getPayerObjId().equals(contract.getContractId())
+            ||StringUtil.isEmpty(contract.getObjId()))throw new IllegalArgumentException("合同归属或业主信息无效");
+        com.java110.dto.owner.OwnerDto ownerQuery=new com.java110.dto.owner.OwnerDto();
+        ownerQuery.setCommunityId(fee.getCommunityId());ownerQuery.setOwnerId(contract.getObjId());
+        List<com.java110.dto.owner.OwnerDto> owners=ownerInnerServiceSMOImpl.queryOwners(ownerQuery);
+        if(owners==null||owners.size()!=1||!contract.getObjId().equals(owners.get(0).getOwnerId())
+            ||!fee.getCommunityId().equals(owners.get(0).getCommunityId()))throw new IllegalArgumentException("合同未关联本小区有效业主");
+        detail.setOwnerId(owners.get(0).getOwnerId());detail.setOwnerName(owners.get(0).getName());detail.setOwnerTel(owners.get(0).getLink());
+        detail.setPayerObjName(contract.getContractName());
     }
 
 

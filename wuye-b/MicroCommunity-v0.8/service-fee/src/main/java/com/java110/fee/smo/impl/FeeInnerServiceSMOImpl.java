@@ -60,11 +60,18 @@ public class FeeInnerServiceSMOImpl extends BaseServiceSMO implements IFeeInnerS
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public int reviewBill(@RequestBody BillDto billDto) {
         if (StringUtil.isEmpty(billDto.getBillId()) || StringUtil.isEmpty(billDto.getCommunityId())
                 || StringUtil.isEmpty(billDto.getReviewUserId()) || "-1".equals(billDto.getReviewUserId())
-                || !BillDto.REVIEW_PUBLISHED.equals(billDto.getReviewState())) {
+                || !(BillDto.REVIEW_PUBLISHED.equals(billDto.getReviewState())
+                    || BillDto.REVIEW_REJECTED.equals(billDto.getReviewState()) || BillDto.REVIEW_DRAFT.equals(billDto.getReviewState()))) {
             throw new IllegalArgumentException("审核账单参数不完整");
+        }
+        String remark=billDto.getReviewRemark();
+        if ((remark != null && remark.length() > 500)
+                || (BillDto.REVIEW_REJECTED.equals(billDto.getReviewState()) && (remark == null || remark.trim().isEmpty()))) {
+            throw new IllegalArgumentException("审核不通过须填写原因，审核意见不能超过500字");
         }
         return feeServiceDaoImpl.reviewBill(BeanConvertUtil.beanCovertMap(billDto));
     }

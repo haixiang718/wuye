@@ -17,7 +17,7 @@
                 <label class="col-sm-2 col-form-label">预付类型</label>
                 <div class="col-sm-10">
                   <select class="custom-select" v-model="addPrestoreFeeInfo.prestoreFeeType">
-                    <option selected disabled value="">必填，请选择预付类型</option>
+                    <option selected disabled value="" hidden>必填，请选择预付类型</option>
                     <option value="8003">水费</option>
                     <option value="8004">电费</option>
                   </select> </div>
@@ -26,7 +26,7 @@
                 <label class="col-sm-2 col-form-label">预存对象类型</label>
                 <div class="col-sm-10">
                   <select class="custom-select" v-model="addPrestoreFeeInfo.prestoreFeeObjType">
-                    <option selected disabled value="">必填，请选择预存对象类型</option>
+                    <option selected disabled value="" hidden>必填，请选择预存对象类型</option>
                     <option value="3333">房屋</option>
                     <option value="6666">车位</option>
                   </select> </div>
@@ -42,7 +42,7 @@
                 <label class="col-sm-2 col-form-label">状态</label>
                 <div class="col-sm-10">
                   <select class="custom-select" v-model="addPrestoreFeeInfo.state">
-                    <option selected disabled value="">必填，请选择状态</option>
+                    <option selected disabled value="" hidden>必填，请选择状态</option>
                     <option value="1001">未使用</option>
                     <option value="2002">已使用</option>
                   </select> </div>

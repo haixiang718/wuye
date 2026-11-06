@@ -10,7 +10,7 @@ public final class BillCycleWindow {
     public static Date start(String billType, Date now) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(now);
-        if ("002".equals(billType) || "005".equals(billType)) {
+        if ("002".equals(billType) || "004".equals(billType) || "005".equals(billType)) {
             calendar.add(Calendar.MONTH, -1);
         } else if ("003".equals(billType)) {
             calendar.add(Calendar.DATE, -1);

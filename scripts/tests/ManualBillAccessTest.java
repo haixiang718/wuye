@@ -29,6 +29,7 @@ public class ManualBillAccessTest {
             field.set(service,Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{field.getType()},(p,m,a)->{
                 if(m.getName().equals("getCommunityMembers"))return relations;
                 if(m.getName().equals("generate")){calls++;command=(FeeConfigDto)a[0];if(failure)throw new IllegalStateException("private server detail");return reply;}
+                if(m.getName().equals("status")){calls++;command=(FeeConfigDto)a[0];JSONObject state=new JSONObject();state.put("state","OK");state.put("pending",1);return state;}
                 throw new IllegalStateException(m.getName());
             }));
         }
@@ -39,6 +40,11 @@ public class ManualBillAccessTest {
         assertEquals("community",command.getCommunityId());assertEquals("config",command.getConfigId());
         assertNull(command.getAdditionalAmount());assertNull(command.getBillType());
     }
+    @Test public void queueStatusRequiresManagedCommunityAndTrustedScope(){
+        assertEquals("OK",service.status("community","property","staff").getString("state"));assertEquals("community",command.getCommunityId());assertNull(command.getConfigId());
+        relation.setCommunityId("other");assertEquals("UNAVAILABLE",service.status("community","property","staff").getString("state"));assertEquals(1,calls);
+    }
+    @Test public void anonymousCannotReadQueueStatus(){assertEquals("UNAVAILABLE",service.status("community","property","-1").getString("state"));assertEquals(0,calls);}
     @Test public void missingOrAnonymousEmployeeCannotGenerate(){
         assertEquals(403,service.generate("community","config","property","-1").getIntValue("code"));
         assertEquals(403,service.generate("community","config",null,"staff").getIntValue("code"));assertEquals(0,calls);

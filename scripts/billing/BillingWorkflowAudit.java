@@ -62,7 +62,7 @@ public class BillingWorkflowAudit {
         Object proxy(Class<?> type) { return Proxy.newProxyInstance(type.getClassLoader(),new Class[]{type},this); }
         GenerateBillProTemplate generator()throws Exception {
             GenerateBillProTemplate generator=new GenerateBillProTemplate();
-            for(String name:Arrays.asList("feeInnerServiceSMOImpl","feeDetailInnerServiceSMOImpl","roomInnerServiceSMOImpl","ownerRoomRelInnerServiceSMOImpl")) {
+            for(String name:Arrays.asList("feeInnerServiceSMOImpl","feeDetailInnerServiceSMOImpl","roomInnerServiceSMOImpl","ownerRoomRelInnerServiceSMOImpl","contractInnerServiceSMOImpl","ownerInnerServiceSMOImpl")) {
                 Field f=generator.getClass().getDeclaredField(name);inject(generator,name,proxy(f.getType()));
             }
             ComputeFeeSMOImpl compute=new ComputeFeeSMOImpl();
@@ -123,7 +123,9 @@ public class BillingWorkflowAudit {
                     for(BillDto b:bills)if(!snapshot.isSupplemental()&&"T".equals(b.getCurBill())&&b.getBillTime().compareTo(cutoff)>=0)
                         throw new IllegalStateException("Current cycle already billed");
                     if(snapshot.isSupplemental())for(BillOweFeeDto fresh:snapshot.getDetails())for(BillOweFeeDto prior:details)
-                        if(fresh.getFeeId().equals(prior.getFeeId()))throw new IllegalStateException("Fee already billed");
+                        if(fresh.getFeeId().equals(prior.getFeeId())&&(!"2000".equals(prior.getState())
+                            ||prior.getDeadlineTime().compareTo(fresh.getFeeEndTime())>0&&prior.getFeeEndTime().compareTo(fresh.getDeadlineTime())<0))
+                            throw new IllegalStateException("Fee period already billed");
                     if(failHeader)throw new IllegalStateException("Synthetic bill-header failure");
                     if(!snapshot.isSupplemental())for(BillDto b:bills)b.setCurBill("F");
                     bills.add(copy(snapshot.getBill(),BillDto.class));
@@ -157,7 +159,7 @@ public class BillingWorkflowAudit {
         check("postpaid_current_cycle_skipped",m.details.isEmpty(),"postpaid current cycle; details="+m.details.size());
         m=new Memory();m.fees.get(0).setAdditionalAmount("0");m.generate();
         check("zero_fee_skipped",m.details.isEmpty(),"zero price; details="+m.details.size());
-        m=new Memory();BillDto old=new BillDto();old.setBillTime(format(month(-2)));old.setCurBill("T");old.setBillId("prior-bill");old.setConfigId(m.config.getConfigId());old.setCommunityId(m.config.getCommunityId());m.bills.add(old);m.generate();
+        m=new Memory();BillDto old=new BillDto();old.setBillTime(format(month(-2)));old.setCurBill("T");old.setReviewState("PUBLISHED");old.setBillId("prior-bill");old.setConfigId(m.config.getConfigId());old.setCommunityId(m.config.getCommunityId());m.bills.add(old);m.generate();
         check("later_cycle_rolls_current_bill",m.bills.size()==2&&"F".equals(m.bills.get(0).getCurBill())&&"T".equals(m.bills.get(1).getCurBill()),"old current flag="+m.bills.get(0).getCurBill()+", new="+m.bills.get(1).getCurBill());
     }
     static void failureChecks()throws Exception {

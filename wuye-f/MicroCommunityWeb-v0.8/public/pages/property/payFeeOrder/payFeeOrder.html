@@ -43,7 +43,7 @@
                                 <div class="col-sm-6">
                                     <select class="custom-select" v-model="payFeeOrderInfo.tempCycles"
                                             @change="_changeMonth(payFeeOrderInfo.tempCycles)">
-                                        <option selected disabled value="">请选择缴费周期</option>
+                                        <option selected disabled value="" hidden>请选择缴费周期</option>
                                         <option v-for="item in payFeeOrderInfo.paymentCycles" :value="item">{{item}}个月
                                         </option>
                                         <option value="-102">自定义周期</option>
@@ -95,7 +95,7 @@
                                 <label class="col-sm-3 col-form-label" style="padding-right:0px;">支付方式:</label>
                                 <div class="col-sm-6">
                                     <select class="custom-select" v-model="payFeeOrderInfo.primeRate">
-                                        <option selected disabled value="">必填，请选择支付方式</option>
+                                        <option selected disabled value="" hidden>必填，请选择支付方式</option>
                                         <option v-for="(item,index) in payFeeOrderInfo.primeRates" :key="index" v-if="item.statusCd != '5' && item.statusCd != '6'"
                                                 :value="item.statusCd">{{item.name}}
                                         </option>

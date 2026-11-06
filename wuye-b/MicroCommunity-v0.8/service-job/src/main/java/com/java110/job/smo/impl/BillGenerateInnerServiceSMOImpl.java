@@ -17,6 +17,12 @@ import java.util.List;
 /** Generates one trusted configuration through the same calculator and atomic snapshot as scheduled jobs. */
 @RestController
 public class BillGenerateInnerServiceSMOImpl implements IBillGenerateInnerServiceSMO {
+    @Autowired private com.java110.job.billing.AutomaticBillQueue automaticBillQueue;
+
+    @Override public JSONObject status(@RequestBody FeeConfigDto input) {
+        if(input==null||StringUtil.isEmpty(input.getCommunityId()))throw new IllegalArgumentException("小区不能为空");
+        JSONObject result=new JSONObject(automaticBillQueue.status(input.getCommunityId()));result.put("state","OK");return result;
+    }
     @Autowired
     private IFeeConfigInnerServiceSMO feeConfigInnerServiceSMOImpl;
     @Autowired
@@ -24,6 +30,12 @@ public class BillGenerateInnerServiceSMOImpl implements IBillGenerateInnerServic
 
     @Override
     public JSONObject generate(@RequestBody FeeConfigDto input) {
+        return generate(input,false);
+    }
+    public JSONObject generateAutomatic(FeeConfigDto input) {
+        return generate(input,true);
+    }
+    private JSONObject generate(FeeConfigDto input,boolean automatic) {
         if (input == null || StringUtil.isEmpty(input.getCommunityId()) || StringUtil.isEmpty(input.getConfigId())) {
             throw new IllegalArgumentException("小区和收费项目不能为空");
         }
@@ -41,18 +53,18 @@ public class BillGenerateInnerServiceSMOImpl implements IBillGenerateInnerServic
                 || !input.getConfigId().equals(config.getConfigId()) || !"0".equals(config.getStatusCd())) {
             throw new IllegalArgumentException("收费项目与当前小区归属不一致或已失效");
         }
-        if (!Arrays.asList("001", "002", "003", "005").contains(config.getBillType())) {
-            throw new IllegalArgumentException("当前收费项目不支持手动出账");
+        if (!Arrays.asList("001", "002", "003", "004", "005").contains(config.getBillType())) {
+            throw new IllegalArgumentException("当前收费项目出账类型无效");
         }
 
         GenerateBillProTemplate.GenerationResult generated;
         try {
-            generated = generateBillProTemplate.generateManual(config);
+            generated = automatic ? generateBillProTemplate.generateAutomatic(config) : generateBillProTemplate.generateManual(config);
         } catch (Exception failure) {
             // Recompute once against persisted coverage. A concurrent winner is only
             // returned when every remaining eligible fee has actually been included.
             try {
-                generated = generateBillProTemplate.generateManual(config);
+                generated = automatic ? generateBillProTemplate.generateAutomatic(config) : generateBillProTemplate.generateManual(config);
             } catch (Exception retryFailure) {
                 failure.addSuppressed(retryFailure);
                 throw propagate(failure);
@@ -65,7 +77,9 @@ public class BillGenerateInnerServiceSMOImpl implements IBillGenerateInnerServic
             response.put("msg", "当前收费项目没有可出账的欠费明细，未生成账单");
             return response;
         }
-        return result(bill, generated.existing, generated.supplemental);
+        JSONObject result = result(bill, generated.existing, generated.supplemental);
+        if(generated.incomplete) {result.put("code",202);result.put("msg","有效费用已生成待审核账单，部分资料异常的费用保留重试，请核查业主及计费资料");}
+        return result;
     }
 
     private JSONObject result(BillDto bill, boolean existing, boolean supplemental) {

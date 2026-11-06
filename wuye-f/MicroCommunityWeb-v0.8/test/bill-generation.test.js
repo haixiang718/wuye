@@ -76,12 +76,23 @@ test('selection exposes only supported bill types and rejects stale or foreign s
         ['001', '002', '003', '004', '005', '006'].map(type => config({ configId: type, billType: type }))
             .concat(config({ configId: 'foreign', communityId: 'other-community' })) }));
     assert.deepEqual(Array.from(p.component.billManageInfo.generation.configs, item => item.billType),
-        ['001', '002', '003', '005']);
-    for (const configId of ['', '004', 'foreign', 'missing']) {
+        ['001', '002', '003', '004', '005']);
+    for (const configId of ['', '006', 'foreign', 'missing']) {
         p.component.billManageInfo.generation.configId = configId;
         p.component._generateBill();
     }
     assert.equal(p.posts.length, 0);
+});
+
+test('recovery can generate drafts for real-time type 004 without approving or notifying', () => {
+    const p = page();
+    p.component._openBillGeneration();
+    p.configGets[0].success(JSON.stringify({ total: 1, records: 1,
+        feeConfigs: [config({ configId: 'config-004', billType: '004' })] }));
+    p.component.billManageInfo.generation.configId = 'config-004';
+    p.component._generateBill();
+    assert.deepEqual(p.posts.map(request => ({ url: request.url, body: request.body })),
+        [{ url: '/fee.generateBill', body: { communityId: 'community-1', configId: 'config-004' } }]);
 });
 
 test('generates type 005 using only authoritative IDs and blocks repeated clicks', () => {
@@ -206,4 +217,9 @@ test('template explains batch drafts, exposes searchable paged selection, and pr
     assert.match(html, /v-on:click="_generateBill\(\)"/);
     assert.match(html, /:disabled="[^"]*generation\.generating/);
     assert.match(html, /v-on:click="_reviewBill\(bill\)"/);
+    assert.match(html, /<option value="004">/);
+    assert.match(html, /费用保存后.*自动.*待审核/);
+    assert.match(html, /数秒/);
+    assert.match(html, /失败.*重试/);
+    assert.match(html, /<details[^>]*>[\s\S]*?<summary>更多操作<\/summary>[\s\S]*?重新检查出账[\s\S]*?<\/details>/);
 });

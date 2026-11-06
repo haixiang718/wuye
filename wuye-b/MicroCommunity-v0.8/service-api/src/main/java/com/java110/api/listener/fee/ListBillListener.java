@@ -26,6 +26,7 @@ import java.util.List;
  */
 @Java110Listener("listBillListener")
 public class ListBillListener extends AbstractServiceApiListener {
+    @Autowired private com.java110.api.bmo.fee.impl.BillGenerationService billGenerationService;
 
     @Autowired
     private IFeeConfigInnerServiceSMO feeConfigInnerServiceSMOImpl;
@@ -73,7 +74,12 @@ public class ListBillListener extends AbstractServiceApiListener {
         }
 
         ResultVo resultVo = new ResultVo((int) Math.ceil((double) count / (double) reqJson.getInteger("row")), count, billDtos);
-        ResponseEntity<String> responseEntity = new ResponseEntity<String>(resultVo.toString(), HttpStatus.OK);
+        JSONObject response = JSONObject.parseObject(resultVo.toString());
+        if ("8000418004".equals(context.getAppId())) {
+            response.put("automaticGeneration",billGenerationService.status(reqJson.getString("communityId"),
+                context.getRequestCurrentHeaders().get("store-id"),context.getRequestCurrentHeaders().get("user-id")));
+        }
+        ResponseEntity<String> responseEntity = new ResponseEntity<String>(response.toJSONString(), HttpStatus.OK);
 
         context.setResponseEntity(responseEntity);
 

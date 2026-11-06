@@ -16,7 +16,7 @@
                                 <label class="col-sm-2 col-form-label">性别</label>
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="editOwnerInfo.sex">
-                                        <option selected disabled value="">必填，请选择性别</option>
+                                        <option selected disabled value="" hidden>必填，请选择性别</option>
                                         <option value="0">男</option>
                                         <option value="1">女</option>
                                     </select>
@@ -31,7 +31,7 @@
                                 <label class="col-sm-2 col-form-label">类型</label>
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="editOwnerInfo.ownerTypeCd">
-                                        <option selected disabled value="">必填，请选择类型</option>
+                                        <option selected disabled value="" hidden>必填，请选择类型</option>
                                         <option value="1002">家庭成员</option>
                                         <option value="1003">租客</option>
                                         <option value="1005">其他</option>

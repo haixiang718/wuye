@@ -27,7 +27,7 @@
                     <label class="col-sm-2 col-form-label">审核环节</label>
                     <div class="col-sm-10">
                         <select class="custom-select" v-model="addAuditUserOtherViewInfo.auditLink">
-                            <option selected disabled value="">必填，请选择审核环节</option>
+                            <option selected disabled value="" hidden>必填，请选择审核环节</option>
                             <option value="809001">部门主管</option>
                             <option value="809002">财务主管</option>
                             <option value="809003">采购人员</option>
@@ -38,7 +38,7 @@
                     <label class="col-sm-2 col-form-label">流程对象</label>
                     <div class="col-sm-10">
                         <select class="custom-select" v-model="addAuditUserOtherViewInfo.objCode">
-                            <option selected disabled value="">必填，请选择审核流程</option>
+                            <option selected disabled value="" hidden>必填，请选择审核流程</option>
                             <option value="resourceEntry">采购流程</option>
                             <option value="resourceOut">出库流程</option>
                             <option value="complaint">投诉流程</option>

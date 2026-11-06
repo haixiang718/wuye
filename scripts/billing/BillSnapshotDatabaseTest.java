@@ -131,6 +131,7 @@ public class BillSnapshotDatabaseTest {
     }
     @Test public void supplementalGenerationDoesNotExtendCycle() {
         service.save(snapshot("base"));service.save(supplement("extra","fee-3","base"));
+        sql.update("UPDATE "+prefix+"bill SET review_state='PUBLISHED'");sql.update("UPDATE "+prefix+"bill_owe_fee SET state='2000'");
         sql.update("UPDATE "+prefix+"bill SET bill_time=DATE_SUB(NOW(),INTERVAL 2 MONTH) WHERE bill_id='base'");
         rejects(supplement("expired","fee-4","base"));
         BillSnapshotDto next=snapshot("next");next.setPreviousBillId("base");service.save(next);
@@ -154,11 +155,27 @@ public class BillSnapshotDatabaseTest {
     }
     @Test public void successfulNextSnapshotPreservesPreviousBillTime() {
         service.save(snapshot("prior"));
+        sql.update("UPDATE "+prefix+"bill SET review_state='PUBLISHED'");sql.update("UPDATE "+prefix+"bill_owe_fee SET state='2000'");
         sql.update("UPDATE "+prefix+"bill SET bill_time=DATE_SUB(NOW(),INTERVAL 2 MONTH)");
         String before=sql.queryForObject("SELECT CAST(bill_time AS CHAR) FROM "+prefix+"bill WHERE bill_id='prior'",String.class);
         BillSnapshotDto next=snapshot("next");next.setPreviousBillId("prior");service.save(next);
         assertEquals(before,sql.queryForObject("SELECT CAST(bill_time AS CHAR) FROM "+prefix+"bill WHERE bill_id='prior'",String.class));
         assertEquals("F",sql.queryForObject("SELECT cur_bill FROM "+prefix+"bill WHERE bill_id='prior'",String.class));
+    }
+    @Test public void unpaidRejectedSnapshotStaysActionableAcrossOldCycle() {
+        service.save(snapshot("base"));sql.update("UPDATE "+prefix+"bill SET review_state='REJECTED',bill_time=DATE_SUB(NOW(),INTERVAL 2 MONTH)");
+        assertEquals(1,service.save(supplement("new-fee","fee-3","base")));
+        assertEquals("T",sql.queryForObject("SELECT cur_bill FROM "+prefix+"bill WHERE bill_id='base'",String.class));
+        assertEquals("REJECTED",sql.queryForObject("SELECT review_state FROM "+prefix+"bill WHERE bill_id='base'",String.class));
+    }
+    @Test public void settledFeeNextPeriodCanCoexistWithAnotherUnpaidFee() {
+        BillSnapshotDto base=snapshot("base");service.save(base);
+        sql.update("UPDATE "+prefix+"bill_owe_fee SET state='2000' WHERE fee_id='fee-1'");
+        BillSnapshotDto next=supplement("next-period","fee-1","base");
+        next.getDetails().get(0).setFeeEndTime(base.getDetails().get(0).getDeadlineTime());
+        next.getDetails().get(0).setDeadlineTime("2030-01-01 00:00:00");
+        assertEquals(1,service.save(next));assertEquals(3,count("bill_owe_fee"));
+        rejects(supplement("duplicate","fee-1","base"));
     }
     @Test public void concurrentIndependentCallsCommitOnlyOneSnapshot() throws Exception {
         ExecutorService pool=Executors.newFixedThreadPool(2);CountDownLatch start=new CountDownLatch(1);

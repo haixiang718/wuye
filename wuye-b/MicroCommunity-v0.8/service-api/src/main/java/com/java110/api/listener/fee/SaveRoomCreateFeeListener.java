@@ -49,6 +49,7 @@ public class SaveRoomCreateFeeListener extends AbstractServiceApiListener {
 
     @Autowired
     private IFeeBMO feeBMOImpl;
+    @Autowired private com.java110.intf.job.IBillGenerateInnerServiceSMO billGenerateInnerServiceSMOImpl;
 
     private static final int DEFAULT_ADD_FEE_COUNT = 200;
 
@@ -213,6 +214,16 @@ public class SaveRoomCreateFeeListener extends AbstractServiceApiListener {
         paramOut.put("totalRoom", roomDtos.size());
         paramOut.put("successRoom", roomDtos.size() - failRooms);
         paramOut.put("errorRoom", failRooms);
+        if(roomDtos.size()>failRooms) {
+            try {
+                FeeConfigDto input=new FeeConfigDto();input.setCommunityId(reqJson.getString("communityId"));input.setConfigId(reqJson.getString("configId"));
+                JSONObject generation=billGenerateInnerServiceSMOImpl.generate(input);
+                paramOut.put("approvalGeneration",generation);
+            }catch(Exception failure) {
+                JSONObject queued=new JSONObject();queued.put("code",202);queued.put("msg","费用已保存，自动送审队列将继续处理，请在账单页面查看状态");
+                paramOut.put("approvalGeneration",queued);
+            }
+        }
         responseEntity = new ResponseEntity<>(paramOut.toJSONString(), HttpStatus.OK);
         context.setResponseEntity(responseEntity);
     }

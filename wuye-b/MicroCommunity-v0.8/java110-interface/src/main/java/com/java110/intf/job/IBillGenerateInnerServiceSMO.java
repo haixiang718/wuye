@@ -14,4 +14,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 public interface IBillGenerateInnerServiceSMO {
     @RequestMapping(value = "/generate", method = RequestMethod.POST)
     JSONObject generate(@RequestBody FeeConfigDto input);
+    @RequestMapping(value = "/status", method = RequestMethod.POST)
+    JSONObject status(@RequestBody FeeConfigDto input);
 }

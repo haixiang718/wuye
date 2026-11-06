@@ -1,0 +1,144 @@
+{
+  "date": "2026-11-06",
+  "feature": "automatic-bill-review",
+  "javaRegressionRunners": [
+    {
+      "test": "scripts/billing/verify_manual_generation.py",
+      "exitCode": 0,
+      "seconds": 7.8,
+      "summary": [
+        "PASS concurrent calls persist one atomic bill and resolve existing winner",
+        "PASS concurrent loser explicitly returns winner as existing",
+        "Manual bill generation: 270 checks passed"
+      ]
+    },
+    {
+      "test": "scripts/billing/verify_snapshot.py",
+      "exitCode": 0,
+      "seconds": 10.8,
+      "summary": [
+        "OK (19 tests)"
+      ]
+    },
+    {
+      "test": "scripts/tests/run_automatic_bill_queue_java.py",
+      "exitCode": 0,
+      "seconds": 10.0,
+      "summary": [
+        "OK (15 tests)"
+      ]
+    },
+    {
+      "test": "scripts/tests/run_manual_bill_access_java.py",
+      "exitCode": 0,
+      "seconds": 8.9,
+      "summary": [
+        "OK (11 tests)"
+      ]
+    },
+    {
+      "test": "scripts/tests/run_bill_review_transitions.py",
+      "exitCode": 0,
+      "seconds": 13.2,
+      "summary": [
+        "OK (42 tests)"
+      ]
+    },
+    {
+      "test": "scripts/tests/run_bill_review_database.py",
+      "exitCode": 0,
+      "seconds": 29.0,
+      "summary": [
+        "OK (16 tests)"
+      ]
+    },
+    {
+      "test": "scripts/tests/run_room_fee_status_java.py",
+      "exitCode": 0,
+      "seconds": 7.7,
+      "summary": [
+        "OK (18 tests)"
+      ]
+    },
+    {
+      "test": "scripts/tests/run_wechat_pay_v3_flow.py",
+      "exitCode": 0,
+      "seconds": 9.7,
+      "summary": []
+    },
+    {
+      "test": "scripts/tests/run_online_payment_refund_guard.py",
+      "exitCode": 0,
+      "seconds": 7.5,
+      "summary": [
+        "OK (3 tests)"
+      ]
+    },
+    {
+      "test": "scripts/tests/run_bill_notify_java.py",
+      "exitCode": 0,
+      "seconds": 3.7,
+      "summary": [
+        "OK (38 tests)"
+      ]
+    },
+    {
+      "test": "scripts/tests/run_payment_order_database_java.py",
+      "exitCode": 0,
+      "seconds": 25.3,
+      "summary": [
+        "OK (40 tests)"
+      ]
+    },
+    {
+      "test": "scripts/billing/verify.py",
+      "exitCode": 0,
+      "seconds": 4.9,
+      "summary": [
+        "Audit completed: 20 checks, 0 issues."
+      ]
+    }
+  ],
+  "adminNodeTests": {
+    "passed": 76,
+    "failed": 0
+  },
+  "manualNotificationNodeTests": {
+    "passed": 11,
+    "failed": 0
+  },
+  "runtimeHealth": {
+    "passed": 21,
+    "failed": 0
+  },
+  "browser": {
+    "liveDrafts": true,
+    "queueStatus": "OK",
+    "pendingYellow": true,
+    "approvedGreen": true,
+    "rejectedRed": true,
+    "rejectionAndResubmitActions": true,
+    "requiredPlaceholderHiddenAndDisabled": true,
+    "emptySelectedPlaceholderPreserved": true,
+    "realOptionsSelectable": true,
+    "pageErrors": 0
+  },
+  "deployment": {
+    "apiBusinessJobBuild": "SUCCESS",
+    "databaseBackupVerified": true,
+    "migrationPreservedFinancialRows": true,
+    "realTime004FeeNowDraft": true,
+    "realNotificationSent": false,
+    "realPaymentTriggered": false
+  },
+  "review": {
+    "independentReview": true,
+    "fixed": [
+      "future-one-time-eligibility",
+      "partial-invalid-fee-isolation",
+      "preserve-unresolved-snapshots",
+      "period-aware-paid-fee-renewal",
+      "temporary-per-fee-totals-before-merge"
+    ]
+  }
+}

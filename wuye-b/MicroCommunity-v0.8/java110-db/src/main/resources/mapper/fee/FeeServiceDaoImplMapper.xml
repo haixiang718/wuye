@@ -626,10 +626,20 @@
     </update>
 
     <update id="reviewBill" parameterType="Map">
-        update bill b set review_state='PUBLISHED',review_user_id=#{reviewUserId},
+        update bill b set review_state=
+        <choose>
+            <when test='reviewState == "REJECTED"'>'REJECTED'</when>
+            <when test='reviewState == "DRAFT"'>'DRAFT'</when>
+            <otherwise>'PUBLISHED'</otherwise>
+        </choose>,review_user_id=#{reviewUserId},
         review_time=CURRENT_TIMESTAMP,review_remark=#{reviewRemark},bill_time=bill_time
         where bill_id=#{billId} and community_id=#{communityId} and cur_bill='T'
-        and review_state='DRAFT'
+        <choose>
+            <when test='reviewState == "DRAFT"'>and review_state='REJECTED'</when>
+            <when test='reviewState == "REJECTED"'>and review_state='DRAFT' and CHAR_LENGTH(TRIM(#{reviewRemark})) &gt; 0</when>
+            <when test='reviewState == null or reviewState == "" or reviewState == "PUBLISHED"'>and review_state='DRAFT'</when>
+            <otherwise>and 1=0</otherwise>
+        </choose>
         and exists (select 1 from bill_owe_fee d where d.bill_id=b.bill_id and d.community_id=b.community_id)
     </update>
 
@@ -652,7 +662,10 @@
     </select>
 
     <select id="lockCurrentBills" parameterType="Map" resultType="Map">
-        select bill_id billId, base_bill_id baseBillId, DATE_FORMAT(bill_time, '%Y-%m-%d %H:%i:%s') billTime from bill
+        select bill_id billId, base_bill_id baseBillId, review_state reviewState,
+        (select count(*) from bill_owe_fee d where d.bill_id=bill.bill_id and d.community_id=bill.community_id
+            and d.state in ('1000','3000') and d.bill_amount_owed &gt; 0) outstandingCount,
+        DATE_FORMAT(bill_time, '%Y-%m-%d %H:%i:%s') billTime from bill
         where config_id = #{configId} and community_id = #{communityId} and cur_bill = 'T'
         order by (base_bill_id IS NOT NULL) asc, bill_time asc, bill_id asc
         for update
@@ -662,8 +675,11 @@
         select count(*) from bill_owe_fee d
         inner join bill b on b.bill_id=d.bill_id and b.community_id=d.community_id
         where b.config_id=#{configId} and b.community_id=#{communityId} and b.cur_bill='T'
-        and d.fee_id in
-        <foreach collection="feeIds" item="feeId" open="(" close=")" separator=",">#{feeId}</foreach>
+        and
+        <foreach collection="feePeriods" item="period" open="(" close=")" separator=" or ">
+            (d.fee_id=#{period.feeId} and (d.state &lt;&gt; '2000' or d.deadline_time is null
+                or (d.deadline_time &gt; #{period.feeEndTime} and d.fee_end_time &lt; #{period.deadlineTime})))
+        </foreach>
     </select>
 
 

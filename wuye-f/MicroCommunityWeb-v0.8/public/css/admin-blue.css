@@ -301,3 +301,21 @@ body.admin-blue .table .admin-empty { padding: 36px 20px; text-align: center; co
 .room-create-fee-page .room-fee-status { white-space: nowrap; font-weight: 600; color: #697586; }
 .room-create-fee-page .room-fee-owing .room-fee-status { color: #805b00; }
 .room-create-fee-page .room-fee-settled .room-fee-status { color: #25643c; }
+
+/* Bill review states describe approval only, independently of room fee collection status. */
+.admin-bills .table tbody tr.bill-review-draft > td { background: #fff4cc !important; }
+.admin-bills .table tbody tr.bill-review-published > td { background: #e3f4e8 !important; }
+.admin-bills .table tbody tr.bill-review-rejected > td { background: #fde8e8 !important; }
+.admin-bills .admin-bill-auto-help { padding: 0 4px 18px; color: #526177; font-size: 13px; }
+.admin-bills .admin-bill-auto-help p { margin-bottom: 8px; }
+.admin-bills .admin-bill-review-legend { display: flex; gap: 18px; flex-wrap: wrap; }
+.admin-bills .bill-review-dot { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border: 1px solid #0002; border-radius: 3px; vertical-align: -1px; }
+.admin-bills .bill-review-dot.bill-review-draft { background: #fff4cc; }
+.admin-bills .bill-review-dot.bill-review-published { background: #e3f4e8; }
+.admin-bills .bill-review-dot.bill-review-rejected { background: #fde8e8; }
+.admin-bills .admin-status.is-rejected { color: #9b3434; background: #f8cdcd; }
+.admin-bills .admin-bill-review-reason { max-width: 250px; overflow-wrap: anywhere; color: #923636; white-space: normal; }
+.admin-bills .admin-bill-recovery { margin-bottom: 16px; }
+.admin-bills .admin-bill-recovery summary { width: fit-content; cursor: pointer; color: #526177; font-size: 13px; }
+.admin-bills .admin-bill-recovery p { margin-top: 12px; }
+.admin-bills .admin-bill-rejection { background: #fff7f7; }

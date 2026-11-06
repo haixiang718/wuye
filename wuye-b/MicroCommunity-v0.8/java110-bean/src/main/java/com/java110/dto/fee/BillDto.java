@@ -15,6 +15,7 @@ import java.io.Serializable;
 public class BillDto extends PageDto implements Serializable {
     public static final String REVIEW_DRAFT = "DRAFT";
     public static final String REVIEW_PUBLISHED = "PUBLISHED";
+    public static final String REVIEW_REJECTED = "REJECTED";
     private String reviewState;
     private String reviewUserId;
     private String reviewTime;

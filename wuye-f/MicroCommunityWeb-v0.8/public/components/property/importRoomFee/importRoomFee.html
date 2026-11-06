@@ -11,7 +11,7 @@
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="importRoomFeeInfo.feeTypeCd"
                                         @change="_changeFeeTypeCd(importRoomFeeInfo.feeTypeCd)">
-                                        <option selected disabled value="">必填，请选择费用类型</option>
+                                        <option selected disabled value="" hidden>必填，请选择费用类型</option>
                                         
                                         <option v-for="(item,index) in importRoomFeeInfo.feeTypeCds" :key="index"
                                             v-bind:value="item.statusCd" >
@@ -24,7 +24,7 @@
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="importRoomFeeInfo.objType"
                                       >
-                                        <option selected disabled value="">必填，请选择费用对象</option>
+                                        <option selected disabled value="" hidden>必填，请选择费用对象</option>
                                         <option value="3333" >房屋</option>
                                         <option value="6666" >车位车辆</option>
                                     </select></div>

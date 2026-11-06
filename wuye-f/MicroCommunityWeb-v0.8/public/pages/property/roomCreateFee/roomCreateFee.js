@@ -48,6 +48,9 @@
             }
         },
         _initEvent: function () {
+            vc.on('roomCreateFee', 'notify', function () {
+                $that.listRoom($that.currentPage || DEFAULT_PAGE, DEFAULT_ROW);
+            });
             vc.on('room', 'chooseFloor', function (_param) {
                 vc.component.roomCreateFeeInfo.conditions.floorId = _param.floorId;
                 vc.component.roomCreateFeeInfo.conditions.floorName = _param.floorName;

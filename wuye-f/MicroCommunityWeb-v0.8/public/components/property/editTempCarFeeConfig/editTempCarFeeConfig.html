@@ -33,7 +33,7 @@
                     <label class="col-sm-3 col-form-label padding-lr-sm text-right">车辆类型</label>
                     <div class="col-sm-9">
                       <select class="custom-select" v-model="editTempCarFeeConfigInfo.carType">
-                        <option selected disabled value="">必填，请选择车辆类型</option>
+                        <option selected disabled value="" hidden>必填，请选择车辆类型</option>
                         <option value="9901">家用小汽车</option>
                         <option value="9904">电动车</option>
                         <option value="9905">三轮车</option>
@@ -46,7 +46,7 @@
                     <label class="col-sm-3 col-form-label padding-lr-sm text-right">收费规则</label>
                     <div class="col-sm-9">
                       <select class="custom-select" v-model="editTempCarFeeConfigInfo.ruleId" disabled="disabled">
-                        <option selected disabled value="">必填，请选择收费规则</option>
+                        <option selected disabled value="" hidden>必填，请选择收费规则</option>
                         <option :value="rule.ruleId" v-for="(rule,index) in editTempCarFeeConfigInfo.rules"
                           :key="index">
                           {{rule.ruleName}}</option>

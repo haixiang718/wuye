@@ -15,6 +15,29 @@ public class BillGenerationService {
     @Autowired private ICommunityInnerServiceSMO communityInnerServiceSMOImpl;
     @Autowired private IBillGenerateInnerServiceSMO billGenerateInnerServiceSMOImpl;
 
+    public JSONObject status(String community,String store,String user) {
+        JSONObject unavailable=new JSONObject();unavailable.put("state","UNAVAILABLE");unavailable.put("detailCode","AUTH");
+        if(!identifier(community)||empty(store)||empty(user)||"-1".equals(store)||"-1".equals(user))return unavailable;
+        try {
+            unavailable.put("detailCode","MEMBERSHIP_READ");
+            CommunityMemberDto query=new CommunityMemberDto();query.setCommunityId(community);query.setMemberId(store);
+            query.setMemberTypeCd(CommunityMemberDto.MEMBER_TYPE_PROPERTY);query.setAuditStatusCd(CommunityMemberDto.AUDIT_STATUS_NORMAL);
+            List<CommunityMemberDto> rows=communityInnerServiceSMOImpl.getCommunityMembers(query);
+            unavailable.put("detailCode","SCOPE");
+            if(rows!=null)for(CommunityMemberDto row:rows)if(row!=null&&community.equals(row.getCommunityId())
+                &&store.equals(row.getMemberId())&&"0".equals(row.getStatusCd())
+                &&CommunityMemberDto.MEMBER_TYPE_PROPERTY.equals(row.getMemberTypeCd())
+                &&CommunityMemberDto.AUDIT_STATUS_NORMAL.equals(row.getAuditStatusCd())) {
+                FeeConfigDto input=new FeeConfigDto();input.setCommunityId(community);
+                unavailable.put("detailCode","QUEUE_READ");
+                JSONObject reply=billGenerateInnerServiceSMOImpl.status(input);
+                if(reply!=null&&"OK".equals(reply.getString("state")))return reply;
+                unavailable.put("detailCode","QUEUE_RESPONSE");return unavailable;
+            }
+        }catch(Exception failure){org.slf4j.LoggerFactory.getLogger(BillGenerationService.class).warn("Automatic bill status unavailable at {} ({})",unavailable.getString("detailCode"),failure.getClass().getSimpleName());}
+        return unavailable;
+    }
+
     public JSONObject generate(String community,String config,String store,String user) {
         if(empty(store)||empty(user)||"-1".equals(user)||"-1".equals(store))return result(403,"请使用有权限的物业员工账号出账");
         if(!identifier(community)||!identifier(config))return result(400,"请选择当前小区的收费项目");

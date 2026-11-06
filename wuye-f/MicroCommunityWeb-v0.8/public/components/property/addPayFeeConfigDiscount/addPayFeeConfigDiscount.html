@@ -12,7 +12,7 @@
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="addPayFeeConfigDiscountInfo.discountType"
                                             @change="_changeAddPayFeeConfigDiscountType()">
-                                        <option selected disabled value="">必填，请选择折扣类型</option>
+                                        <option selected disabled value="" hidden>必填，请选择折扣类型</option>
                                         <option value="1001">优惠</option>
                                         <option value="2002">违约</option>
                                     </select>
@@ -22,7 +22,7 @@
                                 <label class="col-sm-2 col-form-label">折扣名称</label>
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="addPayFeeConfigDiscountInfo.discountId">
-                                        <option selected disabled value="">必填，请选择折扣名称</option>
+                                        <option selected disabled value="" hidden>必填，请选择折扣名称</option>
                                         <option v-for="(item,index) in addPayFeeConfigDiscountInfo.discounts"
                                                 :value="item.discountId">{{item.discountName}}
                                         </option>

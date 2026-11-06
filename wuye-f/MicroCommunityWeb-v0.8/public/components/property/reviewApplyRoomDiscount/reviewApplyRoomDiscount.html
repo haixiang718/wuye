@@ -13,7 +13,7 @@
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="reviewApplyRoomDiscountInfo.discountType"
                                             @change="_changeApplyRoomDiscountType()">
-                                        <option selected disabled value="">必填，请选择折扣类型</option>
+                                        <option selected disabled value="" hidden>必填，请选择折扣类型</option>
                                         <option value="3003">优惠(需要申请)</option>
                                     </select>
                                 </div>
@@ -22,7 +22,7 @@
                                 <label class="col-sm-2 col-form-label">折扣名称</label>
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="reviewApplyRoomDiscountInfo.discountId">
-                                        <option selected disabled value="">必填，请选择折扣名称</option>
+                                        <option selected disabled value="" hidden>必填，请选择折扣名称</option>
                                         <option v-for="(item,index) in reviewApplyRoomDiscountInfo.discounts"
                                                 :value="item.discountId">
                                             {{item.discountName}}
@@ -48,7 +48,7 @@
                                 <label class="col-sm-2 col-form-label">审批状态</label>
                                 <div class="col-sm-10">
                                     <select class="custom-select" v-model="reviewApplyRoomDiscountInfo.state">
-                                        <option selected disabled value="">必填，请选择状态</option>
+                                        <option selected disabled value="" hidden>必填，请选择状态</option>
                                         <option value="4">审批通过</option>
                                         <option value="5">审批不通过</option>
                                     </select>

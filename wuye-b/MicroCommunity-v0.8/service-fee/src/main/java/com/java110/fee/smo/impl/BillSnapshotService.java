@@ -53,6 +53,10 @@ public class BillSnapshotService {
                 throw new IllegalStateException("历史账单时间无效，请先核查", invalid);
             }
             currentCycle = !last.before(cutoff);
+            for(Map row:current) {
+                currentCycle |= !BillDto.REVIEW_PUBLISHED.equals(row.get("reviewState"))
+                    || ((Number)row.get("outstandingCount")).longValue()>0;
+            }
         }
         if (snapshot.isSupplemental() && !currentCycle) throw new IllegalStateException("补充账单所属账期已变化，请重新生成");
         if (!snapshot.isSupplemental() && currentCycle) throw new IllegalStateException("当前周期已经出过账");
@@ -64,8 +68,13 @@ public class BillSnapshotService {
         }
         if (snapshot.isSupplemental()) {
             List<String> feeIds = new ArrayList<>();
-            for (BillOweFeeDto detail : snapshot.getDetails()) feeIds.add(detail.getFeeId());
+            List<Map<String,Object>> periods = new ArrayList<>();
+            for (BillOweFeeDto detail : snapshot.getDetails()) {
+                feeIds.add(detail.getFeeId());
+                periods.add(BeanConvertUtil.beanCovertMap(detail));
+            }
             scope.put("feeIds", feeIds);
+            scope.put("feePeriods", periods);
             if (feeServiceDaoImpl.countCurrentBillFees(scope) != 0) {
                 throw new IllegalStateException("费用已经出账，请重新查询后生成");
             }
