@@ -113,22 +113,6 @@ export function loadCategoryMenus(_that, _data) {
 export function loadCategory() {
 	return {
 		pageone: [{
-				name: "维修工单",
-				src: "/static/image/index_repair.png",
-				href: "/pages/repairOrder/repairOrder"
-			}, {
-				name: "维修待办",
-				src: "/static/image/index_dealRepair.png",
-				href: "/pages/repairDispatch/repairDispatch"
-			}, {
-				name: "巡检打卡",
-				src: "/static/image/index_inspection.png",
-				href: "/pages/inspection/inspection"
-			}, {
-				name: "投诉待办",
-				src: "/static/image/index_complaint.png",
-				href: "/pages/complaintList/complaintList"
-			}, {
 				name: "公告",
 				src: "/static/image/index_notice.png",
 				href: "/pages/notice/notice"

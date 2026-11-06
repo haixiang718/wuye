@@ -59,12 +59,9 @@
 
 <script>
 	import {
-		loadRepairStaff,
-		dispatchRepair,
-		finishRepair,
 		queryResourceStoreResName,
 		queryRepairInfo
-	} from '../../api/repair/repair.js'
+	} from '../../api/resource/resource.js'
 
 	export default {
 		components: {

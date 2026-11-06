@@ -9,26 +9,21 @@ import com.java110.dto.contract.ContractDto;
 import com.java110.dto.contractType.ContractTypeDto;
 import com.java110.dto.fee.FeeDto;
 import com.java110.dto.owner.OwnerRoomRelDto;
-import com.java110.dto.rentingPool.RentingPoolDto;
-import com.java110.dto.store.StoreDto;
 import com.java110.intf.common.IContractApplyUserInnerServiceSMO;
 import com.java110.intf.community.IRoomInnerServiceSMO;
 import com.java110.intf.fee.IFeeInnerServiceSMO;
 import com.java110.intf.store.*;
 import com.java110.intf.user.IOwnerRoomRelInnerServiceSMO;
-import com.java110.intf.user.IRentingPoolInnerServiceSMO;
 import com.java110.po.contract.ContractPo;
 import com.java110.po.contractAttr.ContractAttrPo;
 import com.java110.po.contractFile.ContractFilePo;
 import com.java110.po.contractRoom.ContractRoomPo;
 import com.java110.po.owner.OwnerRoomRelPo;
-import com.java110.po.rentingPool.RentingPoolPo;
 import com.java110.po.room.RoomPo;
 import com.java110.store.bmo.contract.ISaveContractBMO;
 import com.java110.utils.constant.StatusConstant;
 import com.java110.utils.util.Assert;
 import com.java110.utils.util.BeanConvertUtil;
-import com.java110.utils.util.StringUtil;
 import com.java110.vo.ResultVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -47,9 +42,6 @@ public class SaveContractBMOImpl implements ISaveContractBMO {
 
     @Autowired
     private IContractTypeInnerServiceSMO contractTypeInnerServiceSMOImpl;
-
-    @Autowired
-    private IRentingPoolInnerServiceSMO rentingPoolInnerServiceSMOImpl; // 房屋租赁
 
     @Autowired
     private IContractApplyUserInnerServiceSMO contractApplyUserInnerServiceSMOImpl;
@@ -128,11 +120,6 @@ public class SaveContractBMOImpl implements ISaveContractBMO {
             ContractDto tmpContractDto = BeanConvertUtil.covertBean(contractPo, ContractDto.class);
             tmpContractDto.setCurrentUserId(reqJson.getString("userId"));
             contractApplyUserInnerServiceSMOImpl.startProcess(tmpContractDto);
-        }
-
-
-        if (StoreDto.STORE_ADMIN.equals(contractPo.getStoreId())) {
-            noticeRentUpdateState(contractPo, audit);
         }
 
 
@@ -276,40 +263,6 @@ public class SaveContractBMOImpl implements ISaveContractBMO {
             }
         }
 
-    }
-
-    /**
-     * 修改 房屋租赁状态
-     *
-     * @param contractPo
-     */
-    private void noticeRentUpdateState(ContractPo contractPo, String audit) {
-
-        if (!contractPo.getObjType().equals(FeeDto.PAYER_OBJ_TYPE_ROOM)
-                || StringUtil.isEmpty(contractPo.getObjId())
-                || contractPo.getObjId().startsWith("-")) {
-            return;
-        }
-        RentingPoolDto rentingPoolDto = new RentingPoolDto();
-        rentingPoolDto.setRoomId(contractPo.getObjId());
-        rentingPoolDto.setState(RentingPoolDto.STATE_APPLY_AGREE);
-        List<RentingPoolDto> rentingPoolDtos = rentingPoolInnerServiceSMOImpl.queryRentingPools(rentingPoolDto);
-
-        if (rentingPoolDtos == null || rentingPoolDtos.size() < 1) {
-            return;
-        }
-
-
-        RentingPoolPo rentingPoolPo = new RentingPoolPo();
-        rentingPoolPo.setCommunityId(rentingPoolDtos.get(0).getCommunityId());
-        rentingPoolPo.setRentingId(rentingPoolDtos.get(0).getRentingId());
-
-        if (ContractTypeDto.NO_AUDIT.equals(audit)) {
-            rentingPoolPo.setState(RentingPoolDto.STATE_FINISH);
-        } else {
-            rentingPoolPo.setState(RentingPoolDto.STATE_ADMIN_AUDIT);
-        }
-        rentingPoolInnerServiceSMOImpl.updateRentingPool(rentingPoolPo);
     }
 
     /**

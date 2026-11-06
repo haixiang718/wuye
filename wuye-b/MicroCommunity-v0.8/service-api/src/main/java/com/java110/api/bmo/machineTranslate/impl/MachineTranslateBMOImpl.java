@@ -8,20 +8,15 @@ import com.java110.core.factory.GenerateCodeFactory;
 import com.java110.dto.CommunityMemberDto;
 import com.java110.dto.fee.FeeConfigDto;
 import com.java110.dto.file.FileDto;
-import com.java110.dto.machine.ApplicationKeyDto;
 import com.java110.dto.machine.CarInoutDto;
 import com.java110.dto.machine.MachineDto;
-import com.java110.dto.owner.OwnerDto;
-import com.java110.intf.common.IApplicationKeyInnerServiceSMO;
 import com.java110.intf.common.IFileInnerServiceSMO;
 import com.java110.intf.community.ICommunityInnerServiceSMO;
 import com.java110.intf.fee.IFeeConfigInnerServiceSMO;
-import com.java110.intf.user.IOwnerInnerServiceSMO;
 import com.java110.po.car.CarInoutDetailPo;
 import com.java110.po.car.CarInoutPo;
 import com.java110.po.fee.PayFeePo;
 import com.java110.po.file.FileRelPo;
-import com.java110.po.machine.MachineRecordPo;
 import com.java110.po.machine.MachineTranslatePo;
 import com.java110.utils.constant.BusinessTypeConstant;
 import com.java110.utils.constant.CommunityMemberTypeConstant;
@@ -54,12 +49,6 @@ public class MachineTranslateBMOImpl extends ApiBaseBMO implements IMachineTrans
     private ICommunityInnerServiceSMO communityInnerServiceSMOImpl;
     @Autowired
     private IFileInnerServiceSMO fileInnerServiceSMOImpl;
-
-    @Autowired
-    private IApplicationKeyInnerServiceSMO applicationKeyInnerServiceSMOImpl;
-
-    @Autowired
-    private IOwnerInnerServiceSMO ownerInnerServiceSMOImpl;
 
     /**
      * 添加小区信息
@@ -218,60 +207,6 @@ public class MachineTranslateBMOImpl extends ApiBaseBMO implements IMachineTrans
         super.insert(context, fileRelPo, BusinessTypeConstant.BUSINESS_TYPE_SAVE_FILE_REL);
     }
 
-
-    /**
-     * 添加小区信息
-     *
-     * @param paramInJson     接口调用放传入入参
-     * @param dataFlowContext 数据上下文
-     * @return 订单服务能够接受的报文
-     */
-    public void addMachineRecord(JSONObject paramInJson, DataFlowContext dataFlowContext) {
-
-        if (!paramInJson.containsKey("openTypeCd")) {
-            paramInJson.put("openTypeCd", "1000");
-        }
-
-        if (!paramInJson.containsKey("recordTypeCd")) {
-            paramInJson.put("openTypeCd", "8888");
-        }
-        paramInJson.put("fileTime", DateUtil.getFormatTimeString(new Date(), DateUtil.DATE_FORMATE_STRING_A));
-
-        paramInJson.put("machineRecordId", GenerateCodeFactory.getGeneratorId(GenerateCodeFactory.CODE_PREFIX_machineRecordId));
-
-        String objId = paramInJson.getString("userId");
-        //这里objId 可能是 业主ID 也可能是钥匙ID
-        //先根据业主ID去查询
-        OwnerDto ownerDto = new OwnerDto();
-        ownerDto.setCommunityId(paramInJson.getString("communityId"));
-        ownerDto.setMemberId(objId);
-        List<OwnerDto> ownerDtos = ownerInnerServiceSMOImpl.queryOwnerMembers(ownerDto);
-
-        if (ownerDtos != null && ownerDtos.size() > 0) {
-            Assert.listOnlyOne(ownerDtos, "根据业主ID查询到多条记录");
-            paramInJson.put("name", ownerDtos.get(0).getName());
-            paramInJson.put("tel", ownerDtos.get(0).getLink());
-            paramInJson.put("idCard", ownerDtos.get(0).getIdCard());
-            paramInJson.put("relTypeCd", "60000");
-        } else { //钥匙申请ID
-            ApplicationKeyDto applicationKeyDto = new ApplicationKeyDto();
-            applicationKeyDto.setCommunityId(paramInJson.getString("communityId"));
-            applicationKeyDto.setApplicationKeyId(objId);
-            List<ApplicationKeyDto> applicationKeyDtos = applicationKeyInnerServiceSMOImpl.queryApplicationKeys(applicationKeyDto);
-
-            Assert.listOnlyOne(applicationKeyDtos, "根据钥匙ID未查询到记录或查询到多条记录");
-
-            paramInJson.put("name", applicationKeyDtos.get(0).getName());
-            paramInJson.put("tel", applicationKeyDtos.get(0).getTel());
-            paramInJson.put("idCard", applicationKeyDtos.get(0).getIdCard());
-            paramInJson.put("relTypeCd", "60000");
-
-        }
-
-        //计算 应收金额
-        MachineRecordPo machineRecordPo = BeanConvertUtil.covertBean(paramInJson, MachineRecordPo.class);
-        super.insert(dataFlowContext, machineRecordPo, BusinessTypeConstant.BUSINESS_TYPE_SAVE_MACHINE_RECORD);
-    }
 
     /**
      * 添加小区信息

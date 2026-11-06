@@ -20,17 +20,7 @@ public class BigScreenApi {
     private IQueryAssetsRoomBMO queryAssetsRoomBMOImpl;
 
     @Autowired
-    private IQueryAssetsRepairBMO queryAssetsRepairBMOImpl;
-
-    @Autowired
     private IQueryAssetsFeeBMO queryAssetsFeeBMOImpl;
-
-    @Autowired
-    private IQueryAssetsInspectionBMO queryAssetsInspectionBMOImpl;
-
-    @Autowired
-    private IQueryAssetsOpenDoorBMO queryAssetsOpenDoorBMOImpl;
-
 
     /**
      * 查询资产
@@ -60,17 +50,6 @@ public class BigScreenApi {
     }
 
     /**
-     * @param communityId
-     * @return
-     * @Service /bigScreen/getAssetsRepair
-     * @path /app/bigScreen/getAssetsRepair
-     */
-    @RequestMapping(value = "/getAssetsRepair", method = RequestMethod.GET)
-    public ResponseEntity<String> getAssetsRepair(@RequestParam(value = "communityId") String communityId) {
-        return queryAssetsRepairBMOImpl.query(communityId);
-    }
-
-    /**
      * 查询大屏费用
      *
      * @param communityId
@@ -83,35 +62,4 @@ public class BigScreenApi {
         return queryAssetsFeeBMOImpl.query(communityId);
     }
 
-    /**
-     * 今日巡检
-     *
-     * @param communityId
-     * @return
-     * @Service /bigScreen/getAssetInspection
-     * @path /app/bigScreen/getAssetInspection
-     */
-    @RequestMapping(value = "/getAssetInspection", method = RequestMethod.GET)
-    public ResponseEntity<String> getAssetInspection(@RequestParam(value = "communityId") String communityId) {
-        return queryAssetsInspectionBMOImpl.query(communityId);
-    }
-
-    /**
-     * 开门
-     *
-     * @param communityId
-     * @return
-     * @Service /bigScreen/getAssetOpenDoor
-     * @path /app/bigScreen/getAssetOpenDoor
-     */
-    @RequestMapping(value = "/getAssetOpenDoor", method = RequestMethod.GET)
-    public ResponseEntity<String> getAssetOpenDoor(@RequestParam(value = "communityId") String communityId) {
-        return queryAssetsOpenDoorBMOImpl.query(communityId);
-    }
-
-    @RequestMapping(value = "/getAssetOpenDoorImage", method = RequestMethod.GET)
-    public ResponseEntity<String> getAssetOpenDoorImage(@RequestParam(value = "communityId") String communityId) {
-        return queryAssetsOpenDoorBMOImpl.queryImage(communityId);
-
-    }
 }

@@ -51,16 +51,10 @@ public class PaymentController extends BaseController {
     private IToPayOweFeeSMO toPayOweFeeSMOImpl;
 
     @Autowired
-    private IRentingToPaySMO rentingToPaySMOImpl;
-
-    @Autowired
     private IToPayTempCarInoutSMO toPayTempCarInoutSMOImpl;
 
     @Autowired
     private IToNotifySMO toNotifySMOImpl;
-
-    @Autowired
-    private IRentingToNotifySMO rentingToNotifySMOImpl;
 
     @Autowired
     private IOweFeeToNotifySMO oweFeeToNotifySMOImpl;
@@ -172,27 +166,7 @@ public class PaymentController extends BaseController {
     }
 
     /**
-     * <p>出租统一下单入口</p>
-     *
-     * @param request
-     * @throws Exception
-     */
-    @RequestMapping(path = "/rentingToPay", method = RequestMethod.POST)
-    public ResponseEntity<String> rentingToPay(@RequestBody String postInfo, HttpServletRequest request) {
-        IPageData pd = (IPageData) request.getAttribute(CommonConstant.CONTEXT_PAGE_DATA);
-        String appId = request.getHeader("APP_ID");
-        if (StringUtil.isEmpty(appId)) {
-            appId = request.getHeader("APP-ID");
-        }
-
-        IPageData newPd = PageData.newInstance().builder(pd.getUserId(), pd.getUserName(), pd.getToken(), postInfo,
-                "", "", "", pd.getSessionId(),
-                appId);
-        return rentingToPaySMOImpl.toPay(newPd);
-    }
-
-    /**
-     * <p>出租统一下单入口</p>
+     * <p>物业费用支付回调</p>
      *
      * @param request
      * @throws Exception
@@ -204,22 +178,7 @@ public class PaymentController extends BaseController {
     }
 
     /**
-     * <p>支付回调Api</p>
-     *
-     * @param request
-     * @throws Exception
-     */
-    @RequestMapping(path = "/rentingNotify", method = RequestMethod.POST)
-    public ResponseEntity<String> rentingNotify(@RequestBody String postInfo, HttpServletRequest request) {
-
-
-        return rentingToNotifySMOImpl.toNotify(postInfo, request);
-
-
-    }
-
-    /**
-     * <p>出租统一下单入口</p>
+     * <p>物业费用支付入口</p>
      *
      * @param request
      * @throws Exception

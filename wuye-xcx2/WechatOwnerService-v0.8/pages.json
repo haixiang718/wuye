@@ -1,312 +1,229 @@
 {
-	"pages": [
-		{
-			"path": "pages/index/index",
-			"style": {
-				"navigationBarTitleText": "HC智慧家园",
-				"backgroundColor": "#ffffff"
-			}
-		},
-		{
-			"path": "pages/my/myHouse",
-			"style": {
-				"navigationBarTitleText": "我的房屋",
-				"enablePullDownRefresh": true
-			}
-		},
-		{
-			"path": "pages/bindOwner/bindOwner",
-			"style": {
-				"navigationBarTitleText": "绑定业主"
-			}
-		},
-		{
-			"path": "pages/viewBindOwner/viewBindOwner",
-			"style": {
-				"navigationBarTitleText": "业主信息"
-			}
-		},
-		{
-			"path": "pages/viewCommunitys/viewCommunitys",
-			"style": {
-				"navigationBarTitleText": "选择小区"
-			}
-		},
-		{
-			"path": "pages/location/location",
-			"style": {
-				"navigationBarTitleText": "选择小区",
-				"navigationBarTextStyle": "white"
-			}
-		},
-		{
-			"path": "pages/my/my",
-			"style": {
-				"navigationBarTitleText": "我"
-			}
-		},
-		{
-			"path": "pages/payParkingFeeList/payParkingFeeList",
-			"style": {
-				"navigationBarTitleText": "停车费"
-			}
-		},
-		{
-			"path": "pages/payParkingFee/payParkingFee",
-			"style": {
-				"navigationBarTitleText": "缴停车费"
-			}
-		},
-		{
-			"path": "pages/my/myHouseDetail",
-			"style": {
-				"navigationBarTitleText": "我的房屋明细"
-			}
-		},
-		{
-			"path": "pages/roomFeeList/roomFeeList",
-			"style": {
-				"navigationBarTitleText": "物业费"
-			}
-		},
-		{
-			"path": "pages/roomFeeListNew/roomFeeListNew",
-			"style": {
-				"navigationBarTitleText": "物业费"
-			}
-		},
-		{
-			"path": "pages/roomFee/roomFee",
-			"style": {
-				"navigationBarTitleText": "缴物业费"
-			}
-		},
-		{
-			"path": "pages/login/login",
-			"style": {
-				"navigationBarTitleText": "请登录"
-			}
-		},
-		{
-			"path": "pages/settings/settings",
-			"style": {
-				"navigationBarTitleText": "设置"
-			}
-		},
-		{
-			"path": "pages/register/register",
-			"style": {
-				"navigationBarTitleText": "绑定业主"
-			}
-		},
-		{
-			"path": "pages/payFeeDetail/payFeeDetail",
-			"style": {
-                "enablePullDownRefresh": true,
-				"navigationBarTitleText": "缴费历史"
-			}
-		},
-		{
-			"path": "pages/myProperty/myProperty",
-			"style": {
-				"navigationBarTitleText": "我的物业"
-			}
-		},
-		{
-			"path": "pages/viewAdmin/viewAdmin",
-			"style": {
-				"navigationBarTitleText": "技术支持"
-			}
-		},
-		{
-			"path": "pages/market/market",
-			"style": {
-				"navigationBarTitleText": "跳蚤市场"
-			}
-		},
-		{
-			"path": "pages/newJunk/newJunk",
-			"style": {
-				"navigationBarTitleText": "发布信息"
-			}
-		},
-		{
-			"path": "pages/myJunk/myJunk",
-			"style": {
-				"navigationBarTitleText": "我的发布"
-			}
-		},
-		{
-			"path": "pages/showlogin/showlogin",
-			"style": {
-				"navigationBarTitleText": "温馨提示"
-			}
-		},
-		{
-			"path": "pages/selectFloor/selectFloor",
-			"style": {
-				"navigationBarTitleText": "选择楼栋"
-			}
-		},
-		{
-			"path": "pages/selectUnit/selectUnit",
-			"style": {
-				"navigationBarTitleText": "选择单元"
-			}
-		},
-		{
-            "path" : "pages/registerByWechat/registerByWechat",
-            "style" : {
-				"navigationBarTitleText": "业主绑定"
-			}
-        },
-		{
-            "path" : "pages/changePassword/changePassword",
-            "style" : {
-				"navigationBarTitleText": "修改密码"
-			}
-        },
-		{
-            "path" : "pages/changeOwnerPhone/changeOwnerPhone",
-            "style" : {
-				"navigationBarTitleText": "修改手机"
-			}
-        },
-		{
-		    "path" : "pages/rentHouse/rentHouse",
-		    "style" : {
-				"enablePullDownRefresh": true,
-				"navigationBarTitleText": "房源"
-			}
-		},
-		{
-            "path" : "pages/rentingDetail/rentingDetail",
-            "style" : {
-				"navigationBarTitleText": ""
-			}
-        },
-		{
-            "path" : "pages/roomOweFee/roomOweFee",
-            "style" : {
-				"navigationBarTitleText": "欠费缴费"
-			}
-        },
-		{
-		    "path" : "pages/parkingInfo/parkingInfo",
-		    "style" : {
-				"navigationBarTitleText": "车位申请进度"
-			}
-		},
-		{
-            "path" : "pages/rentingAppointment/rentingAppointment",
-            "style" : {
-				"navigationBarTitleText": "租房预约"
-			}
-        },
-		{
-            "path" : "pages/mall/mall",
-            "style" : {
-				"navigationBarTitleText": "商圈",
-				"navigationStyle":"custom"
-			}
-        },
-		{
-            "path" : "pages/carOweFee/carOweFee",
-            "style" :                                                                                    
-            {
-                "navigationBarTitleText": "欠费缴费",
-                "enablePullDownRefresh": false
-            }
-        },
-		{
-            "path" : "pages/tempParkingFee/tempParkingFee",
-            "style" :                                                                                    
-            {
-                "navigationBarTitleText": "临时车缴费",
-                "enablePullDownRefresh": false
-            }
-        },
-		{
-            "path" : "pages/hcWebView/hcWebView",
-            "style" :                                                                                    
-            {
-                "navigationBarTitleText": "",
-                "enablePullDownRefresh": false,
-				"navigationStyle":"custom"
-            }
-        },
-		{
-            "path" : "pages/hcWebViewRefresh/hcWebViewRefresh",
-            "style" :                                                                                    
-            {
-                "navigationBarTitleText": "用户鉴权",
-                "enablePullDownRefresh": false,
-				"navigationStyle":"custom"
-            }
-        },
-		{
-            "path" : "pages/homemaking/homemaking",
-            "style" :                                                                                    
-            {
-                "navigationBarTitleText": "家政服务",
-                "enablePullDownRefresh": false,
-				"navigationStyle":"custom"
-            }
-        }
-	],
-	"tabBar": {
-		"color": "#272636",
-		"selectedColor": "#00AA00",
-		"backgroundColor": "#fff",
-		"borderStyle": "black",
-		"list": [{
-				"pagePath": "pages/index/index",
-				"text": "首页",
-				"iconPath": "static/images/home.png",
-				"selectedIconPath": "static/images/home-selected.png"
-			},
-			// {
-			// 	"pagePath": "pages/homemaking/homemaking",
-			// 	"text": "家政",
-			// 	"iconPath": "static/images/rent.png",
-			// 	"selectedIconPath": "static/images/rent-selected.png"
-			// },
-			// {
-			// 	"pagePath": "pages/mall/mall",
-			// 	"text": "商圈",
-			// 	"iconPath": "static/images/market.png",
-			// 	"selectedIconPath": "static/images/market-selected.png"
-			// },
-			{
-				"pagePath": "pages/my/my",
-				"text": "我的",
-				"iconPath": "static/images/my.png",
-				"selectedIconPath": "static/images/mySelected.png"
-			}
-		]
-	},
-	"networkTimeout": {
-		"request": 10000
-	},
-	"permission": {
-		"scope.userLocation": {
-			"desc": "你的位置信息将用于小程序位置接口的效果展示"
-		}
-	},
-	"globalStyle": {
-		"navigationBarTextStyle": "white",
-		"navigationBarBackgroundColor": "#00AA00",
-		"navigationBarTitleText": "HC智慧家园",
-		"usingComponents": { //这里为方便，全局引入了所有组件，也可以在某个page下单独引用某个组件
-		}
-	},
-	"condition": { //模式配置，仅开发期间生效
-		"current": 0, //当前激活的模式(list 的索引项)
-		"list": [{
-			"name": "", //模式名称
-			"path": "", //启动页面，必选
-			"query": "" //启动参数，在页面的onLoad函数里面得到
-		}]
-	},
-	"subPackages": []
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "HC智慧家园",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    {
+      "path": "pages/my/myHouse",
+      "style": {
+        "navigationBarTitleText": "我的房屋",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/bindOwner/bindOwner",
+      "style": {
+        "navigationBarTitleText": "绑定业主"
+      }
+    },
+    {
+      "path": "pages/viewBindOwner/viewBindOwner",
+      "style": {
+        "navigationBarTitleText": "业主信息"
+      }
+    },
+    {
+      "path": "pages/viewCommunitys/viewCommunitys",
+      "style": {
+        "navigationBarTitleText": "选择小区"
+      }
+    },
+    {
+      "path": "pages/location/location",
+      "style": {
+        "navigationBarTitleText": "选择小区",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/my/my",
+      "style": {
+        "navigationBarTitleText": "我"
+      }
+    },
+    {
+      "path": "pages/payParkingFeeList/payParkingFeeList",
+      "style": {
+        "navigationBarTitleText": "停车费"
+      }
+    },
+    {
+      "path": "pages/payParkingFee/payParkingFee",
+      "style": {
+        "navigationBarTitleText": "缴停车费"
+      }
+    },
+    {
+      "path": "pages/my/myHouseDetail",
+      "style": {
+        "navigationBarTitleText": "我的房屋明细"
+      }
+    },
+    {
+      "path": "pages/roomFeeList/roomFeeList",
+      "style": {
+        "navigationBarTitleText": "物业费"
+      }
+    },
+    {
+      "path": "pages/roomFeeListNew/roomFeeListNew",
+      "style": {
+        "navigationBarTitleText": "物业费"
+      }
+    },
+    {
+      "path": "pages/roomFee/roomFee",
+      "style": {
+        "navigationBarTitleText": "缴物业费"
+      }
+    },
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "请登录"
+      }
+    },
+    {
+      "path": "pages/settings/settings",
+      "style": {
+        "navigationBarTitleText": "设置"
+      }
+    },
+    {
+      "path": "pages/register/register",
+      "style": {
+        "navigationBarTitleText": "绑定业主"
+      }
+    },
+    {
+      "path": "pages/payFeeDetail/payFeeDetail",
+      "style": {
+        "enablePullDownRefresh": true,
+        "navigationBarTitleText": "缴费历史"
+      }
+    },
+    {
+      "path": "pages/myProperty/myProperty",
+      "style": {
+        "navigationBarTitleText": "我的物业"
+      }
+    },
+    {
+      "path": "pages/viewAdmin/viewAdmin",
+      "style": {
+        "navigationBarTitleText": "技术支持"
+      }
+    },
+    {
+      "path": "pages/showlogin/showlogin",
+      "style": {
+        "navigationBarTitleText": "温馨提示"
+      }
+    },
+    {
+      "path": "pages/selectFloor/selectFloor",
+      "style": {
+        "navigationBarTitleText": "选择楼栋"
+      }
+    },
+    {
+      "path": "pages/selectUnit/selectUnit",
+      "style": {
+        "navigationBarTitleText": "选择单元"
+      }
+    },
+    {
+      "path": "pages/registerByWechat/registerByWechat",
+      "style": {
+        "navigationBarTitleText": "业主绑定"
+      }
+    },
+    {
+      "path": "pages/changePassword/changePassword",
+      "style": {
+        "navigationBarTitleText": "修改密码"
+      }
+    },
+    {
+      "path": "pages/changeOwnerPhone/changeOwnerPhone",
+      "style": {
+        "navigationBarTitleText": "修改手机"
+      }
+    },
+    {
+      "path": "pages/roomOweFee/roomOweFee",
+      "style": {
+        "navigationBarTitleText": "欠费缴费"
+      }
+    },
+    {
+      "path": "pages/parkingInfo/parkingInfo",
+      "style": {
+        "navigationBarTitleText": "车位申请进度"
+      }
+    },
+    {
+      "path": "pages/carOweFee/carOweFee",
+      "style": {
+        "navigationBarTitleText": "欠费缴费",
+        "enablePullDownRefresh": false
+      }
+    },
+    {
+      "path": "pages/tempParkingFee/tempParkingFee",
+      "style": {
+        "navigationBarTitleText": "临时车缴费",
+        "enablePullDownRefresh": false
+      }
+    }
+  ],
+  "tabBar": {
+    "color": "#272636",
+    "selectedColor": "#00AA00",
+    "backgroundColor": "#fff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/images/home.png",
+        "selectedIconPath": "static/images/home-selected.png"
+      },
+      {
+        "pagePath": "pages/my/my",
+        "text": "我的",
+        "iconPath": "static/images/my.png",
+        "selectedIconPath": "static/images/mySelected.png"
+      }
+    ]
+  },
+  "networkTimeout": {
+    "request": 10000
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "你的位置信息将用于小程序位置接口的效果展示"
+    }
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarBackgroundColor": "#00AA00",
+    "navigationBarTitleText": "HC智慧家园",
+    "usingComponents": {}
+  },
+  "condition": {
+    "current": 0,
+    "list": [
+      {
+        "name": "",
+        "path": "",
+        "query": ""
+      }
+    ]
+  },
+  "subPackages": []
 }

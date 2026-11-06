@@ -11,33 +11,25 @@ import com.java110.dto.contractChangePlan.ContractChangePlanDto;
 import com.java110.dto.contractChangePlanDetail.ContractChangePlanDetailDto;
 import com.java110.dto.contractChangePlanRoom.ContractChangePlanRoomDto;
 import com.java110.dto.contractRoom.ContractRoomDto;
-import com.java110.dto.fee.FeeDto;
 import com.java110.dto.owner.OwnerRoomRelDto;
-import com.java110.dto.rentingPool.RentingPoolDto;
-import com.java110.dto.store.StoreDto;
 import com.java110.intf.common.IContractApplyUserInnerServiceSMO;
 import com.java110.intf.common.IContractChangeUserInnerServiceSMO;
 import com.java110.intf.community.IRoomInnerServiceSMO;
 import com.java110.intf.store.*;
 import com.java110.intf.user.IOwnerRoomRelInnerServiceSMO;
-import com.java110.intf.user.IRentingPoolInnerServiceSMO;
 import com.java110.po.contract.ContractPo;
 import com.java110.po.contractAttr.ContractAttrPo;
 import com.java110.po.contractChangePlan.ContractChangePlanPo;
-import com.java110.po.contractChangePlanRoom.ContractChangePlanRoomPo;
 import com.java110.po.contractFile.ContractFilePo;
 import com.java110.po.contractRoom.ContractRoomPo;
 import com.java110.po.owner.OwnerRoomRelPo;
-import com.java110.po.rentingPool.RentingPoolPo;
 import com.java110.po.room.RoomPo;
 import com.java110.store.bmo.contract.IUpdateContractBMO;
 import com.java110.store.bmo.contractFile.IDeleteContractFileBMO;
 import com.java110.utils.constant.StatusConstant;
 import com.java110.utils.util.Assert;
 import com.java110.utils.util.BeanConvertUtil;
-import com.java110.utils.util.StringUtil;
 import com.java110.vo.ResultVo;
-import org.apache.http.annotation.Contract;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -52,9 +44,6 @@ public class UpdateContractBMOImpl implements IUpdateContractBMO {
 
     @Autowired
     private IContractAttrInnerServiceSMO contractAttrInnerServiceSMOImpl;
-
-    @Autowired
-    private IRentingPoolInnerServiceSMO rentingPoolInnerServiceSMOImpl;
 
     @Autowired
     private IContractApplyUserInnerServiceSMO contractApplyUserInnerServiceSMOImpl;
@@ -118,7 +107,6 @@ public class UpdateContractBMOImpl implements IUpdateContractBMO {
         }
 
 
-        noticeRentUpdateState(contractPo);
 
         if (!reqJson.containsKey("contractTypeSpecs")) {
             return ResultVo.createResponseEntity(ResultVo.CODE_OK, "保存成功");
@@ -407,46 +395,6 @@ public class UpdateContractBMOImpl implements IUpdateContractBMO {
         if (count < 1) {
             throw new IllegalArgumentException("保存属性失败");
         }
-    }
-
-    /**
-     * 修改 房屋租赁状态
-     *
-     * @param contractPo
-     */
-    private void noticeRentUpdateState(ContractPo contractPo) {
-
-        ContractDto contractDto = new ContractDto();
-        contractDto.setContractId(contractPo.getContractId());
-        List<ContractDto> contractDtos = contractInnerServiceSMOImpl.queryContracts(contractDto);
-
-        Assert.listOnlyOne(contractDtos, "未找到需要审核合同");
-
-        if (!contractDtos.get(0).getObjType().equals(FeeDto.PAYER_OBJ_TYPE_ROOM)
-                || StringUtil.isEmpty(contractDtos.get(0).getObjId())
-                || contractDtos.get(0).getObjId().startsWith("-")) {
-            return;
-        }
-
-        if (!StoreDto.STORE_ADMIN.equals(contractDtos.get(0).getStoreId())) {
-            return;
-        }
-        RentingPoolDto rentingPoolDto = new RentingPoolDto();
-        rentingPoolDto.setRoomId(contractDtos.get(0).getObjId());
-        rentingPoolDto.setState(RentingPoolDto.STATE_ADMIN_AUDIT);
-        List<RentingPoolDto> rentingPoolDtos = rentingPoolInnerServiceSMOImpl.queryRentingPools(rentingPoolDto);
-
-        if (rentingPoolDtos == null || rentingPoolDtos.size() < 1) {
-            return;
-        }
-
-        RentingPoolPo rentingPoolPo = new RentingPoolPo();
-        rentingPoolPo.setCommunityId(rentingPoolDtos.get(0).getCommunityId());
-        rentingPoolPo.setRentingId(rentingPoolDtos.get(0).getRentingId());
-
-        rentingPoolPo.setState(RentingPoolDto.STATE_FINISH);
-
-        rentingPoolInnerServiceSMOImpl.updateRentingPool(rentingPoolPo);
     }
 
 }

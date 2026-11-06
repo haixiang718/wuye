@@ -16,13 +16,8 @@ const baseUrl = '/';
 // #endif
 const commonBaseUrl = 'http://127.0.0.1:8012/';
 
-//商城的url
-const mallUrl = 'http://mallapp.homecommunity.cn/';
 
-const mallUrlIndexPage = mallUrl + '#/?mallFrom=HC';
 
-//商城token 刷新页面
-const mallUrlRefresh = mallUrl + "#/pages/mallTokenRefresh/mallTokenRefresh?mallFrom=HC"
 
 // #ifndef H5
 //服务器域名 小程序 或者 app 时 后端地址
@@ -43,9 +38,6 @@ const logLevel = "WARN"; // 登录请求中含有凭据，不记录请求内容
 
 export default {
 	baseUrl: baseUrl,
-	mallUrl: mallUrl,
-	mallUrlIndexPage: mallUrlIndexPage,
-	mallUrlRefresh: mallUrlRefresh,
 	commonBaseUrl: commonBaseUrl,
 	DEFAULT_COMMUNITY_ID: DEFAULT_COMMUNITY_ID,
 	DEFAULT_COMMUNITY_NAME: DEFAULT_COMMUNITY_NAME,

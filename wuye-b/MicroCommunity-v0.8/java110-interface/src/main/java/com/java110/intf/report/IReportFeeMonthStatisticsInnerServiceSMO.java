@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.java110.config.feign.FeignConfiguration;
 import com.java110.dto.RoomDto;
 import com.java110.dto.fee.FeeConfigDto;
-import com.java110.dto.repair.RepairUserDto;
 import com.java110.dto.reportFeeMonthStatistics.ReportFeeMonthStatisticsDto;
 import com.java110.po.reportFeeMonthStatistics.ReportFeeMonthStatisticsPo;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -273,33 +272,6 @@ public interface IReportFeeMonthStatisticsInnerServiceSMO {
      */
     @RequestMapping(value = "/queryFeeConfigs", method = RequestMethod.POST)
     List<FeeConfigDto> queryFeeConfigs(@RequestBody FeeConfigDto feeConfigDto);
-
-    /**
-     * 查询维修师傅报修信息
-     *
-     * @param repairUserDto
-     * @return
-     */
-    @RequestMapping(value = "/queryRepair", method = RequestMethod.POST)
-    List<RepairUserDto> queryRepair(@RequestBody RepairUserDto repairUserDto);
-
-    /**
-     * 查询报修信息
-     *
-     * @param repairUserDto
-     * @return
-     */
-    @RequestMapping(value = "/queryRepairWithOutPage", method = RequestMethod.POST)
-    List<RepairUserDto> queryRepairWithOutPage(@RequestBody RepairUserDto repairUserDto);
-
-    /**
-     * 查询员工报修表员工信息
-     *
-     * @param repairUserDto
-     * @return
-     */
-    @RequestMapping(value = "/queryRepairForStaff", method = RequestMethod.POST)
-    List<RepairUserDto> queryRepairForStaff(@RequestBody RepairUserDto repairUserDto);
 
     /**
      * 查询未收费房屋

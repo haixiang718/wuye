@@ -20,7 +20,7 @@ RUN = ROOT / '.runtime'
 TOOLS = ROOT / '.tools'
 SERVICES = {'eureka': 8761, 'order': 8001, 'user': 8002, 'acct': 8003,
             'common': 8005, 'store': 8006, 'report': 8007, 'api': 8008,
-            'community': 8009, 'fee': 8010, 'front': 8012, 'job': 8013, 'goods': 8014,
+            'community': 8009, 'fee': 8010, 'front': 8012, 'job': 8013,
             'business': 8015}
 MERGED_DOMAINS = ('user', 'community', 'fee', 'acct', 'store', 'common', 'report')
 PROFILES = ('property', 'full', 'merged')
@@ -30,33 +30,24 @@ def selected_services(names=None, profile='property'):
     if profile not in PROFILES:
         raise ValueError('Unknown runtime profile: ' + profile)
     if not names or 'all' in names:
-        excluded = (set(MERGED_DOMAINS) | {'goods'}) if profile == 'merged' else ({'business'} | (set() if profile == 'full' else {'goods'}))
+        excluded = set(MERGED_DOMAINS) if profile == 'merged' else {'business'}
         selected = [name for name in SERVICES if name not in excluded] + ['web']
     else:
         selected = list(dict.fromkeys(names))
+    if 'goods' in selected:
+        raise ValueError('goods was retired in V2; use the V1 tag to run the former mall service')
     if 'business' in selected and any(name in selected for name in MERGED_DOMAINS):
         raise ValueError('business cannot run alongside its original business services')
     if profile == 'merged' and any(name in selected for name in MERGED_DOMAINS):
         raise ValueError('Use business instead of original business services in merged mode')
     if profile != 'merged' and 'business' in selected:
         raise ValueError('business requires --profile merged')
-    # Existing scheduled group-buy jobs call goods; do not leave a missing dependency.
-    if 'job' in selected and os.environ.get('WUYE_ENABLE_SCHEDULED_TASKS') == '1':
-        if 'goods' in selected:
-            selected.remove('goods')
-        selected.insert(selected.index('job'), 'goods')
     return selected
 
 
 def trim(profile='property'):
     validate_layout(profile)
     excluded = [name for name in SERVICES if name not in selected_services(['all'], profile)]
-    job = processes().get('job', {})
-    if ('goods' in excluded and
-            '-Djava110.local.disableScheduledTasks=false' in job.get('command', []) and
-            listening(SERVICES['job'])):
-        excluded.remove('goods')
-        print('Keeping goods: running job has scheduled tasks enabled; use restart all to apply current settings.', flush=True)
     if excluded:
         stop(excluded)
     print('Runtime profile: ' + profile + '; excluded services: ' + (', '.join(excluded) or 'none'), flush=True)
@@ -417,7 +408,7 @@ def validate_layout(profile):
     live = live_java_services()
     conflicts = set(MERGED_DOMAINS) if profile == 'merged' else {'business'}
     recorded = processes()
-    callers = {'api', 'front', 'order', 'job', 'goods'}
+    callers = {'api', 'front', 'order', 'job'}
     stale = {name for name in live & callers
              if (recorded.get(name, {}).get('profile', 'property') == 'merged') != (profile == 'merged')}
     if live & conflicts or stale:
@@ -508,7 +499,7 @@ def main():
     parser.add_argument('action', choices=['configure', 'infra', 'import-db', 'migrate', 'build', 'start', 'restart', 'stop', 'status', 'trim'])
     parser.add_argument('services', nargs='*', choices=[*SERVICES, 'web', 'all'])
     parser.add_argument('--profile', choices=PROFILES, default='property',
-                        help='property keeps original services; merged combines seven business services; full includes goods and API docs')
+                        help='property keeps separate supported services; merged combines seven business services; full enables API docs')
     args = parser.parse_args()
     if args.action == 'start':
         preflight(selected_services(args.services, args.profile))

@@ -1,7 +1,6 @@
 package com.java110.report.bmo.reportFeeMonthStatistics;
 
 import com.java110.dto.RoomDto;
-import com.java110.dto.repair.RepairUserDto;
 import com.java110.dto.reportFeeMonthStatistics.ReportFeeMonthStatisticsDto;
 import org.springframework.http.ResponseEntity;
 
@@ -53,14 +52,6 @@ public interface IGetReportFeeMonthStatisticsBMO {
      * @return
      */
     ResponseEntity<String> queryReportProficientCount(ReportFeeMonthStatisticsDto reportFeeMonthStatisticsDto);
-
-    /**
-     * 查询报修信息
-     *
-     * @param repairUserDto
-     * @return
-     */
-    ResponseEntity<String> queryRepair(RepairUserDto repairUserDto);
 
     /**
      * 查询未收费房屋

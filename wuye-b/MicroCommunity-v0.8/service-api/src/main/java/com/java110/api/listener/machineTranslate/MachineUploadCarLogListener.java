@@ -54,9 +54,6 @@ public class MachineUploadCarLogListener extends BaseMachineListener {
     @Autowired
     private IFileInnerServiceSMO fileInnerServiceSMOImpl;
 
-    @Autowired
-    private IApplicationKeyInnerServiceSMO applicationKeyInnerServiceSMOImpl;
-
     /**
      * @param event   事件对象
      * @param reqJson 请求报文数据

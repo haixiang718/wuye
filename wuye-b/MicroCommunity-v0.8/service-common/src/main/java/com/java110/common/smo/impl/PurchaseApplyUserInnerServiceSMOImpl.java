@@ -11,7 +11,6 @@ import com.java110.entity.audit.AuditUser;
 import com.java110.intf.common.IAuditUserInnerServiceSMO;
 import com.java110.intf.common.IPurchaseApplyUserInnerServiceSMO;
 import com.java110.intf.common.IWorkflowInnerServiceSMO;
-import com.java110.intf.store.IComplaintInnerServiceSMO;
 import com.java110.intf.user.IUserInnerServiceSMO;
 import com.java110.utils.util.Assert;
 import com.java110.utils.util.StringUtil;
@@ -56,9 +55,6 @@ public class PurchaseApplyUserInnerServiceSMOImpl extends BaseServiceSMO impleme
 
     @Autowired
     private IUserInnerServiceSMO userInnerServiceSMOImpl;
-
-    @Autowired
-    private IComplaintInnerServiceSMO complaintInnerServiceSMOImpl;
 
     @Autowired
     private IAuditUserInnerServiceSMO auditUserInnerServiceSMOImpl;
@@ -366,11 +362,4 @@ public class PurchaseApplyUserInnerServiceSMOImpl extends BaseServiceSMO impleme
         this.taskService = taskService;
     }
 
-    public IComplaintInnerServiceSMO getComplaintInnerServiceSMOImpl() {
-        return complaintInnerServiceSMOImpl;
-    }
-
-    public void setComplaintInnerServiceSMOImpl(IComplaintInnerServiceSMO complaintInnerServiceSMOImpl) {
-        this.complaintInnerServiceSMOImpl = complaintInnerServiceSMOImpl;
-    }
 }

@@ -1,0 +1,2980 @@
+{
+  "phase": "live-migration",
+  "startedAtUtc": "2026-11-06T06:51:35+00:00",
+  "results": [
+    {
+      "database": "TT",
+      "directory": "C:\\Users\\32090\\wuye\\.runtime\\backups\\v2-pruning\\TT-53c227820120",
+      "passed": true,
+      "removedCount": 54,
+      "configCount": 254,
+      "preservedTables": 268,
+      "preservedDataEqual": true,
+      "backup": {
+        "directory": "C:\\Users\\32090\\wuye\\.runtime\\backups\\v2-pruning\\TT-53c227820120\\full\\TT-20261106-145259-a69b27ad",
+        "database": "TT",
+        "bytes": 104997058,
+        "sha256": "be86c796e6a2d11d7cf94e9382c48342cf96928933d1a7a9cc3edc27b184da81",
+        "tables": 327,
+        "restoreDrillSupported": true
+      },
+      "removedTables": [
+        "application_key",
+        "appraise",
+        "business_application_key",
+        "business_complaint",
+        "business_inspection_plan",
+        "business_inspection_plan_staff",
+        "business_inspection_point",
+        "business_inspection_route",
+        "business_inspection_route_point_rel",
+        "business_inspection_task",
+        "business_inspection_task_detail",
+        "business_junk_requirement",
+        "business_machine_record",
+        "business_repair_pool",
+        "business_repair_setting",
+        "business_repair_type_user",
+        "business_repair_user",
+        "business_shop",
+        "business_shop_attr",
+        "business_shop_attr_param",
+        "business_shop_catalog",
+        "business_shop_desc",
+        "business_shop_photo",
+        "business_shop_preferential",
+        "business_visit_info",
+        "complaint",
+        "inspection_plan",
+        "inspection_plan_staff",
+        "inspection_point",
+        "inspection_route",
+        "inspection_route_point_rel",
+        "inspection_task",
+        "inspection_task_detail",
+        "junk_requirement",
+        "machine_record",
+        "r_repair_pool",
+        "r_repair_setting",
+        "r_repair_type_user",
+        "r_repair_user",
+        "renting_appointment",
+        "renting_config",
+        "renting_pool",
+        "renting_pool_attr",
+        "renting_pool_flow",
+        "s_buy_shop",
+        "s_buy_shop_attr",
+        "s_shop",
+        "s_shop_attr",
+        "s_shop_attr_param",
+        "s_shop_catalog",
+        "s_shop_desc",
+        "s_shop_photo",
+        "s_shop_preferential",
+        "s_visit_info"
+      ],
+      "before": {
+        "account": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "account_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_evt_log": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_evt_log_copy": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ge_bytearray": {
+          "rows": 1441,
+          "checksum": "631501803"
+        },
+        "act_ge_property": {
+          "rows": 4,
+          "checksum": "3067129750"
+        },
+        "act_hi_actinst": {
+          "rows": 1473,
+          "checksum": "303107064"
+        },
+        "act_hi_attachment": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_hi_comment": {
+          "rows": 530,
+          "checksum": "4251739544"
+        },
+        "act_hi_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_hi_identitylink": {
+          "rows": 689,
+          "checksum": "521806001"
+        },
+        "act_hi_procinst": {
+          "rows": 566,
+          "checksum": "270302271"
+        },
+        "act_hi_taskinst": {
+          "rows": 834,
+          "checksum": "2203737653"
+        },
+        "act_hi_varinst": {
+          "rows": 1846,
+          "checksum": "1028949501"
+        },
+        "act_id_group": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_id_info": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_id_membership": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_id_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_procdef_info": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_re_deployment": {
+          "rows": 182,
+          "checksum": "3734772480"
+        },
+        "act_re_model": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_re_procdef": {
+          "rows": 192,
+          "checksum": "2111701538"
+        },
+        "act_ru_deadletter_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_event_subscr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_execution": {
+          "rows": 1002,
+          "checksum": "1910728728"
+        },
+        "act_ru_identitylink": {
+          "rows": 537,
+          "checksum": "1349015802"
+        },
+        "act_ru_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_suspended_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_task": {
+          "rows": 499,
+          "checksum": "2927843229"
+        },
+        "act_ru_timer_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_variable": {
+          "rows": 1510,
+          "checksum": "1948226340"
+        },
+        "activities": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "activities_event": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "activities_type": {
+          "rows": 20,
+          "checksum": "953858663"
+        },
+        "advert": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "advert_item": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "application_key": {
+          "rows": 112400,
+          "checksum": "1945899425"
+        },
+        "appraise": {
+          "rows": 8,
+          "checksum": "3654860472"
+        },
+        "attr_spec": {
+          "rows": 11,
+          "checksum": "3826833936"
+        },
+        "attr_value": {
+          "rows": 14,
+          "checksum": "3665335253"
+        },
+        "audit_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "bill": {
+          "rows": 5,
+          "checksum": "2760984363"
+        },
+        "bill_owe_fee": {
+          "rows": 5,
+          "checksum": "3937379984"
+        },
+        "building_owner": {
+          "rows": 5,
+          "checksum": "3954399957"
+        },
+        "building_owner_attr": {
+          "rows": 4,
+          "checksum": "3917550726"
+        },
+        "building_owner_room_rel": {
+          "rows": 5,
+          "checksum": "1472207797"
+        },
+        "building_room": {
+          "rows": 5,
+          "checksum": "3083664190"
+        },
+        "building_room_attr": {
+          "rows": 4,
+          "checksum": "692244848"
+        },
+        "building_unit": {
+          "rows": 2,
+          "checksum": "3847678511"
+        },
+        "buiness_small_wechat": {
+          "rows": 7,
+          "checksum": "3462038370"
+        },
+        "business_account": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_account_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_activities": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_activities_event": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_advert": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_advert_item": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_application_key": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_audit_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_building_owner": {
+          "rows": 9,
+          "checksum": "519271892"
+        },
+        "business_building_owner_attr": {
+          "rows": 10,
+          "checksum": "3479745362"
+        },
+        "business_building_owner_room_rel": {
+          "rows": 14,
+          "checksum": "3091759475"
+        },
+        "business_building_room": {
+          "rows": 50,
+          "checksum": "15310564"
+        },
+        "business_building_room_attr": {
+          "rows": 8,
+          "checksum": "1787465798"
+        },
+        "business_building_unit": {
+          "rows": 3,
+          "checksum": "3062064235"
+        },
+        "business_bus": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_car_black_white": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_car_inout": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_car_inout_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_community": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_community_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_community_location": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_community_member": {
+          "rows": 1,
+          "checksum": "1674812994"
+        },
+        "business_community_photo": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_complaint": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_demo": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_file_rel": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_floor": {
+          "rows": 1,
+          "checksum": "4274837403"
+        },
+        "business_inspection_plan": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_inspection_plan_staff": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_inspection_point": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_inspection_route": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_inspection_route_point_rel": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_inspection_task": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_inspection_task_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_junk_requirement": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_machine": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_machine_attrs": {
+          "rows": 6,
+          "checksum": "2492038625"
+        },
+        "business_machine_record": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_machine_translate": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_member_store": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_meter_water": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_msg": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_msg_read": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_notice": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_org": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_org_community": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_org_staff_rel": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_owner_app_user": {
+          "rows": 10,
+          "checksum": "862403346"
+        },
+        "business_owner_car": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_parking_area": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_parking_space": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_pay_fee": {
+          "rows": 22,
+          "checksum": "1061382302"
+        },
+        "business_pay_fee_attrs": {
+          "rows": 43,
+          "checksum": "3152049168"
+        },
+        "business_pay_fee_config": {
+          "rows": 9,
+          "checksum": "3915592901"
+        },
+        "business_pay_fee_detail": {
+          "rows": 9,
+          "checksum": "3448431188"
+        },
+        "business_pay_fee_detail_discount": {
+          "rows": 9,
+          "checksum": "238165387"
+        },
+        "business_purchase_apply": {
+          "rows": 136,
+          "checksum": "779319463"
+        },
+        "business_purchase_apply_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_repair_pool": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_repair_setting": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_repair_type_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_repair_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_resource_item": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_resource_order": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_resource_store": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_return_pay_fee": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_shop": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_shop_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_shop_attr_param": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_shop_catalog": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_shop_desc": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_shop_photo": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_shop_preferential": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_small_wechat_attr": {
+          "rows": 22,
+          "checksum": "4294438882"
+        },
+        "business_store": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_store_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_store_cerdentials": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_store_photo": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_store_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_task": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_task_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_user": {
+          "rows": 7,
+          "checksum": "2106923434"
+        },
+        "business_user_attr": {
+          "rows": 78,
+          "checksum": "2273372283"
+        },
+        "business_user_credentials": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_user_tag": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_visit_info": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_wechat_menu": {
+          "rows": 1,
+          "checksum": "2323922549"
+        },
+        "business_workflow": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_workflow_step": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_workflow_step_staff": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "c_app": {
+          "rows": 18,
+          "checksum": "2616327737"
+        },
+        "c_business": {
+          "rows": 209,
+          "checksum": "782057632"
+        },
+        "c_business_attrs": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "c_business_databus": {
+          "rows": 2,
+          "checksum": "1458891634"
+        },
+        "c_business_type": {
+          "rows": 218,
+          "checksum": "2780048532"
+        },
+        "c_cache": {
+          "rows": 7,
+          "checksum": "4241581061"
+        },
+        "c_cache_2_user": {
+          "rows": 3,
+          "checksum": "3095647001"
+        },
+        "c_mapping": {
+          "rows": 99,
+          "checksum": "100638515"
+        },
+        "c_order_item": {
+          "rows": 4874,
+          "checksum": "4224140058"
+        },
+        "c_order_type": {
+          "rows": 2,
+          "checksum": "1283890510"
+        },
+        "c_orders": {
+          "rows": 158,
+          "checksum": "2296555243"
+        },
+        "c_orders_attrs": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "c_route": {
+          "rows": 881,
+          "checksum": "1354253815"
+        },
+        "c_service": {
+          "rows": 587,
+          "checksum": "3204375060"
+        },
+        "c_service_business": {
+          "rows": 217,
+          "checksum": "682171499"
+        },
+        "c_service_business_31": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "c_service_sql": {
+          "rows": 47,
+          "checksum": "3895346292"
+        },
+        "c_status": {
+          "rows": 24,
+          "checksum": "2740450879"
+        },
+        "c_template": {
+          "rows": 5,
+          "checksum": "733068627"
+        },
+        "c_template_col": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "car_black_white": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "car_inout": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "car_inout_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "city_area": {
+          "rows": 3380,
+          "checksum": "2197346437"
+        },
+        "community_location": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "community_member_type": {
+          "rows": 6,
+          "checksum": "2887616213"
+        },
+        "complaint": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "contract": {
+          "rows": 30,
+          "checksum": "530941738"
+        },
+        "contract_attr": {
+          "rows": 19,
+          "checksum": "1994809033"
+        },
+        "contract_room": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "contract_type": {
+          "rows": 27,
+          "checksum": "1851142662"
+        },
+        "contract_type_spec": {
+          "rows": 17,
+          "checksum": "725167115"
+        },
+        "contract_type_template": {
+          "rows": 15,
+          "checksum": "3146139581"
+        },
+        "credentials": {
+          "rows": 1,
+          "checksum": "2559162488"
+        },
+        "demo": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "f_floor": {
+          "rows": 2,
+          "checksum": "2661424529"
+        },
+        "fee_discount": {
+          "rows": 9,
+          "checksum": "1663494612"
+        },
+        "fee_discount_rule": {
+          "rows": 5,
+          "checksum": "845050529"
+        },
+        "fee_discount_rule_spec": {
+          "rows": 9,
+          "checksum": "1400548602"
+        },
+        "fee_discount_spec": {
+          "rows": 25,
+          "checksum": "1235105465"
+        },
+        "fee_formula": {
+          "rows": 9,
+          "checksum": "2331676239"
+        },
+        "fee_manual_collection": {
+          "rows": 27,
+          "checksum": "3899160785"
+        },
+        "fee_manual_collection_detail": {
+          "rows": 86,
+          "checksum": "2896852294"
+        },
+        "fee_print_spec": {
+          "rows": 11,
+          "checksum": "2581857531"
+        },
+        "fee_receipt": {
+          "rows": 578,
+          "checksum": "2444056510"
+        },
+        "fee_receipt_detail": {
+          "rows": 803,
+          "checksum": "3253899001"
+        },
+        "file_rel": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "hc_file": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "hc_ftp_item_spec": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "hc_ftp_log": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "hc_ftp_task": {
+          "rows": 4,
+          "checksum": "333454320"
+        },
+        "hc_ftp_task_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "hc_ftp_tasklog": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "hc_ftp_tasklog_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "import_fee": {
+          "rows": 1,
+          "checksum": "3705644880"
+        },
+        "import_fee_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "inspection_plan": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "inspection_plan_staff": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "inspection_point": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "inspection_route": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "inspection_route_point_rel": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "inspection_task": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "inspection_task_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "junk_requirement": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "l_transaction_log_message": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "log_system_error": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "m_menu": {
+          "rows": 197,
+          "checksum": "990977317"
+        },
+        "m_menu_20200316": {
+          "rows": 92,
+          "checksum": "1376237578"
+        },
+        "m_menu_group": {
+          "rows": 48,
+          "checksum": "3155744682"
+        },
+        "m_menu_org": {
+          "rows": 109,
+          "checksum": "707294333"
+        },
+        "machine": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "machine_attrs": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "machine_record": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "machine_translate": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "meter_water": {
+          "rows": 3,
+          "checksum": "3806899428"
+        },
+        "msg": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "msg_read": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "n_notice": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "owner_app_user": {
+          "rows": 4,
+          "checksum": "1782373375"
+        },
+        "owner_car": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "p_parking_space": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "p_privilege": {
+          "rows": 227,
+          "checksum": "1326008754"
+        },
+        "p_privilege_0731": {
+          "rows": 142,
+          "checksum": "3125762514"
+        },
+        "p_privilege_group": {
+          "rows": 376,
+          "checksum": "2202641786"
+        },
+        "p_privilege_rel": {
+          "rows": 22103,
+          "checksum": "1077714817"
+        },
+        "p_privilege_user": {
+          "rows": 5571,
+          "checksum": "2685777310"
+        },
+        "parking_area": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "parking_space": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "pay_fee": {
+          "rows": 13,
+          "checksum": "3365538332"
+        },
+        "pay_fee_attrs": {
+          "rows": 49,
+          "checksum": "683970629"
+        },
+        "pay_fee_audit": {
+          "rows": 82,
+          "checksum": "1048342955"
+        },
+        "pay_fee_config": {
+          "rows": 7,
+          "checksum": "2899181679"
+        },
+        "pay_fee_config_discount": {
+          "rows": 39,
+          "checksum": "774539058"
+        },
+        "pay_fee_detail": {
+          "rows": 9,
+          "checksum": "2144354835"
+        },
+        "pay_fee_detail_discount": {
+          "rows": 8,
+          "checksum": "1124352891"
+        },
+        "payment_order": {
+          "rows": 3,
+          "checksum": "2343401333"
+        },
+        "payment_order_item": {
+          "rows": 3,
+          "checksum": "3411225768"
+        },
+        "payment_order_reservation": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "prestore_fee": {
+          "rows": 2,
+          "checksum": "1832155003"
+        },
+        "property_fee_time": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "property_fee_type": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "property_user_rel": {
+          "rows": 2,
+          "checksum": "2448093715"
+        },
+        "purchase_apply": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "purchase_apply_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_blob_triggers": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_calendars": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_cron_triggers": {
+          "rows": 4,
+          "checksum": "2682414464"
+        },
+        "qrtz_fired_triggers": {
+          "rows": 1,
+          "checksum": "593377013"
+        },
+        "qrtz_job_details": {
+          "rows": 4,
+          "checksum": "2186265749"
+        },
+        "qrtz_locks": {
+          "rows": 1,
+          "checksum": "244727076"
+        },
+        "qrtz_paused_trigger_grps": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_scheduler_state": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_simple_triggers": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_simprop_triggers": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_triggers": {
+          "rows": 4,
+          "checksum": "3704373327"
+        },
+        "r_repair_pool": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "r_repair_setting": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "r_repair_type_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "r_repair_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "renting_appointment": {
+          "rows": 21,
+          "checksum": "1084785540"
+        },
+        "renting_config": {
+          "rows": 11,
+          "checksum": "3747994269"
+        },
+        "renting_pool": {
+          "rows": 27,
+          "checksum": "842962051"
+        },
+        "renting_pool_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "renting_pool_flow": {
+          "rows": 38,
+          "checksum": "654751594"
+        },
+        "report_fee_month_statistics": {
+          "rows": 12587,
+          "checksum": "2289598470"
+        },
+        "resource_item": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "resource_order": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "resource_store": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "return_pay_fee": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_buy_shop": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_buy_shop_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_community": {
+          "rows": 1,
+          "checksum": "226022444"
+        },
+        "s_community_attr": {
+          "rows": 2,
+          "checksum": "1553854314"
+        },
+        "s_community_member": {
+          "rows": 1281,
+          "checksum": "190966528"
+        },
+        "s_community_photo": {
+          "rows": 5,
+          "checksum": "849575106"
+        },
+        "s_member_store": {
+          "rows": 1,
+          "checksum": "1189567880"
+        },
+        "s_shop": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_shop_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_shop_attr_param": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_shop_catalog": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_shop_desc": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_shop_photo": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_shop_preferential": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_store": {
+          "rows": 12,
+          "checksum": "2930119842"
+        },
+        "s_store_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_store_cerdentials": {
+          "rows": 282,
+          "checksum": "2448655346"
+        },
+        "s_store_fee": {
+          "rows": 2,
+          "checksum": "1822426399"
+        },
+        "s_store_house": {
+          "rows": 3,
+          "checksum": "1251109836"
+        },
+        "s_store_house_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_store_photo": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_store_user": {
+          "rows": 571,
+          "checksum": "3953434937"
+        },
+        "s_visit_info": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "small_wechat": {
+          "rows": 1,
+          "checksum": "4001422397"
+        },
+        "small_wechat_attr": {
+          "rows": 16,
+          "checksum": "2905747395"
+        },
+        "spec": {
+          "rows": 9,
+          "checksum": "1874984443"
+        },
+        "staff_app_auth": {
+          "rows": 5,
+          "checksum": "2913095624"
+        },
+        "store_fee_time": {
+          "rows": 3,
+          "checksum": "2459596928"
+        },
+        "store_fee_type": {
+          "rows": 6,
+          "checksum": "337860681"
+        },
+        "store_type": {
+          "rows": 9,
+          "checksum": "797368833"
+        },
+        "store_user_rel": {
+          "rows": 2,
+          "checksum": "2007185009"
+        },
+        "sys_document": {
+          "rows": 2,
+          "checksum": "3644860707"
+        },
+        "t_dict": {
+          "rows": 400,
+          "checksum": "2767030676"
+        },
+        "tag": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "task": {
+          "rows": 19,
+          "checksum": "1126476042"
+        },
+        "task_attr": {
+          "rows": 6,
+          "checksum": "3769038185"
+        },
+        "task_template": {
+          "rows": 15,
+          "checksum": "366570965"
+        },
+        "task_template_spec": {
+          "rows": 2,
+          "checksum": "4201031682"
+        },
+        "transaction_log": {
+          "rows": 4790,
+          "checksum": "2554548807"
+        },
+        "transaction_log_message": {
+          "rows": 4790,
+          "checksum": "4199773050"
+        },
+        "u_location": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "u_org": {
+          "rows": 1146,
+          "checksum": "984194406"
+        },
+        "u_org_community": {
+          "rows": 252,
+          "checksum": "2492650455"
+        },
+        "u_org_staff_rel": {
+          "rows": 489,
+          "checksum": "2191276692"
+        },
+        "u_user": {
+          "rows": 7,
+          "checksum": "3143075048"
+        },
+        "u_user_address": {
+          "rows": 2,
+          "checksum": "241290808"
+        },
+        "u_user_attr": {
+          "rows": 4,
+          "checksum": "1275666333"
+        },
+        "u_user_credentials": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "u_user_login": {
+          "rows": 21547,
+          "checksum": "2313028269"
+        },
+        "u_user_tag": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "unitem_log": {
+          "rows": 4874,
+          "checksum": "2495837184"
+        },
+        "user_level": {
+          "rows": 3,
+          "checksum": "2165952724"
+        },
+        "wechat_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "wechat_menu": {
+          "rows": 1,
+          "checksum": "1349974287"
+        },
+        "wechat_sms_template": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "workflow": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "workflow_step": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "workflow_step_staff": {
+          "rows": 0,
+          "checksum": "0"
+        }
+      },
+      "after": {
+        "account": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "account_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_evt_log": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_evt_log_copy": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ge_bytearray": {
+          "rows": 1441,
+          "checksum": "631501803"
+        },
+        "act_ge_property": {
+          "rows": 4,
+          "checksum": "3067129750"
+        },
+        "act_hi_actinst": {
+          "rows": 1473,
+          "checksum": "303107064"
+        },
+        "act_hi_attachment": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_hi_comment": {
+          "rows": 530,
+          "checksum": "4251739544"
+        },
+        "act_hi_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_hi_identitylink": {
+          "rows": 689,
+          "checksum": "521806001"
+        },
+        "act_hi_procinst": {
+          "rows": 566,
+          "checksum": "270302271"
+        },
+        "act_hi_taskinst": {
+          "rows": 834,
+          "checksum": "2203737653"
+        },
+        "act_hi_varinst": {
+          "rows": 1846,
+          "checksum": "1028949501"
+        },
+        "act_id_group": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_id_info": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_id_membership": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_id_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_procdef_info": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_re_deployment": {
+          "rows": 182,
+          "checksum": "3734772480"
+        },
+        "act_re_model": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_re_procdef": {
+          "rows": 192,
+          "checksum": "2111701538"
+        },
+        "act_ru_deadletter_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_event_subscr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_execution": {
+          "rows": 1002,
+          "checksum": "1910728728"
+        },
+        "act_ru_identitylink": {
+          "rows": 537,
+          "checksum": "1349015802"
+        },
+        "act_ru_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_suspended_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_task": {
+          "rows": 499,
+          "checksum": "2927843229"
+        },
+        "act_ru_timer_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_variable": {
+          "rows": 1510,
+          "checksum": "1948226340"
+        },
+        "activities": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "activities_event": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "activities_type": {
+          "rows": 20,
+          "checksum": "953858663"
+        },
+        "advert": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "advert_item": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "attr_spec": {
+          "rows": 11,
+          "checksum": "3826833936"
+        },
+        "attr_value": {
+          "rows": 14,
+          "checksum": "3665335253"
+        },
+        "audit_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "bill": {
+          "rows": 5,
+          "checksum": "2760984363"
+        },
+        "bill_owe_fee": {
+          "rows": 5,
+          "checksum": "3937379984"
+        },
+        "building_owner": {
+          "rows": 5,
+          "checksum": "3954399957"
+        },
+        "building_owner_attr": {
+          "rows": 4,
+          "checksum": "3917550726"
+        },
+        "building_owner_room_rel": {
+          "rows": 5,
+          "checksum": "1472207797"
+        },
+        "building_room": {
+          "rows": 5,
+          "checksum": "3083664190"
+        },
+        "building_room_attr": {
+          "rows": 4,
+          "checksum": "692244848"
+        },
+        "building_unit": {
+          "rows": 2,
+          "checksum": "3847678511"
+        },
+        "buiness_small_wechat": {
+          "rows": 7,
+          "checksum": "3462038370"
+        },
+        "business_account": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_account_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_activities": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_activities_event": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_advert": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_advert_item": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_audit_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_building_owner": {
+          "rows": 9,
+          "checksum": "519271892"
+        },
+        "business_building_owner_attr": {
+          "rows": 10,
+          "checksum": "3479745362"
+        },
+        "business_building_owner_room_rel": {
+          "rows": 14,
+          "checksum": "3091759475"
+        },
+        "business_building_room": {
+          "rows": 50,
+          "checksum": "15310564"
+        },
+        "business_building_room_attr": {
+          "rows": 8,
+          "checksum": "1787465798"
+        },
+        "business_building_unit": {
+          "rows": 3,
+          "checksum": "3062064235"
+        },
+        "business_bus": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_car_black_white": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_car_inout": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_car_inout_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_community": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_community_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_community_location": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_community_member": {
+          "rows": 1,
+          "checksum": "1674812994"
+        },
+        "business_community_photo": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_demo": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_file_rel": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_floor": {
+          "rows": 1,
+          "checksum": "4274837403"
+        },
+        "business_machine": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_machine_attrs": {
+          "rows": 6,
+          "checksum": "2492038625"
+        },
+        "business_machine_translate": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_member_store": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_meter_water": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_msg": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_msg_read": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_notice": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_org": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_org_community": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_org_staff_rel": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_owner_app_user": {
+          "rows": 10,
+          "checksum": "862403346"
+        },
+        "business_owner_car": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_parking_area": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_parking_space": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_pay_fee": {
+          "rows": 22,
+          "checksum": "1061382302"
+        },
+        "business_pay_fee_attrs": {
+          "rows": 43,
+          "checksum": "3152049168"
+        },
+        "business_pay_fee_config": {
+          "rows": 9,
+          "checksum": "3915592901"
+        },
+        "business_pay_fee_detail": {
+          "rows": 9,
+          "checksum": "3448431188"
+        },
+        "business_pay_fee_detail_discount": {
+          "rows": 9,
+          "checksum": "238165387"
+        },
+        "business_purchase_apply": {
+          "rows": 136,
+          "checksum": "779319463"
+        },
+        "business_purchase_apply_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_resource_item": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_resource_order": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_resource_store": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_return_pay_fee": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_small_wechat_attr": {
+          "rows": 22,
+          "checksum": "4294438882"
+        },
+        "business_store": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_store_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_store_cerdentials": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_store_photo": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_store_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_task": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_task_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_user": {
+          "rows": 7,
+          "checksum": "2106923434"
+        },
+        "business_user_attr": {
+          "rows": 78,
+          "checksum": "2273372283"
+        },
+        "business_user_credentials": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_user_tag": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_wechat_menu": {
+          "rows": 1,
+          "checksum": "2323922549"
+        },
+        "business_workflow": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_workflow_step": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "business_workflow_step_staff": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "c_app": {
+          "rows": 18,
+          "checksum": "2616327737"
+        },
+        "c_business": {
+          "rows": 209,
+          "checksum": "782057632"
+        },
+        "c_business_attrs": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "c_business_databus": {
+          "rows": 2,
+          "checksum": "1710496516"
+        },
+        "c_business_type": {
+          "rows": 218,
+          "checksum": "2780048532"
+        },
+        "c_cache": {
+          "rows": 7,
+          "checksum": "4241581061"
+        },
+        "c_cache_2_user": {
+          "rows": 3,
+          "checksum": "3095647001"
+        },
+        "c_mapping": {
+          "rows": 99,
+          "checksum": "100638515"
+        },
+        "c_order_item": {
+          "rows": 4874,
+          "checksum": "4224140058"
+        },
+        "c_order_type": {
+          "rows": 2,
+          "checksum": "1283890510"
+        },
+        "c_orders": {
+          "rows": 158,
+          "checksum": "2296555243"
+        },
+        "c_orders_attrs": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "c_route": {
+          "rows": 881,
+          "checksum": "2583786321"
+        },
+        "c_service": {
+          "rows": 587,
+          "checksum": "1108922818"
+        },
+        "c_service_business": {
+          "rows": 217,
+          "checksum": "682171499"
+        },
+        "c_service_business_31": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "c_service_sql": {
+          "rows": 47,
+          "checksum": "3895346292"
+        },
+        "c_status": {
+          "rows": 24,
+          "checksum": "2740450879"
+        },
+        "c_template": {
+          "rows": 5,
+          "checksum": "733068627"
+        },
+        "c_template_col": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "car_black_white": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "car_inout": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "car_inout_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "city_area": {
+          "rows": 3380,
+          "checksum": "2197346437"
+        },
+        "community_location": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "community_member_type": {
+          "rows": 6,
+          "checksum": "2887616213"
+        },
+        "contract": {
+          "rows": 30,
+          "checksum": "530941738"
+        },
+        "contract_attr": {
+          "rows": 19,
+          "checksum": "1994809033"
+        },
+        "contract_room": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "contract_type": {
+          "rows": 27,
+          "checksum": "1851142662"
+        },
+        "contract_type_spec": {
+          "rows": 17,
+          "checksum": "725167115"
+        },
+        "contract_type_template": {
+          "rows": 15,
+          "checksum": "3146139581"
+        },
+        "credentials": {
+          "rows": 1,
+          "checksum": "2559162488"
+        },
+        "demo": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "f_floor": {
+          "rows": 2,
+          "checksum": "2661424529"
+        },
+        "fee_discount": {
+          "rows": 9,
+          "checksum": "1663494612"
+        },
+        "fee_discount_rule": {
+          "rows": 5,
+          "checksum": "845050529"
+        },
+        "fee_discount_rule_spec": {
+          "rows": 9,
+          "checksum": "1400548602"
+        },
+        "fee_discount_spec": {
+          "rows": 25,
+          "checksum": "1235105465"
+        },
+        "fee_formula": {
+          "rows": 9,
+          "checksum": "2331676239"
+        },
+        "fee_manual_collection": {
+          "rows": 27,
+          "checksum": "3899160785"
+        },
+        "fee_manual_collection_detail": {
+          "rows": 86,
+          "checksum": "2896852294"
+        },
+        "fee_print_spec": {
+          "rows": 11,
+          "checksum": "2581857531"
+        },
+        "fee_receipt": {
+          "rows": 578,
+          "checksum": "2444056510"
+        },
+        "fee_receipt_detail": {
+          "rows": 803,
+          "checksum": "3253899001"
+        },
+        "file_rel": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "hc_file": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "hc_ftp_item_spec": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "hc_ftp_log": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "hc_ftp_task": {
+          "rows": 4,
+          "checksum": "333454320"
+        },
+        "hc_ftp_task_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "hc_ftp_tasklog": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "hc_ftp_tasklog_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "import_fee": {
+          "rows": 1,
+          "checksum": "3705644880"
+        },
+        "import_fee_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "l_transaction_log_message": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "log_system_error": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "m_menu": {
+          "rows": 197,
+          "checksum": "990977317"
+        },
+        "m_menu_20200316": {
+          "rows": 92,
+          "checksum": "1376237578"
+        },
+        "m_menu_group": {
+          "rows": 48,
+          "checksum": "3155744682"
+        },
+        "m_menu_org": {
+          "rows": 109,
+          "checksum": "707294333"
+        },
+        "machine": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "machine_attrs": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "machine_translate": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "meter_water": {
+          "rows": 3,
+          "checksum": "3806899428"
+        },
+        "msg": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "msg_read": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "n_notice": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "owner_app_user": {
+          "rows": 4,
+          "checksum": "1782373375"
+        },
+        "owner_car": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "p_parking_space": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "p_privilege": {
+          "rows": 227,
+          "checksum": "1326008754"
+        },
+        "p_privilege_0731": {
+          "rows": 142,
+          "checksum": "3125762514"
+        },
+        "p_privilege_group": {
+          "rows": 376,
+          "checksum": "2202641786"
+        },
+        "p_privilege_rel": {
+          "rows": 22103,
+          "checksum": "1077714817"
+        },
+        "p_privilege_user": {
+          "rows": 5571,
+          "checksum": "2685777310"
+        },
+        "parking_area": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "parking_space": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "pay_fee": {
+          "rows": 13,
+          "checksum": "3365538332"
+        },
+        "pay_fee_attrs": {
+          "rows": 49,
+          "checksum": "683970629"
+        },
+        "pay_fee_audit": {
+          "rows": 82,
+          "checksum": "1048342955"
+        },
+        "pay_fee_config": {
+          "rows": 7,
+          "checksum": "2899181679"
+        },
+        "pay_fee_config_discount": {
+          "rows": 39,
+          "checksum": "774539058"
+        },
+        "pay_fee_detail": {
+          "rows": 9,
+          "checksum": "2144354835"
+        },
+        "pay_fee_detail_discount": {
+          "rows": 8,
+          "checksum": "1124352891"
+        },
+        "payment_order": {
+          "rows": 3,
+          "checksum": "2343401333"
+        },
+        "payment_order_item": {
+          "rows": 3,
+          "checksum": "3411225768"
+        },
+        "payment_order_reservation": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "prestore_fee": {
+          "rows": 2,
+          "checksum": "1832155003"
+        },
+        "property_fee_time": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "property_fee_type": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "property_user_rel": {
+          "rows": 2,
+          "checksum": "2448093715"
+        },
+        "purchase_apply": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "purchase_apply_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_blob_triggers": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_calendars": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_cron_triggers": {
+          "rows": 4,
+          "checksum": "2682414464"
+        },
+        "qrtz_fired_triggers": {
+          "rows": 1,
+          "checksum": "593377013"
+        },
+        "qrtz_job_details": {
+          "rows": 4,
+          "checksum": "2186265749"
+        },
+        "qrtz_locks": {
+          "rows": 1,
+          "checksum": "244727076"
+        },
+        "qrtz_paused_trigger_grps": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_scheduler_state": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_simple_triggers": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_simprop_triggers": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "qrtz_triggers": {
+          "rows": 4,
+          "checksum": "3704373327"
+        },
+        "report_fee_month_statistics": {
+          "rows": 12587,
+          "checksum": "2289598470"
+        },
+        "resource_item": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "resource_order": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "resource_store": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "return_pay_fee": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_community": {
+          "rows": 1,
+          "checksum": "226022444"
+        },
+        "s_community_attr": {
+          "rows": 2,
+          "checksum": "1553854314"
+        },
+        "s_community_member": {
+          "rows": 1281,
+          "checksum": "190966528"
+        },
+        "s_community_photo": {
+          "rows": 5,
+          "checksum": "849575106"
+        },
+        "s_member_store": {
+          "rows": 1,
+          "checksum": "1189567880"
+        },
+        "s_store": {
+          "rows": 12,
+          "checksum": "2930119842"
+        },
+        "s_store_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_store_cerdentials": {
+          "rows": 282,
+          "checksum": "2448655346"
+        },
+        "s_store_fee": {
+          "rows": 2,
+          "checksum": "1822426399"
+        },
+        "s_store_house": {
+          "rows": 3,
+          "checksum": "1251109836"
+        },
+        "s_store_house_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_store_photo": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "s_store_user": {
+          "rows": 571,
+          "checksum": "3953434937"
+        },
+        "small_wechat": {
+          "rows": 1,
+          "checksum": "4001422397"
+        },
+        "small_wechat_attr": {
+          "rows": 16,
+          "checksum": "2905747395"
+        },
+        "spec": {
+          "rows": 9,
+          "checksum": "1874984443"
+        },
+        "staff_app_auth": {
+          "rows": 5,
+          "checksum": "2913095624"
+        },
+        "store_fee_time": {
+          "rows": 3,
+          "checksum": "2459596928"
+        },
+        "store_fee_type": {
+          "rows": 6,
+          "checksum": "337860681"
+        },
+        "store_type": {
+          "rows": 9,
+          "checksum": "797368833"
+        },
+        "store_user_rel": {
+          "rows": 2,
+          "checksum": "2007185009"
+        },
+        "sys_document": {
+          "rows": 2,
+          "checksum": "3644860707"
+        },
+        "t_dict": {
+          "rows": 400,
+          "checksum": "2767030676"
+        },
+        "tag": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "task": {
+          "rows": 19,
+          "checksum": "1321500570"
+        },
+        "task_attr": {
+          "rows": 6,
+          "checksum": "3769038185"
+        },
+        "task_template": {
+          "rows": 15,
+          "checksum": "2607292047"
+        },
+        "task_template_spec": {
+          "rows": 2,
+          "checksum": "4201031682"
+        },
+        "transaction_log": {
+          "rows": 4790,
+          "checksum": "2554548807"
+        },
+        "transaction_log_message": {
+          "rows": 4790,
+          "checksum": "4199773050"
+        },
+        "u_location": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "u_org": {
+          "rows": 1146,
+          "checksum": "984194406"
+        },
+        "u_org_community": {
+          "rows": 252,
+          "checksum": "2492650455"
+        },
+        "u_org_staff_rel": {
+          "rows": 489,
+          "checksum": "2191276692"
+        },
+        "u_user": {
+          "rows": 7,
+          "checksum": "3143075048"
+        },
+        "u_user_address": {
+          "rows": 2,
+          "checksum": "241290808"
+        },
+        "u_user_attr": {
+          "rows": 4,
+          "checksum": "1275666333"
+        },
+        "u_user_credentials": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "u_user_login": {
+          "rows": 21547,
+          "checksum": "2313028269"
+        },
+        "u_user_tag": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "unitem_log": {
+          "rows": 4874,
+          "checksum": "2495837184"
+        },
+        "user_level": {
+          "rows": 3,
+          "checksum": "2165952724"
+        },
+        "wechat_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "wechat_menu": {
+          "rows": 1,
+          "checksum": "1349974287"
+        },
+        "wechat_sms_template": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "workflow": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "workflow_step": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "workflow_step_staff": {
+          "rows": 0,
+          "checksum": "0"
+        }
+      },
+      "configContentBefore": {
+        "c_business_databus": "a08f9a6116016f06ebe866eb0d7521f090c4fa2f755b2ec1a816c903c885ee04",
+        "c_route": "bd496141439937f832af53e4d4113c6bf3af3d7e8dd951d4cc3f161c40d29fca",
+        "c_service": "fc167e95242460ec38f4a70e77a08667470694b3e66ee0d4fdf4f7a24dc82a5f",
+        "task": "a6447f1ed1bec70d391872f947315245743189fb4d6aedd2ee6c806ea12d7e28",
+        "task_template": "3f9a91889d1c40c9916dba6f90bc7b1cf5f99dfe7a3b92269fa45dc47a75c727"
+      }
+    },
+    {
+      "database": "hc_community",
+      "directory": "C:\\Users\\32090\\wuye\\.runtime\\backups\\v2-pruning\\hc_community-4056a0bd15fc",
+      "passed": true,
+      "removedCount": 20,
+      "configCount": 0,
+      "preservedTables": 45,
+      "preservedDataEqual": true,
+      "backup": {
+        "directory": "C:\\Users\\32090\\wuye\\.runtime\\backups\\v2-pruning\\hc_community-4056a0bd15fc\\full\\hc_community-20261106-145540-b662227e",
+        "database": "hc_community",
+        "bytes": 10317876,
+        "sha256": "f0f1f8c7e6141c99581680738c45ebb38f869ec9effe31eb11dea6963650fa90",
+        "tables": 65,
+        "restoreDrillSupported": true
+      },
+      "removedTables": [
+        "group_buy",
+        "group_buy_batch",
+        "group_buy_product",
+        "group_buy_product_spec",
+        "group_buy_setting",
+        "product",
+        "product_attr",
+        "product_category",
+        "product_detail",
+        "product_label",
+        "product_spec",
+        "product_spec_detail",
+        "product_spec_value",
+        "store_cart",
+        "store_order",
+        "store_order_address",
+        "store_order_cart",
+        "store_order_cart_event",
+        "store_order_cart_return",
+        "store_order_cart_return_event"
+      ],
+      "before": {
+        "act_evt_log": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_evt_log_copy": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ge_bytearray": {
+          "rows": 1274,
+          "checksum": "1882242043"
+        },
+        "act_ge_property": {
+          "rows": 4,
+          "checksum": "3879276420"
+        },
+        "act_hi_actinst": {
+          "rows": 1237,
+          "checksum": "1843511435"
+        },
+        "act_hi_attachment": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_hi_comment": {
+          "rows": 494,
+          "checksum": "2775860897"
+        },
+        "act_hi_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_hi_identitylink": {
+          "rows": 563,
+          "checksum": "4291032753"
+        },
+        "act_hi_procinst": {
+          "rows": 466,
+          "checksum": "2348412098"
+        },
+        "act_hi_taskinst": {
+          "rows": 709,
+          "checksum": "2635798668"
+        },
+        "act_hi_varinst": {
+          "rows": 1560,
+          "checksum": "1109885140"
+        },
+        "act_id_group": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_id_info": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_id_membership": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_id_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_procdef_info": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_re_deployment": {
+          "rows": 145,
+          "checksum": "3341734074"
+        },
+        "act_re_model": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_re_procdef": {
+          "rows": 155,
+          "checksum": "1871683184"
+        },
+        "act_ru_deadletter_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_event_subscr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_execution": {
+          "rows": 824,
+          "checksum": "382394916"
+        },
+        "act_ru_identitylink": {
+          "rows": 437,
+          "checksum": "850909571"
+        },
+        "act_ru_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_suspended_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_task": {
+          "rows": 410,
+          "checksum": "4108556223"
+        },
+        "act_ru_timer_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_variable": {
+          "rows": 1277,
+          "checksum": "1057061614"
+        },
+        "attr_spec": {
+          "rows": 10,
+          "checksum": "3542668161"
+        },
+        "attr_value": {
+          "rows": 14,
+          "checksum": "3665335253"
+        },
+        "business_community": {
+          "rows": 1171,
+          "checksum": "2099915515"
+        },
+        "business_community_attr": {
+          "rows": 20,
+          "checksum": "1233641213"
+        },
+        "business_community_member": {
+          "rows": 2988,
+          "checksum": "2372806209"
+        },
+        "business_community_photo": {
+          "rows": 12,
+          "checksum": "2847289098"
+        },
+        "c_mapping": {
+          "rows": 32,
+          "checksum": "3473249849"
+        },
+        "c_status": {
+          "rows": 16,
+          "checksum": "2725972334"
+        },
+        "city_area": {
+          "rows": 3380,
+          "checksum": "2197346437"
+        },
+        "community_member_type": {
+          "rows": 4,
+          "checksum": "1235336958"
+        },
+        "group_buy": {
+          "rows": 2,
+          "checksum": "491610789"
+        },
+        "group_buy_batch": {
+          "rows": 209,
+          "checksum": "3087484373"
+        },
+        "group_buy_product": {
+          "rows": 8,
+          "checksum": "1074630897"
+        },
+        "group_buy_product_spec": {
+          "rows": 15,
+          "checksum": "2229409042"
+        },
+        "group_buy_setting": {
+          "rows": 1,
+          "checksum": "1413701779"
+        },
+        "product": {
+          "rows": 7,
+          "checksum": "574247884"
+        },
+        "product_attr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "product_category": {
+          "rows": 3,
+          "checksum": "629668022"
+        },
+        "product_detail": {
+          "rows": 6,
+          "checksum": "2929960885"
+        },
+        "product_label": {
+          "rows": 8,
+          "checksum": "3335629815"
+        },
+        "product_spec": {
+          "rows": 3,
+          "checksum": "1013057230"
+        },
+        "product_spec_detail": {
+          "rows": 9,
+          "checksum": "2504950298"
+        },
+        "product_spec_value": {
+          "rows": 20,
+          "checksum": "1469672642"
+        },
+        "s_community": {
+          "rows": 207,
+          "checksum": "1176011388"
+        },
+        "s_community_attr": {
+          "rows": 14,
+          "checksum": "426357780"
+        },
+        "s_community_member": {
+          "rows": 1516,
+          "checksum": "3287753991"
+        },
+        "s_community_photo": {
+          "rows": 6,
+          "checksum": "2287455086"
+        },
+        "spec": {
+          "rows": 8,
+          "checksum": "1575431778"
+        },
+        "store_cart": {
+          "rows": 8,
+          "checksum": "3897563065"
+        },
+        "store_order": {
+          "rows": 39,
+          "checksum": "4261652992"
+        },
+        "store_order_address": {
+          "rows": 39,
+          "checksum": "1438357605"
+        },
+        "store_order_cart": {
+          "rows": 39,
+          "checksum": "3328675517"
+        },
+        "store_order_cart_event": {
+          "rows": 10,
+          "checksum": "2266322396"
+        },
+        "store_order_cart_return": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "store_order_cart_return_event": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "t_dict": {
+          "rows": 390,
+          "checksum": "1156458946"
+        }
+      },
+      "after": {
+        "act_evt_log": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_evt_log_copy": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ge_bytearray": {
+          "rows": 1274,
+          "checksum": "1882242043"
+        },
+        "act_ge_property": {
+          "rows": 4,
+          "checksum": "3879276420"
+        },
+        "act_hi_actinst": {
+          "rows": 1237,
+          "checksum": "1843511435"
+        },
+        "act_hi_attachment": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_hi_comment": {
+          "rows": 494,
+          "checksum": "2775860897"
+        },
+        "act_hi_detail": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_hi_identitylink": {
+          "rows": 563,
+          "checksum": "4291032753"
+        },
+        "act_hi_procinst": {
+          "rows": 466,
+          "checksum": "2348412098"
+        },
+        "act_hi_taskinst": {
+          "rows": 709,
+          "checksum": "2635798668"
+        },
+        "act_hi_varinst": {
+          "rows": 1560,
+          "checksum": "1109885140"
+        },
+        "act_id_group": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_id_info": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_id_membership": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_id_user": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_procdef_info": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_re_deployment": {
+          "rows": 145,
+          "checksum": "3341734074"
+        },
+        "act_re_model": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_re_procdef": {
+          "rows": 155,
+          "checksum": "1871683184"
+        },
+        "act_ru_deadletter_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_event_subscr": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_execution": {
+          "rows": 824,
+          "checksum": "382394916"
+        },
+        "act_ru_identitylink": {
+          "rows": 437,
+          "checksum": "850909571"
+        },
+        "act_ru_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_suspended_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_task": {
+          "rows": 410,
+          "checksum": "4108556223"
+        },
+        "act_ru_timer_job": {
+          "rows": 0,
+          "checksum": "0"
+        },
+        "act_ru_variable": {
+          "rows": 1277,
+          "checksum": "1057061614"
+        },
+        "attr_spec": {
+          "rows": 10,
+          "checksum": "3542668161"
+        },
+        "attr_value": {
+          "rows": 14,
+          "checksum": "3665335253"
+        },
+        "business_community": {
+          "rows": 1171,
+          "checksum": "2099915515"
+        },
+        "business_community_attr": {
+          "rows": 20,
+          "checksum": "1233641213"
+        },
+        "business_community_member": {
+          "rows": 2988,
+          "checksum": "2372806209"
+        },
+        "business_community_photo": {
+          "rows": 12,
+          "checksum": "2847289098"
+        },
+        "c_mapping": {
+          "rows": 32,
+          "checksum": "3473249849"
+        },
+        "c_status": {
+          "rows": 16,
+          "checksum": "2725972334"
+        },
+        "city_area": {
+          "rows": 3380,
+          "checksum": "2197346437"
+        },
+        "community_member_type": {
+          "rows": 4,
+          "checksum": "1235336958"
+        },
+        "s_community": {
+          "rows": 207,
+          "checksum": "1176011388"
+        },
+        "s_community_attr": {
+          "rows": 14,
+          "checksum": "426357780"
+        },
+        "s_community_member": {
+          "rows": 1516,
+          "checksum": "3287753991"
+        },
+        "s_community_photo": {
+          "rows": 6,
+          "checksum": "2287455086"
+        },
+        "spec": {
+          "rows": 8,
+          "checksum": "1575431778"
+        },
+        "t_dict": {
+          "rows": 390,
+          "checksum": "1156458946"
+        }
+      },
+      "configContentBefore": {}
+    }
+  ],
+  "passed": true,
+  "tableCounts": {
+    "TT": 273,
+    "hc_community": 45
+  },
+  "finishedAtUtc": "2026-11-06T06:56:17+00:00"
+}

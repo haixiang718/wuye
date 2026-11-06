@@ -17,9 +17,6 @@ public class OwnerApi {
     private IQueryTenants queryTenantsImpl;
 
     @Autowired
-    private IVisitorRecord visitorRecordImpl;
-
-    @Autowired
     private IChangeOwnerPhone changeOwnerPhoneImpl;
 
 
@@ -33,12 +30,6 @@ public class OwnerApi {
     public ResponseEntity<String> tenants(@RequestBody JSONObject reqJson) {
         Assert.hasKeyAndValue(reqJson, "code", "小区编码不能为空");
         return queryTenantsImpl.query(reqJson);
-    }
-
-    @RequestMapping(value = "/visitorRecord")
-    public ResponseEntity<String> visitorRecord(@RequestBody JSONObject reqJson) {
-        Assert.hasKeyAndValue(reqJson, "code", "小区编码不能为空");
-        return visitorRecordImpl.query(reqJson);
     }
 
     /**

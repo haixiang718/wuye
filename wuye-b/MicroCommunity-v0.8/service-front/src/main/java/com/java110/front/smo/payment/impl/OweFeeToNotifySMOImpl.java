@@ -2,7 +2,6 @@ package com.java110.front.smo.payment.impl;
 
 import com.java110.front.smo.payment.IOweFeeToNotifySMO;
 import com.java110.front.smo.payment.adapt.IOweFeeToNotifyAdapt;
-import com.java110.front.smo.payment.adapt.IRentingToNotifyAdapt;
 import com.java110.utils.cache.MappingCache;
 import com.java110.utils.constant.WechatConstant;
 import com.java110.utils.factory.ApplicationContextFactory;

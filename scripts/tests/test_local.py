@@ -80,16 +80,18 @@ class RuntimeProfileTests(IsolatedLauncherTest):
         self.assertIn('acct', selected)
         self.assertIn('report', selected)
 
-    def test_full_and_explicit_goods_are_available(self):
+    def test_full_keeps_supported_services_and_explicit_goods_is_retired(self):
         self.assertEqual(local.selected_services(['all'], 'full'), [name for name in local.SERVICES if name != 'business'] + ['web'])
-        self.assertEqual(local.selected_services(['goods'], 'property'), ['goods'])
+        self.assertNotIn('goods', local.selected_services(['all'], 'full'))
+        with self.assertRaisesRegex(ValueError, 'goods'):
+            local.selected_services(['goods'], 'property')
 
-    def test_scheduled_jobs_restore_goods_dependency(self):
+    def test_scheduled_jobs_do_not_restore_retired_goods(self):
         with patch.dict(os.environ, {'WUYE_ENABLE_SCHEDULED_TASKS': '1'}):
-            self.assertIn('goods', local.selected_services(['all'], 'property'))
-            self.assertEqual(local.selected_services(['job'], 'property'), ['goods', 'job'])
+            self.assertNotIn('goods', local.selected_services(['all'], 'property'))
+            self.assertEqual(local.selected_services(['job'], 'property'), ['job'])
             full = local.selected_services(['all'], 'full')
-            self.assertLess(full.index('goods'), full.index('job'))
+            self.assertNotIn('goods', full)
             with patch.object(local, 'stop') as stop:
                 local.trim('property')
                 stop.assert_called_once_with(['business'])
@@ -97,19 +99,19 @@ class RuntimeProfileTests(IsolatedLauncherTest):
     def test_trim_only_stops_excluded_project_services(self):
         with patch.dict(os.environ, {}, clear=True), patch.object(local, 'processes', return_value={}), patch.object(local, 'stop') as stop:
             local.trim('property')
-            stop.assert_called_once_with(['goods', 'business'])
+            stop.assert_called_once_with(['business'])
         with patch.object(local, 'stop') as stop:
             local.trim('full')
             stop.assert_called_once_with(['business'])
 
-    def test_trim_preserves_dependency_of_existing_scheduled_job(self):
+    def test_trim_keeps_supported_scheduled_job_independent_of_retired_goods(self):
         recorded = {'job': {'command': ['java.exe', '-Djava110.local.disableScheduledTasks=false']}}
         with patch.dict(os.environ, {}, clear=True), patch.object(local, 'processes', return_value=recorded), patch.object(local, 'listening', return_value=True), patch.object(local, 'stop') as stop:
             local.trim('property')
             stop.assert_called_once_with(['business'])
         with patch.dict(os.environ, {}, clear=True), patch.object(local, 'processes', return_value=recorded), patch.object(local, 'listening', return_value=False), patch.object(local, 'stop') as stop:
             local.trim('property')
-            stop.assert_called_once_with(['goods', 'business'])
+            stop.assert_called_once_with(['business'])
 
     def test_profile_configs_keep_data_and_bound_idle_resources(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(local, 'RUN', Path(directory)), patch.object(local, 'settings', return_value={'db_password': 'test_only'}):
@@ -143,7 +145,7 @@ class RuntimeProfileTests(IsolatedLauncherTest):
         with patch('sys.argv', ['local.py', 'start', 'all', '--profile', 'full']), patch.object(local, 'trim') as trim, patch.object(local, 'start') as start:
             local.main()
             trim.assert_called_once_with('full')
-            self.assertIn('goods', start.call_args.args[0])
+            self.assertNotIn('goods', start.call_args.args[0])
             self.assertEqual(start.call_args.kwargs['profile'], 'full')
 
     def test_restart_applies_profile_without_stopping_middleware_or_owner_sessions(self):

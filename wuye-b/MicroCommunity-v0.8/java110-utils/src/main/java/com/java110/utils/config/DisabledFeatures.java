@@ -10,7 +10,8 @@ public final class DisabledFeatures {
         "purchase", "collection", "resource", "storehouse", "userstorehouse", "allocationstorehouse",
         "allocationuserstorehouse", "poutofstorage", "machine", "applicationkey",
         "openDoor", "complaint", "notice", "advert", "activities", "activity",
-        "visit", "communitynotice"
+        "visit", "communitynotice", "renting", "junkrequirement", "groupbuy",
+        "product", "storeorder", "storecart", "shopvip", "buyshop", "appraise", "goods"
     };
 
     // Keep component codes aligned with public/js/local-features.js.
@@ -35,6 +36,31 @@ public final class DisabledFeatures {
             "viewactivitiesbeautifulstaffinfo,viewactivitiesinfo,viewactivitiesruleinfo,viewactivitiestypeinfo,viewadvertinfo,viewapplicationkeyinfo,viewcomplaintinfo,viewinspectionplaninfo,viewinspectionpointinfo,viewinspectionrouteinfo,viewmachineauthinfo,viewmachineinfo," +
             "viewmachinerecordinfo,viewmachinetranslateinfo,viewownerrepairinfo,viewpurchaseapplyinfo,viewrepairsettinginfo,viewresourcestaffinfo,viewresourcestoreinfo,viewresourcestoreinfo2,viewresourcestoreinfo3,viewresourcestorespecificationinfo,viewresourcesupplierinfo,viewstorehouseinfo," +
             "viewvisitinfo,visitforowner,visitmanage,visitownerrepair,writeadvertmachine,addcomplaintstepbinding,itemoutbinding,addallocationuserstorehouse,repairdispatchstepbinding,myrepairdispatch,updateinspectionplanstate,editnotice"
+        ).split(",")));
+
+    private static final java.util.Set<String> V2_COMPONENTS = new java.util.HashSet<>(
+        java.util.Arrays.asList((
+            "addapplicationkey,addcomplaintstep,addinspectionplan,addinspectionplanstaff,addinspectionpoint,addinspectionroute,addjunkrequirement,addmachine,addmachineauth," +
+            "addmachinetranslate,addmaincategory,addmaincategoryproduct,addownerrepair,addproduct,addproductcategory,addproductspec,addrentingappointment,addrentingconfig," +
+            "addrentingpool,addrepairsetting,addroomcomplaint,addroomrepair,addvisit,addvisitcase,addvisitspace,applicationkeymanage,appraiserepair," +
+            "auditapplicationkeymanage,auditopenshop,auditshopcommunity,chooseapplicationkey,choosecomplaint,chooseinspectionplan,chooseinspectionpoint,chooseinspectionroute,chooseinspectionroutepoint," +
+            "choosejunkrequirement,chooselabelproduct,choosemachine,choosemachineauth,choosemachinetranslate,choosemaincategory,choosemaincategoryproduct,chooseownerrepair,chooseproduct," +
+            "chooseproductcategory,chooseproductspec,chooserentingappointment,chooserentingconfig,chooserentingpool,chooserepairsetting,complaintdetail,complaintmanage,confirmrenting," +
+            "deleteapplicationkey,deletecomplaint,deleteinspectionplan,deleteinspectionplanstaff,deleteinspectionpoint,deleteinspectionroute,deleteinspectionroutepoint,deletejunkrequirement,deletelabelproduct," +
+            "deletemachine,deletemachineauth,deletemachinetranslate,deletemaincategory,deletemaincategoryproduct,deleteownerrepair,deleteproduct,deleteproductcategory,deleteproductspec," +
+            "deleterentingappointment,deleterentingconfig,deleterentingpool,deleterepairsetting,deleterepairtypeuser,dispatchrepair,editapplicationkey,editcomplaint,editinspectionplan," +
+            "editinspectionpoint,editinspectionroute,editjunkrequirement,editmachine,editmachineauth,editmachinetranslate,editmaincategory,editmaincategoryproduct,editownerrepair," +
+            "editproduct,editproductcategory,editproductspec,editrentingappointment,editrentingconfig,editrentingpool,editrepairsetting,editrepairtypeuser,editvisit," +
+            "finishrepair,forcefinishrepair,indexopendooranalysis,inspectionplanmanage,inspectionplanstaffmanage,inspectionplanstate,inspectionpointmanage,inspectionroutemanage,inspectionroutepointmanage," +
+            "inspectionrouteselect2,inspectiontaskdetail,inspectiontaskmanage,junkrequirementmanage,machineauthmanage,machinemanage,machinerecorddetail,machinerecordmanage,machineselect2," +
+            "machinestate,machinetranslatemanage,machinevistorphotomanage,maincategorymanage,maincategoryproductmanage,myauditcomplaints,myaudithistorycomplaints,myrepairdispatchmanage,ownerrepairdetail," +
+            "ownerrepairmanage,printrepairdetail,productcategorymanage,productmanage,productspecmanage,recommendgoodsmanage,rentingappointmentmanage,rentingauditmanage,rentingconfigmanage," +
+            "rentingdetail,rentinghistorymanage,rentingpay,rentingpoolmanage,repairdispatchmanage,repairdispatchstep,repairforcefinishmanage,repairpoolmanage,repairreturnvisit," +
+            "repairsettingmanage,repairtypeuser,reportrepair,resubmitcomplaint,shopcommunity,shopmanage,simplifyowneraccesscontol,simplifyownercomplaint,simplifyownerrepair," +
+            "storeordercartdetail,storeordercartmanage,storeordercartreturnmanage,viewapplicationkeyinfo,viewcomplaintinfo,viewinspectionplaninfo,viewinspectionpointinfo,viewinspectionrouteinfo,viewjunkrequirementinfo," +
+            "viewmachineauthinfo,viewmachineinfo,viewmachinerecordinfo,viewmachinetranslateinfo,viewmaincategoryinfo,viewmaincategoryproductinfo,viewownerrepairinfo,viewproductcategoryinfo,viewproductinfo," +
+            "viewproductspecinfo,viewrentingappointmentinfo,viewrentingconfiginfo,viewrentingpoolinfo,viewrepairsettinginfo,viewvisitinfo,visitforowner,visitmanage,visitownerrepair," +
+            "writeadvertmachine"
         ).split(",")));
 
     private DisabledFeatures() { }
@@ -84,8 +110,12 @@ public final class DisabledFeatures {
                 || "reportfeemonthstatistics.queryrepair".equals(operation)
                 || "nav/getnavdata".equals(operation)
                 || operation.matches("bigscreen[/.](getassetsrepair|getassetopendoor|getassetinspection)")) return true;
+        if (protocol.equals("owner.listownermachines") || protocol.equals("ownerapi.visitorrecord")
+                || protocol.equals("payment.rentingtopay") || protocol.equals("payment.rentingnotify")
+                || protocol.equals("goods.unifieldorder")) return true;
         String resource = segments[resourceIndex].split("[.;]", 2)[0];
-        if (COMPONENTS.contains(resource)) return true;
+        if ("shop".equals(resource) || "shopapi".equals(resource)) return true;
+        if (COMPONENTS.contains(resource) || V2_COMPONENTS.contains(resource)) return true;
         for (String disabled : RESOURCES) {
             if (resource.startsWith(disabled.toLowerCase(Locale.ROOT))) return true;
         }
@@ -96,7 +126,7 @@ public final class DisabledFeatures {
         if (beanName == null) return false;
         String name = beanName.toLowerCase(Locale.ROOT);
         if ("cartomachinetemplate".equals(name)) return false;
-        return name.contains("inspection") || name.contains("repair")
+        return name.contains("inspection") || name.contains("repair") || name.contains("groupbuy")
                 || name.contains("purchase") || name.contains("tomachine")
                 || name.contains("photomachine") || name.contains("applicationkey");
     }

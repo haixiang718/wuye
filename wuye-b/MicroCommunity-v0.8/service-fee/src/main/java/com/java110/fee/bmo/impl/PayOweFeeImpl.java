@@ -7,12 +7,10 @@ import com.java110.core.factory.GenerateCodeFactory;
 import com.java110.core.smo.IComputeFeeSMO;
 import com.java110.dto.fee.*;
 import com.java110.dto.owner.OwnerDto;
-import com.java110.dto.repair.RepairDto;
 import com.java110.fee.bmo.IPayOweFee;
 import com.java110.fee.listener.fee.UpdateFeeInfoListener;
 import com.java110.intf.fee.IFeeReceiptDetailInnerServiceSMO;
 import com.java110.intf.community.IParkingSpaceInnerServiceSMO;
-import com.java110.intf.community.IRepairInnerServiceSMO;
 import com.java110.intf.community.IRoomInnerServiceSMO;
 import com.java110.intf.fee.*;
 import com.java110.intf.user.IOwnerCarInnerServiceSMO;
@@ -20,7 +18,6 @@ import com.java110.po.fee.PayFeeDetailPo;
 import com.java110.po.fee.PayFeePo;
 import com.java110.po.feeReceipt.FeeReceiptPo;
 import com.java110.po.feeReceiptDetail.FeeReceiptDetailPo;
-import com.java110.po.owner.RepairPoolPo;
 import com.java110.utils.constant.ResponseConstant;
 import com.java110.utils.exception.ListenerExecuteException;
 import com.java110.utils.lock.DistributedLock;
@@ -56,12 +53,6 @@ public class PayOweFeeImpl implements IPayOweFee {
 
     @Autowired
     private IFeeConfigInnerServiceSMO feeConfigInnerServiceSMOImpl;
-
-    @Autowired
-    private IFeeAttrInnerServiceSMO feeAttrInnerServiceSMOImpl;
-
-    @Autowired
-    private IRepairInnerServiceSMO repairInnerServiceSMOImpl;
 
     @Autowired
     private IRoomInnerServiceSMO roomInnerServiceSMOImpl;
@@ -132,23 +123,6 @@ public class PayOweFeeImpl implements IPayOweFee {
             //将有账单下的 状态改为已经缴费
             modifyFeeBill(feeObj);
 
-            //判断是否有派单属性ID
-            FeeAttrDto feeAttrDto = new FeeAttrDto();
-            feeAttrDto.setCommunityId(feeObj.getString("communityId"));
-            feeAttrDto.setFeeId(feeObj.getString("feeId"));
-            feeAttrDto.setSpecCd(FeeAttrDto.SPEC_CD_REPAIR);
-            List<FeeAttrDto> feeAttrDtos = feeAttrInnerServiceSMOImpl.queryFeeAttrs(feeAttrDto);
-            //修改 派单状态
-            if (feeAttrDtos != null && feeAttrDtos.size() > 0) {
-                RepairPoolPo repairPoolPo = new RepairPoolPo();
-                repairPoolPo.setRepairId(feeAttrDtos.get(0).getValue());
-                repairPoolPo.setCommunityId(feeObj.getString("communityId"));
-                repairPoolPo.setState(RepairDto.STATE_APPRAISE);
-                int saved = repairInnerServiceSMOImpl.updateRepair(repairPoolPo);
-                if (saved < 1) {
-                    throw new IllegalArgumentException("缴费后修改报修单失败");
-                }
-            }
         } catch (Exception e) {
             logger.error("缴费失败", e);
             throw new IllegalArgumentException("缴费失败" + e);

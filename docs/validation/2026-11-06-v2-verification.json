@@ -1,0 +1,668 @@
+{
+  "version": "2.0.0",
+  "phase": "completed",
+  "javaBuild": {
+    "cleanBuildPassed": true,
+    "finalPackagePassed": true
+  },
+  "packagedBoundaryChecks": 74,
+  "javaRunners": [
+    {
+      "name": "run_business_java",
+      "exitCode": 0,
+      "seconds": 3.3,
+      "summary": [
+        "OK (8 tests)"
+      ]
+    },
+    {
+      "name": "run_owner_room_creation_java",
+      "exitCode": 0,
+      "seconds": 4.8,
+      "summary": [
+        "OK (13 tests)"
+      ]
+    },
+    {
+      "name": "run_owner_oauth_java",
+      "exitCode": 0,
+      "seconds": 10.6,
+      "summary": [
+        "OK (18 tests)"
+      ]
+    },
+    {
+      "name": "run_owner_access_java",
+      "exitCode": 0,
+      "seconds": 14.0,
+      "summary": [
+        "OK (51 tests)"
+      ]
+    },
+    {
+      "name": "run_wechat_identity_java",
+      "exitCode": 0,
+      "seconds": 12.6,
+      "summary": [
+        "OK (19 tests)"
+      ]
+    },
+    {
+      "name": "run_meter_import_java",
+      "exitCode": 0,
+      "seconds": 10.1,
+      "summary": [
+        "OK (5 tests)"
+      ]
+    },
+    {
+      "name": "run_payment_order_database_java",
+      "exitCode": 0,
+      "seconds": 30.6,
+      "summary": [
+        "OK (40 tests)"
+      ]
+    },
+    {
+      "name": "run_owner_history_database",
+      "exitCode": 0,
+      "seconds": 14.7,
+      "summary": [
+        "OK (8 tests)"
+      ]
+    },
+    {
+      "name": "run_bill_review_database",
+      "exitCode": 0,
+      "seconds": 20.0,
+      "summary": [
+        "OK (10 tests)"
+      ]
+    },
+    {
+      "name": "run_bill_publication_java",
+      "exitCode": 0,
+      "seconds": 15.7,
+      "summary": [
+        "OK (13 tests)"
+      ]
+    },
+    {
+      "name": "run_bill_publication_workflow_java",
+      "exitCode": 0,
+      "seconds": 5.7,
+      "summary": [
+        "OK (19 tests)"
+      ]
+    },
+    {
+      "name": "run_bill_notify_java",
+      "exitCode": 0,
+      "seconds": 4.8,
+      "summary": [
+        "OK (38 tests)"
+      ]
+    },
+    {
+      "name": "run_job_notify_java",
+      "exitCode": 0,
+      "seconds": 11.1,
+      "summary": [
+        "OK (12 tests)"
+      ]
+    },
+    {
+      "name": "run_staff_fee_database",
+      "exitCode": 0,
+      "seconds": 17.4,
+      "summary": [
+        "OK (8 tests)"
+      ]
+    },
+    {
+      "name": "run_contract_room_database",
+      "exitCode": 0,
+      "seconds": 14.3,
+      "summary": [
+        "OK (5 tests)"
+      ]
+    },
+    {
+      "name": "run_account_contract_java",
+      "exitCode": 0,
+      "seconds": 20.9,
+      "summary": [
+        "OK (14 tests)"
+      ]
+    },
+    {
+      "name": "run_wechat_pay_v3_flow",
+      "exitCode": 0,
+      "seconds": 12.7,
+      "summary": []
+    },
+    {
+      "name": "run_online_payment_refund_guard",
+      "exitCode": 0,
+      "seconds": 8.8,
+      "summary": [
+        "OK (3 tests)"
+      ]
+    }
+  ],
+  "junitTestsPassed": 284,
+  "wechatV3OrchestrationChecks": 101,
+  "frontendTests": {
+    "management": 65,
+    "ownerH5": 129,
+    "staff": 9
+  },
+  "h5BuildPassed": true,
+  "h5SyntheticViewportWidths": [
+    360,
+    390,
+    430
+  ],
+  "launcherTestsPassed": 28,
+  "seedTestsPassed": 7,
+  "releaseTests": {
+    "passed": 10,
+    "skipped": 1,
+    "failed": 0
+  },
+  "beforeDatabaseMigration": [
+    {
+      "name": "rooms",
+      "http": 200,
+      "code": null,
+      "rows": 5,
+      "passed": true
+    },
+    {
+      "name": "owners",
+      "http": 200,
+      "code": null,
+      "rows": 5,
+      "passed": true
+    },
+    {
+      "name": "feeConfig",
+      "http": 200,
+      "code": null,
+      "rows": 7,
+      "passed": true
+    },
+    {
+      "name": "bills",
+      "code": 0,
+      "rows": 5,
+      "passed": true
+    },
+    {
+      "name": "wechatConfig",
+      "code": null,
+      "rows": 1,
+      "passed": true
+    },
+    {
+      "name": "parking",
+      "http": 200,
+      "code": null,
+      "rows": 0,
+      "passed": true
+    },
+    {
+      "name": "payments",
+      "http": 200,
+      "code": null,
+      "rows": 7,
+      "passed": true
+    },
+    {
+      "name": "feeReport",
+      "code": 0,
+      "rows": 0,
+      "passed": true
+    },
+    {
+      "name": "contractsGateway",
+      "code": 0,
+      "rows": 9,
+      "passed": true
+    },
+    {
+      "name": "tasks",
+      "code": 0,
+      "rows": 10,
+      "passed": true
+    },
+    {
+      "name": "floors",
+      "http": 200,
+      "code": null,
+      "rows": 2,
+      "passed": true
+    },
+    {
+      "name": "contractsService",
+      "http": 200,
+      "code": 0,
+      "rows": 0,
+      "passed": true
+    },
+    {
+      "name": "contractsServiceExistingStore",
+      "http": 200,
+      "code": 0,
+      "rows": 9,
+      "passed": true
+    },
+    {
+      "name": "accounts",
+      "http": 200,
+      "code": null,
+      "rows": 0,
+      "passed": true
+    },
+    {
+      "name": "area",
+      "http": 200,
+      "code": null,
+      "rows": 31,
+      "passed": true
+    },
+    {
+      "name": "communityShards",
+      "rows": 123,
+      "passed": true
+    },
+    {
+      "name": "ownerPasswordLogin",
+      "http": 200,
+      "passed": true
+    },
+    {
+      "name": "ownerHouses",
+      "http": 200,
+      "code": null,
+      "rows": 1,
+      "passed": true
+    },
+    {
+      "name": "ownerHousesAnonymousDenied",
+      "http": 401,
+      "passed": true
+    },
+    {
+      "name": "ownerFees",
+      "http": 200,
+      "code": 0,
+      "rows": 0,
+      "passed": true
+    },
+    {
+      "name": "ownerFeesAnonymousDenied",
+      "http": 401,
+      "passed": true
+    },
+    {
+      "name": "ownerOtherRoomDeniedDespiteForgedIdentity",
+      "http": 403,
+      "passed": true
+    },
+    {
+      "name": "ownerCannotUseManagementApi",
+      "http": 403,
+      "passed": true
+    },
+    {
+      "name": "ownerBindingListIgnoresForgedUser",
+      "http": 200,
+      "passed": true
+    }
+  ],
+  "afterDatabaseMigration": [
+    {
+      "name": "rooms",
+      "http": 200,
+      "code": null,
+      "rows": 5,
+      "passed": true
+    },
+    {
+      "name": "owners",
+      "http": 200,
+      "code": null,
+      "rows": 5,
+      "passed": true
+    },
+    {
+      "name": "feeConfig",
+      "http": 200,
+      "code": null,
+      "rows": 7,
+      "passed": true
+    },
+    {
+      "name": "bills",
+      "code": 0,
+      "rows": 5,
+      "passed": true
+    },
+    {
+      "name": "wechatConfig",
+      "code": null,
+      "rows": 1,
+      "passed": true
+    },
+    {
+      "name": "parking",
+      "http": 200,
+      "code": null,
+      "rows": 0,
+      "passed": true
+    },
+    {
+      "name": "payments",
+      "http": 200,
+      "code": null,
+      "rows": 7,
+      "passed": true
+    },
+    {
+      "name": "feeReport",
+      "code": 0,
+      "rows": 0,
+      "passed": true
+    },
+    {
+      "name": "contractsGateway",
+      "code": 0,
+      "rows": 9,
+      "passed": true
+    },
+    {
+      "name": "tasks",
+      "code": 0,
+      "rows": 7,
+      "passed": true
+    },
+    {
+      "name": "floors",
+      "http": 200,
+      "code": null,
+      "rows": 2,
+      "passed": true
+    },
+    {
+      "name": "contractsService",
+      "http": 200,
+      "code": 0,
+      "rows": 0,
+      "passed": true
+    },
+    {
+      "name": "contractsServiceExistingStore",
+      "http": 200,
+      "code": 0,
+      "rows": 9,
+      "passed": true
+    },
+    {
+      "name": "accounts",
+      "http": 200,
+      "code": null,
+      "rows": 0,
+      "passed": true
+    },
+    {
+      "name": "area",
+      "http": 200,
+      "code": null,
+      "rows": 31,
+      "passed": true
+    },
+    {
+      "name": "communityShards",
+      "rows": 123,
+      "passed": true
+    },
+    {
+      "name": "ownerPasswordLogin",
+      "http": 200,
+      "passed": true
+    },
+    {
+      "name": "ownerHouses",
+      "http": 200,
+      "code": null,
+      "rows": 1,
+      "passed": true
+    },
+    {
+      "name": "ownerHousesAnonymousDenied",
+      "http": 401,
+      "passed": true
+    },
+    {
+      "name": "ownerFees",
+      "http": 200,
+      "code": 0,
+      "rows": 0,
+      "passed": true
+    },
+    {
+      "name": "ownerFeesAnonymousDenied",
+      "http": 401,
+      "passed": true
+    },
+    {
+      "name": "ownerOtherRoomDeniedDespiteForgedIdentity",
+      "http": 403,
+      "passed": true
+    },
+    {
+      "name": "ownerCannotUseManagementApi",
+      "http": 403,
+      "passed": true
+    },
+    {
+      "name": "ownerBindingListIgnoresForgedUser",
+      "http": 200,
+      "passed": true
+    }
+  ],
+  "publicHttps": [
+    {
+      "name": "adminRoot",
+      "http": 302,
+      "passed": true
+    },
+    {
+      "name": "adminLoginPage",
+      "http": 200,
+      "passed": true
+    },
+    {
+      "name": "adminAnonymousRoomQuery",
+      "http": 302,
+      "passed": true
+    },
+    {
+      "name": "adminRetiredMallPage",
+      "http": 404,
+      "passed": true
+    },
+    {
+      "name": "h5AccessGate",
+      "http": 200,
+      "passed": true
+    },
+    {
+      "name": "h5AnonymousApiDenied",
+      "http": 403,
+      "passed": true
+    },
+    {
+      "name": "wxRoot",
+      "http": 404,
+      "passed": true
+    },
+    {
+      "name": "wxInvalidCallback",
+      "http": 403,
+      "passed": true
+    },
+    {
+      "name": "wxSignedCallback",
+      "http": 200,
+      "passed": true
+    }
+  ],
+  "health": {
+    "health": {
+      "checkedAtUtc": "2026-11-06T07:03:12+00:00",
+      "healthy": true,
+      "checks": [
+        {
+          "name": "mysql",
+          "kind": "tcp",
+          "port": 13306,
+          "passed": true
+        },
+        {
+          "name": "redis",
+          "kind": "tcp",
+          "port": 16379,
+          "passed": true
+        },
+        {
+          "name": "zookeeper",
+          "kind": "tcp",
+          "port": 12181,
+          "passed": true
+        },
+        {
+          "name": "kafka",
+          "kind": "tcp",
+          "port": 19092,
+          "passed": true
+        },
+        {
+          "name": "eureka",
+          "kind": "tcp",
+          "port": 8761,
+          "passed": true
+        },
+        {
+          "name": "order",
+          "kind": "tcp",
+          "port": 8001,
+          "passed": true
+        },
+        {
+          "name": "api",
+          "kind": "tcp",
+          "port": 8008,
+          "passed": true
+        },
+        {
+          "name": "front",
+          "kind": "tcp",
+          "port": 8012,
+          "passed": true
+        },
+        {
+          "name": "job",
+          "kind": "tcp",
+          "port": 8013,
+          "passed": true
+        },
+        {
+          "name": "business",
+          "kind": "tcp",
+          "port": 8015,
+          "passed": true
+        },
+        {
+          "name": "management",
+          "kind": "tcp",
+          "port": 3000,
+          "passed": true
+        },
+        {
+          "name": "ownerH5",
+          "kind": "tcp",
+          "port": 8000,
+          "passed": true
+        },
+        {
+          "name": "domainGateway",
+          "kind": "tcp",
+          "port": 8080,
+          "passed": true
+        },
+        {
+          "name": "managementHtml",
+          "kind": "http",
+          "passed": true,
+          "status": 200
+        },
+        {
+          "name": "ownerHtml",
+          "kind": "http",
+          "passed": true,
+          "status": 200
+        },
+        {
+          "name": "domainGate",
+          "kind": "http",
+          "passed": true,
+          "status": 200
+        },
+        {
+          "name": "serviceRegistry",
+          "kind": "http",
+          "passed": true,
+          "status": 200
+        },
+        {
+          "name": "databaseQuery",
+          "kind": "sql",
+          "passed": true
+        },
+        {
+          "name": "redisPing",
+          "kind": "redis",
+          "passed": true
+        },
+        {
+          "name": "tunnelSupervisor",
+          "kind": "local-process",
+          "passed": true
+        },
+        {
+          "name": "recordedJobScheduleDisabled",
+          "kind": "recorded-config",
+          "passed": true
+        }
+      ],
+      "scope": "Local runtime readiness only. TCP listeners do not prove business, public tunnel, OAuth, notification or payment acceptance.",
+      "actionsTriggered": []
+    },
+    "repeatPlan": [
+      {
+        "database": "TT",
+        "pendingTables": 0,
+        "pendingConfigChanges": 0
+      },
+      {
+        "database": "hc_community",
+        "pendingTables": 0,
+        "pendingConfigChanges": 0
+      }
+    ]
+  },
+  "realPaymentTriggered": false,
+  "realNotificationSent": false
+}

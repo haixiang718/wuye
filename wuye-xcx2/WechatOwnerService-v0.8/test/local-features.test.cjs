@@ -108,3 +108,19 @@ test('disabled home todo and procurement history APIs are blocked without hiding
   }
   for (const url of ['/callComponent/indexContext/getData','/app/auditUser.listAuditUsers']) assert.equal(policy.isDisabledApi(url), false, url);
 });
+
+test('V2 removed modules reject stale navigation and API calls without affecting fees or property stores', () => {
+  const policy = require('../config/local-features');
+  for (const url of ['/app/owner.listOwnerMachines','/app/owner/listOwnerMachines','/goods/unifieldOrder']) assert.equal(policy.isDisabledApi(url),true,url);
+  for (const page of ['rentingDetail','rentingAppointment','rentHouse','hireRoom','myJunk','newJunk','market','mall','homemaking','hcWebView','hcWebViewRefresh']) {
+    assert.equal(policy.isDisabledRoute('/pages/' + page + '/' + page), true, page);
+  }
+  for (const prefix of ['app','api','callComponent']) for (const separator of ['.','/']) {
+    for (const service of ['renting','rentingPool','rentingAppointment','junkRequirement','product','groupBuy','storeOrder','storeCart','shop']) {
+      assert.equal(policy.isDisabledApi('/' + prefix + '/' + service + separator + 'query'), true, service);
+    }
+    for (const service of ['store','owner','fee','payment','smallWeChat','parkingSpace']) {
+      assert.equal(policy.isDisabledApi('/' + prefix + '/' + service + separator + 'query'), false, service);
+    }
+  }
+});

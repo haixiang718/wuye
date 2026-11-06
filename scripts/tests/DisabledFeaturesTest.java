@@ -11,6 +11,10 @@ public class DisabledFeaturesTest {
         }
         Method request = policy.getMethod("isDisabledRequest", String.class);
         String[] blocked = {
+            "/app/renting.queryRentingPools", "/rentingApi/queryRentingPools",
+            "/app/junkRequirement.saveJunkRequirement", "/app/product/queryProducts",
+            "/app/groupBuy/queryGroupBuys", "/app/storeOrder/queryStoreOrders",
+            "/app/storeCart/queryStoreCarts", "/shopApi/queryShops",
             "/app/ownerRepair.saveOwnerRepair", "/api/inspection.listInspectionPlans",
             "/callComponent/purchaseApply/list", "/app/machineApi/openDoor",
             "/app/applicationKey.listApplicationKeys", "/app/complaint.listComplaints",
@@ -28,6 +32,8 @@ public class DisabledFeaturesTest {
             "/callComponent/myAuditOrders/list", "/callComponent/myAuditOrders/audit"
         };
         String[] retained = {
+            "/callComponent/shops/query", "/callComponent/simplifyShopsHireLog/list",
+            "/app/ownerApi/queryShopsHireLog", "/app/store.listStores",
             "/app/fee.listFee", "/app/payment/oweFeeNotify", "/app/payment/toPay",
             "/app/owner.uploadOwnerPhoto", "/app/owner.ownerRegisterWxPhoto",
             "/app/wechat/gateway", "/app/refreshToken", "/app/smallWeChat.listSmallWeChats",
@@ -45,12 +51,13 @@ public class DisabledFeaturesTest {
         for (String path : retained) check(!(Boolean) request.invoke(null, path), "Must retain " + path);
         Method task = policy.getMethod("isDisabledTask", String.class);
         check((Boolean) task.invoke(null, "generateInspectionTaskTemplate"), "Inspection task must stop");
+        check((Boolean) task.invoke(null, "generatorGroupBuyBatchTemplate"), "Retired group buy task must stop");
         check((Boolean) task.invoke(null, "translateOwnerPhotoToMachineTemplate"), "Device sync must stop");
         check(!(Boolean) task.invoke(null, "generateBillProTemplate"), "Billing task must remain");
         check(!(Boolean) task.invoke(null, "publicWeChatPushMessageTemplate"), "Fee notification must remain");
         check(!(Boolean) task.invoke(null, "payFeeReceiptAdapt"), "Payment receipt must remain");
         check(!(Boolean) task.invoke(null, "carToMachineTemplate"), "Parking vehicle sync must remain");
-        System.out.println("PASS: " + (blocked.length + retained.length + 6) + " feature boundary checks");
+        System.out.println("PASS: " + (blocked.length + retained.length + 7) + " feature boundary checks");
     }
 
     private static void check(boolean value, String message) {

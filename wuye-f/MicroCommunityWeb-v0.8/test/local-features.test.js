@@ -44,6 +44,14 @@ test('real HTTP requests reject disabled pages, components and services before p
     '/components/property/indexArrears/indexArrears.js',
     '/pages/admin/myAuditOrders/myAuditOrders.html',
     '/pages/admin/myAuditHistoryOrders/myAuditHistoryOrders.js',
+    '/pages/goods/productManage/productManage.html',
+    '/pages/admin/shopManage/shopManage.html',
+    '/pages/admin/rentingPoolManage/rentingPoolManage.js',
+    '/pages/proxy/junkRequirementManage/junkRequirementManage.html',
+    '/app/renting.queryRentingPools', '/app/junkRequirement.listJunkRequirements',
+    '/app/groupBuy/queryGroupBuys', '/app/product/queryProducts',
+    '/app/storeOrder/queryStoreOrders', '/callComponent/shopManage/list',
+    '/app/owner.listOwnerMachines', '/app/owner/listOwnerMachines', '/goods/unifieldOrder',
     '/callComponent/myAuditOrders/list', '/callComponent/myAuditOrders/audit',
     ...['app','api','callComponent'].flatMap(prefix => ['.','/'].flatMap(separator => [
       '/' + prefix + '/index' + separator + 'queryIndexTodoTask',
@@ -61,6 +69,7 @@ test('real HTTP requests reject disabled pages, components and services before p
     '/callComponent/upload/uploadOwnerPhoto/upload', '/app/machine.uploadOwnerPhoto',
     '/callComponent/download/getFile', '/callComponent/config/getConfig',
     '/callComponent/indexContext/getData', '/app/auditUser.listAuditUsers',
+    '/app/store.queryStores', '/callComponent/shops/query',
     ...parkingMethods.flatMap(method=>['/app/machineTranslate.' + method, '/app/machineTranslate/' + method])
   ]) {
     const response = await request(path);
@@ -68,6 +77,7 @@ test('real HTTP requests reject disabled pages, components and services before p
     assert.equal(response.body, 'local upstream', path);
   }
   assert.equal((await request('/admin.html')).status, 200);
+  assert.equal((await request('/pages/property/shops/shops.html')).status, 200);
   assert.equal((await request('/pages/property/publicWeChatManage/publicWeChatManage.html')).status, 200);
 });
 
