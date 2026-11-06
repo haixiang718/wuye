@@ -1,0 +1,754 @@
+{
+  "phase": "design-preflight-not-implemented",
+  "version1Commit": "35112e7",
+  "version1Tag": "v1.0.0",
+  "version2Branch": "codex/v2-module-pruning",
+  "candidateCount": 80,
+  "sharedParkingTableMinimum": [
+    "business_machine",
+    "business_machine_attrs",
+    "business_machine_translate",
+    "machine",
+    "machine_attrs",
+    "machine_translate"
+  ],
+  "candidateHistoricalRowsAtInventory": 112937,
+  "candidateAllocatedBytesAtInventory": 24739840,
+  "inventorySource": "2026-11-06-database-inventory.json",
+  "baselineChecks": {
+    "ownerH5": {
+      "passed": 128,
+      "failed": 0
+    },
+    "management": {
+      "passed": 65,
+      "failed": 0
+    },
+    "runtime": {
+      "passed": 21,
+      "failed": 0
+    }
+  },
+  "tables": [
+    {
+      "schema": "hc_community",
+      "table": "group_buy",
+      "rowsAtInventory": 2,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "group_buy_batch",
+      "rowsAtInventory": 209,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 2,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "group_buy_product",
+      "rowsAtInventory": 8,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 2,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "group_buy_product_spec",
+      "rowsAtInventory": 15,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 2,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "group_buy_setting",
+      "rowsAtInventory": 1,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 2,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "product",
+      "rowsAtInventory": 7,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 70,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "product_attr",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "product_category",
+      "rowsAtInventory": 3,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 3,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "product_detail",
+      "rowsAtInventory": 6,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "product_label",
+      "rowsAtInventory": 8,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "product_spec",
+      "rowsAtInventory": 3,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 3,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "product_spec_detail",
+      "rowsAtInventory": 9,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "product_spec_value",
+      "rowsAtInventory": 20,
+      "allocatedBytesAtInventory": 32768,
+      "sourceReferenceCount": 7,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "store_cart",
+      "rowsAtInventory": 8,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "store_order",
+      "rowsAtInventory": 39,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 2,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "store_order_address",
+      "rowsAtInventory": 39,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "store_order_cart",
+      "rowsAtInventory": 39,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "store_order_cart_event",
+      "rowsAtInventory": 10,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "store_order_cart_return",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "hc_community",
+      "table": "store_order_cart_return_event",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "application_key",
+      "rowsAtInventory": 112400,
+      "allocatedBytesAtInventory": 22609920,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "appraise",
+      "rowsAtInventory": 8,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 13,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_application_key",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_complaint",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 32768,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_inspection_plan",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_inspection_plan_staff",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_inspection_point",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_inspection_route",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_inspection_route_point_rel",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_inspection_task",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_inspection_task_detail",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_junk_requirement",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_machine",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "retain-parking-dependency"
+    },
+    {
+      "schema": "TT",
+      "table": "business_machine_attrs",
+      "rowsAtInventory": 6,
+      "allocatedBytesAtInventory": 32768,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "retain-parking-dependency"
+    },
+    {
+      "schema": "TT",
+      "table": "business_machine_record",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_machine_translate",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "retain-parking-dependency"
+    },
+    {
+      "schema": "TT",
+      "table": "business_repair_pool",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_repair_setting",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_repair_type_user",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_repair_user",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_shop",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_shop_attr",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_shop_attr_param",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_shop_catalog",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_shop_desc",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_shop_photo",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_shop_preferential",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "business_visit_info",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "complaint",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 32768,
+      "sourceReferenceCount": 52,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "inspection_plan",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 32768,
+      "sourceReferenceCount": 3,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "inspection_plan_staff",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "inspection_point",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 32768,
+      "sourceReferenceCount": 2,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "inspection_route",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 32768,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "inspection_route_point_rel",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 32768,
+      "sourceReferenceCount": 2,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "inspection_task",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "inspection_task_detail",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 2,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "junk_requirement",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "machine",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 175,
+      "enabledSqlReferenceCount": 0,
+      "decision": "retain-parking-dependency"
+    },
+    {
+      "schema": "TT",
+      "table": "machine_attrs",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "retain-parking-dependency"
+    },
+    {
+      "schema": "TT",
+      "table": "machine_record",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "machine_translate",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "retain-parking-dependency"
+    },
+    {
+      "schema": "TT",
+      "table": "r_repair_pool",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 2,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "r_repair_setting",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 4,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "r_repair_type_user",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "r_repair_user",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 3,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "renting_appointment",
+      "rowsAtInventory": 21,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "renting_config",
+      "rowsAtInventory": 11,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 2,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "renting_pool",
+      "rowsAtInventory": 27,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 2,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "renting_pool_attr",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "renting_pool_flow",
+      "rowsAtInventory": 38,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "s_buy_shop",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 32768,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "s_buy_shop_attr",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "s_shop",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "s_shop_attr",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "s_shop_attr_param",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "s_shop_catalog",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 65536,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "s_shop_desc",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "s_shop_photo",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 65536,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "s_shop_preferential",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 49152,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    },
+    {
+      "schema": "TT",
+      "table": "s_visit_info",
+      "rowsAtInventory": 0,
+      "allocatedBytesAtInventory": 16384,
+      "sourceReferenceCount": 1,
+      "enabledSqlReferenceCount": 0,
+      "decision": "candidate-only-requires-dependency-removal-and-regression"
+    }
+  ]
+}
