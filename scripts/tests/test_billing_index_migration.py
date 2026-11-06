@@ -43,5 +43,12 @@ class BillingIndexMigrationTest(unittest.TestCase):
         with self.assertRaises(migration.base.MigrationError):migration.plan(self.database)
         with self.assertRaises(migration.base.MigrationError):migration.plan('production')
 
+    def test_existing_identity_primary_keys_do_not_recreate_retired_indexes(self):
+        for table,key in [('bill','bill_id'),('bill_owe_fee','owe_id')]:
+            if 'PRIMARY' not in migration.base.inspect(self.database,table)[1]:
+                migration.base.query(self.database,'ALTER TABLE `'+table+'` ADD PRIMARY KEY (`'+key+'`)')
+        pending=migration.plan(self.database)
+        self.assertFalse(any('idx_billing_identity' in item or 'idx_billing_owe_identity' in item for item in pending))
+
 
 if __name__=='__main__':unittest.main()

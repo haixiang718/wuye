@@ -87,6 +87,8 @@ hc_community: c_status(16), community_member_type(4)
 
 ## 账单查询索引证据与建议
 
+后续状态：本节保留盘点当时的计划。2026-11-06 已补齐账单主键、整理重复索引及当前账单日期索引，实际执行与回退说明见 [DATABASE-OPTIMIZATION.md](../DATABASE-OPTIMIZATION.md)。
+
 以下为迁移前证据，原始 SQL 与 EXPLAIN 见 JSON。使用合成标识符，只取得计划，不返回业主信息。当前账单规模仅 5 条，不能据此声称线上已存在明显延迟或量化提速。
 
 | 查询 | 迁移前计划 | 原因 |

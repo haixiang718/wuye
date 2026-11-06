@@ -1,0 +1,409 @@
+{
+  "date": "2026-11-06",
+  "scope": "Local MySQL 127.0.0.1:13306; index/primary key maintenance only",
+  "schemas": {
+    "TT": {
+      "indexesBefore": 499,
+      "indexesAfter": 464
+    },
+    "hc_community": {
+      "indexesBefore": 151,
+      "indexesAfter": 148
+    }
+  },
+  "exactDuplicateIndexesRemoved": 39,
+  "identityIndexesReplaced": 2,
+  "primaryKeysAdded": 2,
+  "orderingIndexesAdded": 1,
+  "businessTablesChanged": 33,
+  "allTablesVerified": 392,
+  "allTableCountsAndChecksumsUnchangedDuringMaintenance": true,
+  "tablesDeleted": 0,
+  "businessRowsDeleted": 0,
+  "backups": [
+    {
+      "database": "TT",
+      "bytes": 104631540,
+      "tables": 327,
+      "sha256": "06c7542e3902ad138afe9494a2bf1f2bc872e9211eea2a2ae1f9f81b45842811",
+      "directory": ".runtime\\backups\\database-optimization\\TT-20261106-131121-fc791507"
+    },
+    {
+      "database": "hc_community",
+      "bytes": 10318087,
+      "tables": 65,
+      "sha256": "1e9193a1b189e7a3a30207d37d0cc93539a07d944e4406008642c77a06fc1f8d",
+      "directory": ".runtime\\backups\\database-optimization\\hc_community-20261106-131210-17f92305"
+    }
+  ],
+  "changes": [
+    {
+      "database": "TT",
+      "tables": [
+        {
+          "table": "bill",
+          "sql": "ALTER TABLE `bill` ADD PRIMARY KEY (`bill_id`), DROP INDEX `idx_billing_identity`, ADD INDEX `idx_billing_current_date` (`community_id`,`cur_bill`,`create_time`), ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `bill` DROP INDEX `idx_billing_current_date`, ADD INDEX `idx_billing_identity` (`bill_id`,`community_id`), DROP PRIMARY KEY",
+          "reasons": [
+            "Enforce unique non-null bill identity",
+            "Primary key replaces old identity lookup",
+            "Current bill list filter and date ordering"
+          ]
+        },
+        {
+          "table": "bill_owe_fee",
+          "sql": "ALTER TABLE `bill_owe_fee` ADD PRIMARY KEY (`owe_id`), DROP INDEX `idx_billing_owe_identity`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `bill_owe_fee` ADD INDEX `idx_billing_owe_identity` (`owe_id`,`community_id`,`bill_id`), DROP PRIMARY KEY",
+          "reasons": [
+            "Enforce unique non-null bill identity",
+            "Primary key replaces old identity lookup"
+          ]
+        },
+        {
+          "table": "building_owner",
+          "sql": "ALTER TABLE `building_owner` DROP INDEX `idx_owner_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `building_owner` ADD UNIQUE INDEX `idx_owner_id` (`member_id`)",
+          "reasons": [
+            "Exact duplicate; retain member_id"
+          ]
+        },
+        {
+          "table": "building_owner_room_rel",
+          "sql": "ALTER TABLE `building_owner_room_rel` DROP INDEX `idx_borr_b_id`, DROP INDEX `idx_orr_rel_id`, DROP INDEX `idx_borr_rel_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `building_owner_room_rel` ADD UNIQUE INDEX `idx_borr_rel_id` (`rel_id`), ADD UNIQUE INDEX `idx_orr_rel_id` (`rel_id`), ADD INDEX `idx_borr_b_id` (`b_id`)",
+          "reasons": [
+            "Exact duplicate; retain idx_orr_b_id",
+            "Exact duplicate; retain rel_id",
+            "Exact duplicate; retain rel_id"
+          ]
+        },
+        {
+          "table": "building_room",
+          "sql": "ALTER TABLE `building_room` DROP INDEX `idx_room_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `building_room` ADD UNIQUE INDEX `idx_room_id` (`room_id`)",
+          "reasons": [
+            "Exact duplicate; retain room_id"
+          ]
+        },
+        {
+          "table": "building_unit",
+          "sql": "ALTER TABLE `building_unit` DROP INDEX `idx_unit_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `building_unit` ADD UNIQUE INDEX `idx_unit_id` (`unit_id`)",
+          "reasons": [
+            "Exact duplicate; retain unit_id"
+          ]
+        },
+        {
+          "table": "business_community_attr",
+          "sql": "ALTER TABLE `business_community_attr` DROP INDEX `idx_business_community_attr_b_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `business_community_attr` ADD INDEX `idx_business_community_attr_b_id` (`b_id`)",
+          "reasons": [
+            "Exact duplicate; retain idx_business_b_room_attr_b_id"
+          ]
+        },
+        {
+          "table": "business_pay_fee",
+          "sql": "ALTER TABLE `business_pay_fee` DROP INDEX `idx_bpf_b_id`, DROP INDEX `idx_bpf_fee_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `business_pay_fee` ADD INDEX `idx_bpf_fee_id` (`fee_id`), ADD INDEX `idx_bpf_b_id` (`b_id`)",
+          "reasons": [
+            "Exact duplicate; retain idx_pf_b_id",
+            "Exact duplicate; retain idx_pf_fee_id"
+          ]
+        },
+        {
+          "table": "business_pay_fee_attrs",
+          "sql": "ALTER TABLE `business_pay_fee_attrs` DROP INDEX `idx_pfa_b_id`, DROP INDEX `idx_bpfa_b_id`, DROP INDEX `idx_bpfa_fee_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `business_pay_fee_attrs` ADD INDEX `idx_bpfa_fee_id` (`fee_id`), ADD INDEX `idx_bpfa_b_id` (`b_id`), ADD INDEX `idx_pfa_b_id` (`b_id`)",
+          "reasons": [
+            "Exact duplicate; retain idx_bma_b_id",
+            "Exact duplicate; retain idx_bma_b_id",
+            "Exact duplicate; retain idx_pfa_fee_id"
+          ]
+        },
+        {
+          "table": "business_pay_fee_config",
+          "sql": "ALTER TABLE `business_pay_fee_config` DROP INDEX `idx_bpfc_b_id`, DROP INDEX `idx_bpfc_config_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `business_pay_fee_config` ADD INDEX `idx_bpfc_config_id` (`config_id`), ADD INDEX `idx_bpfc_b_id` (`b_id`)",
+          "reasons": [
+            "Exact duplicate; retain idx_pfc_b_id",
+            "Exact duplicate; retain idx_pfc_config_id"
+          ]
+        },
+        {
+          "table": "business_pay_fee_detail",
+          "sql": "ALTER TABLE `business_pay_fee_detail` DROP INDEX `idx_bpfd_b_id`, DROP INDEX `idx_bpfd_detail_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `business_pay_fee_detail` ADD INDEX `idx_bpfd_detail_id` (`detail_id`), ADD INDEX `idx_bpfd_b_id` (`b_id`)",
+          "reasons": [
+            "Exact duplicate; retain idx_pfd_b_id",
+            "Exact duplicate; retain idx_pfd_detail_id"
+          ]
+        },
+        {
+          "table": "c_business_type",
+          "sql": "ALTER TABLE `c_business_type` DROP INDEX `business_type_cd_2`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `c_business_type` ADD UNIQUE INDEX `business_type_cd_2` (`business_type_cd`)",
+          "reasons": [
+            "Exact duplicate; retain business_type_cd"
+          ]
+        },
+        {
+          "table": "c_orders",
+          "sql": "ALTER TABLE `c_orders` DROP INDEX `o_id_2`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `c_orders` ADD UNIQUE INDEX `o_id_2` (`o_id`)",
+          "reasons": [
+            "Exact duplicate; retain o_id"
+          ]
+        },
+        {
+          "table": "f_floor",
+          "sql": "ALTER TABLE `f_floor` DROP INDEX `idx_floor_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `f_floor` ADD UNIQUE INDEX `idx_floor_id` (`floor_id`)",
+          "reasons": [
+            "Exact duplicate; retain floor_id"
+          ]
+        },
+        {
+          "table": "m_menu",
+          "sql": "ALTER TABLE `m_menu` DROP INDEX `index_m_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `m_menu` ADD INDEX `index_m_id` (`m_id`)",
+          "reasons": [
+            "Exact duplicate; retain PRIMARY"
+          ]
+        },
+        {
+          "table": "m_menu_group",
+          "sql": "ALTER TABLE `m_menu_group` DROP INDEX `g_id_2`, DROP INDEX `index_m_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `m_menu_group` ADD INDEX `index_m_id` (`g_id`), ADD UNIQUE INDEX `g_id_2` (`g_id`)",
+          "reasons": [
+            "Exact duplicate; retain g_id",
+            "Exact duplicate; retain g_id"
+          ]
+        },
+        {
+          "table": "owner_app_user",
+          "sql": "ALTER TABLE `owner_app_user` DROP INDEX `idx_owner_app_user_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `owner_app_user` ADD UNIQUE INDEX `idx_owner_app_user_id` (`app_user_id`)",
+          "reasons": [
+            "Exact duplicate; retain app_user_id"
+          ]
+        },
+        {
+          "table": "owner_car",
+          "sql": "ALTER TABLE `owner_car` DROP INDEX `idx_oc_car_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `owner_car` ADD INDEX `idx_oc_car_id` (`car_id`)",
+          "reasons": [
+            "Exact duplicate; retain car_id"
+          ]
+        },
+        {
+          "table": "p_parking_space",
+          "sql": "ALTER TABLE `p_parking_space` DROP INDEX `idx_ps_ps_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `p_parking_space` ADD INDEX `idx_ps_ps_id` (`ps_id`)",
+          "reasons": [
+            "Exact duplicate; retain ps_id"
+          ]
+        },
+        {
+          "table": "p_privilege",
+          "sql": "ALTER TABLE `p_privilege` DROP INDEX `p_id_2`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `p_privilege` ADD UNIQUE INDEX `p_id_2` (`p_id`)",
+          "reasons": [
+            "Exact duplicate; retain p_id"
+          ]
+        },
+        {
+          "table": "p_privilege_group",
+          "sql": "ALTER TABLE `p_privilege_group` DROP INDEX `pg_id_2`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `p_privilege_group` ADD UNIQUE INDEX `pg_id_2` (`pg_id`)",
+          "reasons": [
+            "Exact duplicate; retain pg_id"
+          ]
+        },
+        {
+          "table": "p_privilege_rel",
+          "sql": "ALTER TABLE `p_privilege_rel` DROP INDEX `rel_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `p_privilege_rel` ADD UNIQUE INDEX `rel_id` (`rel_id`)",
+          "reasons": [
+            "Exact duplicate; retain PRIMARY"
+          ]
+        },
+        {
+          "table": "p_privilege_user",
+          "sql": "ALTER TABLE `p_privilege_user` DROP INDEX `pu_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `p_privilege_user` ADD UNIQUE INDEX `pu_id` (`pu_id`)",
+          "reasons": [
+            "Exact duplicate; retain PRIMARY"
+          ]
+        },
+        {
+          "table": "pay_fee",
+          "sql": "ALTER TABLE `pay_fee` DROP INDEX `fee_id_2`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `pay_fee` ADD UNIQUE INDEX `fee_id_2` (`fee_id`)",
+          "reasons": [
+            "Exact duplicate; retain fee_id"
+          ]
+        },
+        {
+          "table": "pay_fee_config",
+          "sql": "ALTER TABLE `pay_fee_config` DROP INDEX `config_id_2`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `pay_fee_config` ADD UNIQUE INDEX `config_id_2` (`config_id`)",
+          "reasons": [
+            "Exact duplicate; retain config_id"
+          ]
+        },
+        {
+          "table": "s_community",
+          "sql": "ALTER TABLE `s_community` DROP INDEX `idx_community_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `s_community` ADD UNIQUE INDEX `idx_community_id` (`community_id`)",
+          "reasons": [
+            "Exact duplicate; retain community_id"
+          ]
+        },
+        {
+          "table": "s_community_photo",
+          "sql": "ALTER TABLE `s_community_photo` DROP INDEX `idx_community_photo_community_photo_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `s_community_photo` ADD INDEX `idx_community_photo_community_photo_id` (`community_photo_id`)",
+          "reasons": [
+            "Exact duplicate; retain community_photo_id"
+          ]
+        },
+        {
+          "table": "s_store",
+          "sql": "ALTER TABLE `s_store` DROP INDEX `idx_store_store_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `s_store` ADD UNIQUE INDEX `idx_store_store_id` (`store_id`)",
+          "reasons": [
+            "Exact duplicate; retain store_id"
+          ]
+        },
+        {
+          "table": "s_store_cerdentials",
+          "sql": "ALTER TABLE `s_store_cerdentials` DROP INDEX `idx_store_cerdentials_store_cerdentials_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `s_store_cerdentials` ADD INDEX `idx_store_cerdentials_store_cerdentials_id` (`store_cerdentials_id`)",
+          "reasons": [
+            "Exact duplicate; retain store_cerdentials_id"
+          ]
+        },
+        {
+          "table": "s_store_photo",
+          "sql": "ALTER TABLE `s_store_photo` DROP INDEX `idx_store_photo_store_photo_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `s_store_photo` ADD INDEX `idx_store_photo_store_photo_id` (`store_photo_id`)",
+          "reasons": [
+            "Exact duplicate; retain store_photo_id"
+          ]
+        }
+      ]
+    },
+    {
+      "database": "hc_community",
+      "tables": [
+        {
+          "table": "business_community_attr",
+          "sql": "ALTER TABLE `business_community_attr` DROP INDEX `idx_business_community_attr_b_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `business_community_attr` ADD INDEX `idx_business_community_attr_b_id` (`b_id`)",
+          "reasons": [
+            "Exact duplicate; retain idx_business_b_room_attr_b_id"
+          ]
+        },
+        {
+          "table": "s_community",
+          "sql": "ALTER TABLE `s_community` DROP INDEX `idx_community_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `s_community` ADD UNIQUE INDEX `idx_community_id` (`community_id`)",
+          "reasons": [
+            "Exact duplicate; retain community_id"
+          ]
+        },
+        {
+          "table": "s_community_photo",
+          "sql": "ALTER TABLE `s_community_photo` DROP INDEX `idx_community_photo_community_photo_id`, ALGORITHM=INPLACE, LOCK=NONE",
+          "rollbackSql": "ALTER TABLE `s_community_photo` ADD INDEX `idx_community_photo_community_photo_id` (`community_photo_id`)",
+          "reasons": [
+            "Exact duplicate; retain community_photo_id"
+          ]
+        }
+      ]
+    }
+  ],
+  "rehearsal": [
+    {
+      "source": "TT",
+      "copiedTables": 30,
+      "copiedRows": 29333,
+      "forwardPassed": true,
+      "rollbackPassed": true,
+      "sourceModified": false
+    },
+    {
+      "source": "hc_community",
+      "copiedTables": 3,
+      "copiedRows": 233,
+      "forwardPassed": true,
+      "rollbackPassed": true,
+      "sourceModified": false
+    }
+  ],
+  "executionPlansAfter": {
+    "billById": [
+      [
+        "1",
+        "SIMPLE",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "no matching row in const table"
+      ]
+    ],
+    "oweById": [
+      [
+        "1",
+        "SIMPLE",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "no matching row in const table"
+      ]
+    ],
+    "currentBills": [
+      [
+        "1",
+        "SIMPLE",
+        "bill",
+        "NULL",
+        "range",
+        "idx_bill_review,idx_billing_current_date",
+        "idx_billing_current_date",
+        "130",
+        "NULL",
+        "1",
+        "100.00",
+        "Using index condition; Backward index scan"
+      ]
+    ]
+  },
+  "runtimeChecksPassed": 21,
+  "remainingScope": [
+    "Framework-managed and historical tables preserved.",
+    "Uncertain/empty tables are not removed without dependency and retention confirmation.",
+    "No real payments or notifications initiated.",
+    "Query plans are not a production concurrency benchmark."
+  ],
+  "testsPassed": {
+    "migration": 8,
+    "previousMigrationCompatibility": 4,
+    "paymentDatabase": 40,
+    "ownerPaymentHistory": 8,
+    "billReview": 10
+  },
+  "pendingMigrationOperations": 0
+}

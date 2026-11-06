@@ -25,6 +25,8 @@ def plan(database='TT'):
             raise base.MigrationError('Required billing table/columns missing: '+table)
         if name in indexes and indexes[name]!=list(fields):
             raise base.MigrationError('Incompatible billing index: '+table+'.'+name)
+        # A clustered identity key already retrieves the full bill row directly.
+        if name in ('idx_billing_identity','idx_billing_owe_identity') and indexes.get('PRIMARY')==[fields[0]]:continue
         # Avoid duplicating an existing usable leftmost index prefix.
         if any(value[:len(fields)]==list(fields) for value in indexes.values()):continue
         pending.append('ALTER TABLE `'+table+'` ADD INDEX `'+name+'` ('+','.join('`'+field+'`' for field in fields)+')')
