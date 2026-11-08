@@ -12,9 +12,11 @@
 | 本地支付入账一致性检查 | 已实现，真实只读检查 11 月 6 日一笔 0.01 元订单无差异 |
 | 微信 ALL 日账单导入核对 | 代码及合成账单测试通过，等待实际商户原始 ALL 日账单验收 |
 | 财务人员可读报告 | 已实现私有 HTML、CSV、JSON，有中文差异说明和核查步骤 |
-| 自动回归配置 | 新增 GitHub Actions：后台、H5、对账、备份和部署保护离线测试；工作流尚未在 GitHub 执行，不代替 Java/SQL、H5 构建和 Linux 运行验收 |
+| 自动回归配置 | 新增 GitHub Actions，已在 Ubuntu/Python 3.12/Node 22 上通过后台、H5、对账、备份和部署保护离线测试；不代替 Java/SQL、H5 构建和 Linux 业务运行验收 |
 
 说明见 [支付核对使用说明](PAYMENT-RECONCILIATION.md)，设计见 [商用完善设计](superpowers/specs/2026-11-08-commercial-readiness-design.md)。完整报告保留在本机忽略目录，不提交业务资料和商户账单。
+
+本批代码提交 `f41381c`，已上传独立分支；首次 [GitHub 自动回归](https://github.com/haixiang718/wuye/actions/runs/42494705722) 两个任务均成功。
 
 ## 后续工作顺序与放行条件
 

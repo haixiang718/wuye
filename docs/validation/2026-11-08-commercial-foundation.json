@@ -28,13 +28,23 @@
     "independentReviewPerformed": true,
     "fixes": ["reject SUCCESS-only and REFUND-only exports", "validate gross order summary total", "check fee advancement and bill receipts lower bound", "review any refund marker even when application amount is zero", "recognize official zero refund ID placeholders as absent"]
   },
+  "githubCi": {
+    "sourceCommit": "f41381c9a8d634f84eb7fc89806d70182fec340b",
+    "runId": 42494705722,
+    "url": "https://github.com/haixiang718/wuye/actions/runs/42494705722",
+    "conclusion": "success",
+    "runner": "ubuntu-latest",
+    "python": "3.12",
+    "node": "22",
+    "successfulJobs": 2
+  },
   "actionsTriggered": [],
   "limitations": [
     "Not a declaration that the complete product is commercially ready.",
     "No real merchant ALL daily bill was supplied, so official daily bill reconciliation is not accepted.",
     "No refunds, repair writes, notifications, new payments or all-owner payment enablement occurred.",
     "Finance reports are local administrator tools, not a newly exposed admin website page.",
-    "CI configuration is prepared; GitHub workflow execution has not been observed.",
+    "GitHub CI covers offline contracts and UI logic, not real merchant payments or Linux business runtime acceptance.",
     "No production deployment, capacity acceptance, trigger-aware full restore, multi-community H5 acceptance or full payment release was performed."
   ]
 }
