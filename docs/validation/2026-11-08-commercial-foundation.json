@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-08",
+  "scope": "First commercial-readiness tranche: read-only payment reconciliation, private finance reports, and offline CI configuration",
+  "sourceBaseCommit": "254b7fb",
+  "branch": "codex/commercial-readiness",
+  "target": "One property management company, multiple communities",
+  "tests": {
+    "paymentReconciliationPython": {"passed": 36, "failed": 0},
+    "paymentReconciliationMySql": {"passed": 14, "failed": 0, "schemaOnlyClonedTables": 9},
+    "existingPaymentOrderMySqlJava": {"passed": 40, "failed": 0},
+    "adminNode": {"passed": 84, "failed": 0},
+    "ownerH5Node": {"passed": 129, "failed": 0},
+    "runtimeOperationsPython": {"passed": 14, "failed": 0},
+    "releaseArchivePython": {"passed": 10, "failed": 0, "skipped": 1},
+    "linuxStartupContractPython": {"passed": 6, "failed": 0},
+    "wechatReadinessOfflinePython": {"passed": 8, "failed": 0},
+    "reportBrowser": {"desktop": true, "mobile": true, "pageErrors": 0, "externalRequests": 0}
+  },
+  "realLocalReadOnlyCheck": {
+    "postingDateBeijing": "2026-11-06",
+    "postedOrders": 1,
+    "differenceCount": 0,
+    "officialProviderBillImported": false,
+    "checks": ["order items", "ledger and receipt amounts", "fee and frozen period allocation", "settled published snapshots", "fee end advanced", "bill receipts include known posted payments", "reservations released"],
+    "businessRowsModified": false
+  },
+  "review": {
+    "independentReviewPerformed": true,
+    "fixes": ["reject SUCCESS-only and REFUND-only exports", "validate gross order summary total", "check fee advancement and bill receipts lower bound", "review any refund marker even when application amount is zero", "recognize official zero refund ID placeholders as absent"]
+  },
+  "actionsTriggered": [],
+  "limitations": [
+    "Not a declaration that the complete product is commercially ready.",
+    "No real merchant ALL daily bill was supplied, so official daily bill reconciliation is not accepted.",
+    "No refunds, repair writes, notifications, new payments or all-owner payment enablement occurred.",
+    "Finance reports are local administrator tools, not a newly exposed admin website page.",
+    "CI configuration is prepared; GitHub workflow execution has not been observed.",
+    "No production deployment, capacity acceptance, trigger-aware full restore, multi-community H5 acceptance or full payment release was performed."
+  ]
+}

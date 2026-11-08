@@ -1,0 +1,59 @@
+name: Property quality checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: property-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-contracts:
+    name: Offline payment and deployment contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Reconciliation
+        run: python -m unittest discover -s scripts/tests -p test_payment_reconciliation.py -v
+      - name: Backup safeguards
+        run: python -m unittest discover -s scripts/tests -p test_runtime_ops.py -v
+      - name: Release archive safeguards
+        run: python -m unittest discover -s scripts/tests -p test_release.py -v
+      - name: Linux startup safeguards
+        run: python -m unittest discover -s scripts/tests -p test_release_runtime.py -v
+      - name: WeChat readiness without network
+        run: python -m unittest discover -s scripts/tests -p test_wechat_readiness.py -v
+
+  interfaces:
+    name: Admin and owner H5 regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: wuye-f/MicroCommunityWeb-v0.8/package-lock.json
+      - name: Install admin dependencies without lifecycle scripts
+        working-directory: wuye-f/MicroCommunityWeb-v0.8
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Admin regressions
+        working-directory: wuye-f/MicroCommunityWeb-v0.8
+        run: npm test
+      - name: Owner H5 logic regressions
+        working-directory: wuye-xcx2/WechatOwnerService-v0.8
+        run: npm test
